@@ -347,8 +347,8 @@ async function showLandingCardMulti(p, c){
             };
         } else if(c.type === 'property'){
             const rent = Math.floor(c.price * (c.rentPercent / 100));
-            if(c.owner === null){
-                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><div class="card-row"><span>Цена:</span><span>${c.price}д</span></div></div><div class="card-actions"><button class="action-btn btn-buy" id="buy-prop">КУПИ</button><button class="action-btn btn-pass" id="pass-prop">ПОМИНИ</button></div></div>`;
+            if(c.owner == null){ // Matches null and undefined
+                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><div class="card-row"><span>Цена:</span><span>${c.price}д</span></div><div class="card-row"><span>Кирија:</span><span>${rent}д</span></div></div><div class="card-actions"><button class="action-btn btn-buy" id="buy-prop">КУПИ (РEШИ ЗАДАЧА)</button><button class="action-btn btn-pass" id="pass-prop">ПОМИНУВАЈ</button></div></div>`;
                 document.getElementById('buy-prop').onclick = async () => {
                     const isHard = c.difficulty === 3;
                     const t = getUniqueTask(c.difficulty);
@@ -364,7 +364,8 @@ async function showLandingCardMulti(p, c){
                 };
                 document.getElementById('pass-prop').onclick = () => rc();
             } else if(c.owner !== myPlayerId){
-                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Сопственик: ${players[c.owner].name}</p><h2>Кирија: ${rent}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">ПЛАТИ</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">ШТИТ (🛡️)</button>':''}</div></div>`;
+                const ownerName = (players[c.owner] && players[c.owner].name) ? players[c.owner].name : "Противник";
+                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Сопственик: ${ownerName}</p><h2>Кирија: ${rent}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">ПЛАТИ</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">ШТИТ (🛡️)</button>':''}</div></div>`;
                 document.getElementById('pay-rent').onclick = async () => {
                     const t = getUniqueTask(2);
                     const ok = await askQuestion("КИРИЈА", `Точен одговор за ${rent}д, инаку ${rent*2}д!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation);
@@ -394,6 +395,9 @@ async function showLandingCardMulti(p, c){
                 document.getElementById('pass-prop').onclick = () => rc();
             }
         } else rc();
+
+        // Safety fallback: if nothing was rendered in 500ms, close overlay
+        setTimeout(() => { if(o.innerHTML === '') rc(); }, 500);
     });
 }
 
