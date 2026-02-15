@@ -36,13 +36,41 @@
             </div>
         </div>
         <div class="login-form">
-            <h1>🏙️ ПРОЦЕНТОПОЛИС</h1>
-            <p class="subtitle">Математичка авантура</p>
+            <div class="portal-header">
+                <h1>🏙️ ПРОЦЕНТОПОЛИС</h1>
+                <p class="subtitle">МАСТЕР ПОРТАЛ</p>
+            </div>
+            
             <div id="auth-section">
-                <div class="input-group"><label>Име и презиме:</label><input type="text" id="player-name-input" placeholder="Внесете име..." autocomplete="off"></div>
-                <div class="input-group"><label>Одделение:</label><select id="player-odd-input"><option value="8-1">8-1</option><option value="8-2">8-2</option><option value="8-3">8-3</option><option value="8-4">8-4</option></select></div>
-                <div class="input-group"><label>Соба ID (остави празно за нова):</label><input type="text" id="room-id-input" placeholder="пр. ROOM123" autocomplete="off"></div>
-                <button id="login-btn" disabled>🚀 ПРИКЛУЧИ СЕ / КРЕИРАЈ СОБА</button>
+                <div class="role-selector" style="display:flex; gap:10px; margin-bottom:20px;">
+                    <button id="role-student" class="role-btn active" onclick="setRole('student')">👨‍🎓 УЧЕНИК</button>
+                    <button id="role-teacher" class="role-btn" onclick="setRole('teacher')">👨‍🏫 НАСТАВНИК</button>
+                </div>
+
+                <div class="input-group">
+                    <label>👤 ВАШЕТО ИМЕ:</label>
+                    <input type="text" id="player-name-input" placeholder="Внесете име и презиме..." autocomplete="off">
+                </div>
+
+                <div id="student-only-fields">
+                    <div class="input-group">
+                        <label>🏫 ОДДЕЛЕНИЕ:</label>
+                        <select id="player-odd-input">
+                            <option value="8-1">8-1</option>
+                            <option value="8-2">8-2</option>
+                            <option value="8-3">8-3</option>
+                            <option value="8-4">8-4</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group room-box">
+                    <label id="room-label">🏠 ПРИКЛУЧИ СЕ ВО СОБА:</label>
+                    <input type="text" id="room-id-input" placeholder="Код на соба (пр. ROOM123)" autocomplete="off">
+                    <p id="room-hint" style="font-size: 0.75rem; color: #7f8c8d; margin-top: 5px;">Внеси го кодот што го доби од наставникот.</p>
+                </div>
+
+                <button id="login-btn" disabled>🚀 ВЛЕЗИ ВО АВАНТУРАТА</button>
             </div>
             <div id="lobby-section" style="display:none;">
                 <h2 id="current-room-display">Соба: ---</h2>
@@ -72,7 +100,17 @@
     <div id="controls-container">
         <div class="header-info">
             <div><h1 style="font-size:1.1rem; margin:0;">ПроцентОполис</h1><span id="player-display-name" style="font-size:0.8rem; font-weight:bold; color:#555;">Ученик</span></div>
-            <div style="display:flex; flex-direction:column; align-items:flex-end;"><div id="class-timer">40:00</div></div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                <div id="class-timer">40:00</div>
+                <div id="turn-timer" style="font-size: 0.8rem; font-weight: bold; color: #3498db; margin-top: 5px;">Потег: 30s</div>
+            </div>
+        </div>
+        <div id="interaction-panel" style="display:flex; justify-content: space-around; padding: 5px; background: #f0f0f0; border-radius: 8px; margin-bottom: 10px;">
+            <button onclick="sendEmoji('😊')" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">😊</button>
+            <button onclick="sendEmoji('😎')" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">😎</button>
+            <button onclick="sendEmoji('🔥')" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">🔥</button>
+            <button onclick="sendEmoji('👏')" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">👏</button>
+            <button onclick="sendEmoji('🎉')" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">🎉</button>
         </div>
         <div class="stats-panel" id="stats-panel-multi">
             <!-- Players stats will be injected here -->
@@ -85,7 +123,32 @@
         </div>
         <button id="roll-btn">🎲 ФРЛИ</button>
         <button id="shop-btn" onclick="openShop()">🛒 ПРОДАВНИЦА</button>
+        <button id="teacher-dash-btn" style="display:none; margin-top:5px; background:#2c3e50; color:white; border:none; padding:8px; border-radius:10px; cursor:pointer;" onclick="openTeacherDash()">📊 ПАНЕЛ ЗА НАСТАВНИК</button>
         <button id="end-game-btn" onclick="triggerGameOver('Рачен крај')" style="margin-top:5px; font-size:0.8rem; background:transparent; border:1px solid #ccc; color:#888;">🏁 ИЗВЕШТАЈ</button>
+    </div>
+</div>
+
+<!-- TEACHER DASHBOARD MODAL -->
+<div id="teacher-modal" class="modal-overlay">
+    <div class="modal-mini" style="width:800px; max-width:95%; height:auto; display:block; position:relative; top:auto; left:auto; transform:none; animation:none;">
+        <h2>📊 ПАНЕЛ ЗА НАСТАВНИК - ВО ЖИВО</h2>
+        <div style="overflow-x:auto; margin-top:15px;">
+            <table style="width:100%; border-collapse: collapse; text-align:left;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #ddd;">
+                        <th style="padding:10px;">Играч</th>
+                        <th style="padding:10px;">Пари</th>
+                        <th style="padding:10px;">Точни</th>
+                        <th style="padding:10px;">Грешни</th>
+                        <th style="padding:10px;">Последна активност</th>
+                    </tr>
+                </thead>
+                <tbody id="teacher-stats-tbody">
+                    <!-- Data will be injected here -->
+                </tbody>
+            </table>
+        </div>
+        <button class="action-btn btn-pass" style="margin-top:20px; width:100%;" onclick="document.getElementById('teacher-modal').style.display='none'">ЗАТВОРИ</button>
     </div>
 </div>
 
@@ -110,8 +173,17 @@
             </div>
             <div class="whiteboard-side" id="canvas-parent">
                 <canvas id="whiteboard"></canvas>
-                <div style="position:absolute; bottom:15px; left:50%; transform:translateX(-50%); background:white; padding:5px 15px; border-radius:20px; box-shadow:0 2px 10px rgba(0,0,0,0.1); z-index:100;">
-                    <button onclick="clearCanvas()" style="padding:5px 10px; border-radius:5px; border:1px solid #ddd; cursor:pointer;">🗑️ Избриши</button>
+                <div class="canvas-tools" style="position:absolute; bottom:15px; left:50%; transform:translateX(-50%); background:white; padding:10px 20px; border-radius:30px; box-shadow:0 4px 15px rgba(0,0,0,0.2); z-index:100; display:flex; gap:15px; align-items:center;">
+                    <div style="display:flex; gap:5px;">
+                        <button onclick="changeColor('#000000')" style="width:25px; height:25px; border-radius:50%; background:black; border:2px solid #ddd; cursor:pointer;"></button>
+                        <button onclick="changeColor('#e74c3c')" style="width:25px; height:25px; border-radius:50%; background:#e74c3c; border:2px solid #ddd; cursor:pointer;"></button>
+                        <button onclick="changeColor('#3498db')" style="width:25px; height:25px; border-radius:50%; background:#3498db; border:2px solid #ddd; cursor:pointer;"></button>
+                        <button onclick="changeColor('#2ecc71')" style="width:25px; height:25px; border-radius:50%; background:#2ecc71; border:2px solid #ddd; cursor:pointer;"></button>
+                    </div>
+                    <div style="height:20px; width:1px; background:#ddd;"></div>
+                    <input type="range" id="pen-width" min="1" max="10" value="3" style="width:80px;">
+                    <div style="height:20px; width:1px; background:#ddd;"></div>
+                    <button onclick="clearCanvas()" style="background:none; border:none; font-size:1.2rem; cursor:pointer;" title="Избриши се">🗑️</button>
                 </div>
             </div>
         </div>

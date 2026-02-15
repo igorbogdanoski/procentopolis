@@ -23,12 +23,15 @@ let usedQuestionIds = [], remainingTime = 40 * 60, players = [], currentPlayerIn
 let myPlayerId = null;
 let roomId = null;
 let isCreator = false;
-let timerInterval;
+let timerInterval, turnTimerInterval;
 let canvas, ctx, isDrawing = false, lastX = 0, lastY = 0;
+let penColor = '#000000';
+let penWidth = 3;
 let diceRotationCounter = 0;
 let currentDifficultyLevel = 1; 
 let correctStreak = 0;
 let currentTaskData = null;
+let turnRemainingTime = 30;
 
 // --- DATA ---
 function shuffleArray(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -82,20 +85,77 @@ function triggerConfetti() {
 }
 
 // --- LOBBY LOGIC ---
+let currentRole = 'student';
+
 window.onload = () => {
-    document.getElementById('player-name-input').oninput = (e) => {
-        document.getElementById('login-btn').disabled = e.target.value.trim().length < 3;
-    };
+    document.getElementById('player-name-input').oninput = checkLoginValid;
+    document.getElementById('room-id-input').oninput = checkLoginValid;
     
     document.getElementById('login-btn').onclick = joinRoom;
     document.getElementById('start-game-btn-multi').onclick = requestStartGame;
     setupCanvas();
+
+    // Check for existing session
+    const saved = localStorage.getItem('percentopolis_session');
+    if (saved) {
+        const session = JSON.parse(saved);
+        document.getElementById('player-name-input').value = session.name;
+        document.getElementById('room-id-input').value = session.roomId;
+    }
 };
+
+function checkLoginValid() {
+    const nameVal = document.getElementById('player-name-input').value.trim();
+    const roomVal = document.getElementById('room-id-input').value.trim();
+    const btn = document.getElementById('login-btn');
+    
+    if (currentRole === 'teacher') {
+        btn.disabled = nameVal.length < 3;
+    } else {
+        btn.disabled = nameVal.length < 3 || roomVal.length < 3;
+    }
+}
+
+function setRole(role) {
+    currentRole = role;
+    const sBtn = document.getElementById('role-student');
+    const tBtn = document.getElementById('role-teacher');
+    const studentFields = document.getElementById('student-only-fields');
+    const roomBox = document.querySelector('.room-box');
+    const roomLabel = document.getElementById('room-label');
+    const roomHint = document.getElementById('room-hint');
+    const roomInput = document.getElementById('room-id-input');
+
+    if (role === 'teacher') {
+        sBtn.classList.remove('active');
+        tBtn.classList.add('active');
+        studentFields.style.display = 'none';
+        roomBox.classList.add('teacher-mode');
+        roomLabel.innerText = "🏠 КРЕИРАЈ НОВА СОБА:";
+        roomInput.placeholder = "Име на соба (пр. МАТЕМАТИКА8)";
+        roomHint.innerText = "Остави празно за автоматски генериран код.";
+    } else {
+        tBtn.classList.remove('active');
+        sBtn.classList.add('active');
+        studentFields.style.display = 'block';
+        roomBox.classList.remove('teacher-mode');
+        roomLabel.innerText = "🏠 ПРИКЛУЧИ СЕ ВО СОБА:";
+        roomInput.placeholder = "Код на соба (пр. ROOM123)";
+        roomHint.innerText = "Внеси го кодот што го доби од наставникот.";
+    }
+    checkLoginValid();
+}
 
 async function joinRoom() {
     studentName = document.getElementById('player-name-input').value.trim();
-    studentOdd = document.getElementById('player-odd-input').value;
-    roomId = document.getElementById('room-id-input').value.trim().toUpperCase() || "ROOM" + Math.floor(1000 + Math.random() * 9000);
+    studentOdd = (currentRole === 'teacher') ? "Наставник" : document.getElementById('player-odd-input').value;
+    
+    let rawRoom = document.getElementById('room-id-input').value.trim().toUpperCase();
+    if (currentRole === 'teacher' && !rawRoom) {
+        roomId = "ROOM" + Math.floor(1000 + Math.random() * 9000);
+    } else {
+        roomId = rawRoom || "ROOM" + Math.floor(1000 + Math.random() * 9000);
+    }
     
     document.getElementById('auth-section').style.display = 'none';
     document.getElementById('lobby-section').style.display = 'block';
@@ -111,6 +171,7 @@ async function joinRoom() {
                 players: [],
                 currentPlayerIndex: 0,
                 remainingTime: 40 * 60,
+                turnStartTime: Date.now(),
                 gameBoard: boardConfig.map((c, i) => {
                     let diff = (i < 5) ? 1 : (i < 15) ? 2 : 3;
                     if (hardProperties.includes(i)) diff = 3;
@@ -122,22 +183,41 @@ async function joinRoom() {
         const playersRef = roomRef.child('players');
         playersRef.once('value', pSnap => {
             const currentPlayers = pSnap.val() || [];
-            if (currentPlayers.length >= 6) {
-                alert("Собата е полна!");
-                location.reload();
-                return;
+            
+            // Check if player is already in the list (reconnection)
+            let existingPid = -1;
+            currentPlayers.forEach((p, idx) => {
+                if (p && p.name === studentName) existingPid = idx;
+            });
+
+            if (existingPid !== -1) {
+                myPlayerId = existingPid;
+            } else {
+                if (currentPlayers.length >= 6) {
+                    alert("Собата е полна!");
+                    location.reload();
+                    return;
+                }
+                myPlayerId = currentPlayers.length;
+                const newPlayer = {
+                    id: myPlayerId,
+                    name: studentName,
+                    odd: studentOdd,
+                    money: 1000,
+                    pos: 0,
+                    color: `var(--p${myPlayerId}-color)`,
+                    powerups: { lawyer: false, shield: false, nitro: false, bribe: false }
+                };
+                playersRef.child(myPlayerId).set(newPlayer);
             }
-            myPlayerId = currentPlayers.length;
-            const newPlayer = {
-                id: myPlayerId,
+
+            // Save session
+            localStorage.setItem('percentopolis_session', JSON.stringify({
                 name: studentName,
-                odd: studentOdd,
-                money: 1000,
-                pos: 0,
-                color: `var(--p${myPlayerId}-color)`,
-                powerups: { lawyer: false, shield: false, nitro: false, bribe: false }
-            };
-            playersRef.child(myPlayerId).set(newPlayer);
+                roomId: roomId,
+                playerId: myPlayerId
+            }));
+
             roomRef.on('value', handleRoomUpdate);
         });
     });
@@ -149,9 +229,23 @@ function handleRoomUpdate(snapshot) {
     
     players = data.players || [];
     gameBoard = data.gameBoard || [];
+    const prevTurnIndex = currentPlayerIndex;
     currentPlayerIndex = data.currentPlayerIndex || 0;
     remainingTime = data.remainingTime;
     
+    // Turn Timer Logic
+    if (data.turnStartTime) {
+        const elapsed = Math.floor((Date.now() - data.turnStartTime) / 1000);
+        turnRemainingTime = Math.max(0, 30 - elapsed);
+        document.getElementById('turn-timer').innerText = `Потег: ${turnRemainingTime}s`;
+        
+        // Auto-skip if time is up and I'm the current player
+        if (turnRemainingTime === 0 && currentPlayerIndex === myPlayerId && !isRolling) {
+            log("Времето истече! Потегот се префрла.");
+            endTurnMulti();
+        }
+    }
+
     updateLobbyUI();
     
     if (data.status === 'playing' && document.getElementById('login-overlay').style.display !== 'none') {
@@ -161,6 +255,40 @@ function handleRoomUpdate(snapshot) {
     if (data.status === 'playing') {
         syncGameState();
     }
+
+    // Display emoji if any
+    if (data.lastEmoji && data.lastEmoji.timestamp > (Date.now() - 3000)) {
+        showEmojiOnToken(data.lastEmoji.pid, data.lastEmoji.emoji);
+    }
+}
+
+function showEmojiOnToken(pid, emoji) {
+    const token = document.getElementById(`token-${pid}`);
+    if (!token) return;
+    
+    // Check if emoji already exists to avoid duplicates
+    if (token.querySelector('.emoji-bubble')) return;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'emoji-bubble';
+    bubble.innerText = emoji;
+    bubble.style.position = 'absolute';
+    bubble.style.top = '-30px';
+    bubble.style.left = '50%';
+    bubble.style.transform = 'translateX(-50%)';
+    bubble.style.fontSize = '1.5rem';
+    bubble.style.animation = 'fadeOutUp 2s forwards';
+    token.appendChild(bubble);
+    setTimeout(() => { if(bubble.parentElement) bubble.parentElement.removeChild(bubble); }, 2000);
+}
+
+function sendEmoji(emoji) {
+    if (myPlayerId === null) return;
+    db.ref(`rooms/${roomId}/lastEmoji`).set({
+        pid: myPlayerId,
+        emoji: emoji,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
 }
 
 function updateLobbyUI() {
@@ -178,15 +306,22 @@ function updateLobbyUI() {
 
 function requestStartGame() {
     if (!isCreator) return;
-    db.ref('rooms/' + roomId).update({ status: 'playing' });
+    db.ref('rooms/' + roomId).update({ 
+        status: 'playing',
+        turnStartTime: firebase.database.ServerValue.TIMESTAMP 
+    });
 }
 
 function initMultiplayerGame() {
     AudioController.init();
-    document.getElementById('player-display-name').innerText = `Играч: ${studentName}`;
+    document.getElementById('player-display-name').innerText = (currentRole === 'teacher' ? 'Наставник: ' : 'Играч: ') + studentName;
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('game-wrapper').classList.remove('blur-filter');
     
+    if (isCreator) {
+        document.getElementById('teacher-dash-btn').style.display = 'block';
+    }
+
     const statsPanel = document.getElementById('stats-panel-multi');
     statsPanel.innerHTML = '';
     players.forEach(p => {
@@ -414,7 +549,10 @@ async function showLandingCardMulti(p, c){
 function endTurnMulti(){
     isRolling = false;
     const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
-    db.ref(`rooms/${roomId}`).update({ currentPlayerIndex: nextPlayerIndex });
+    db.ref(`rooms/${roomId}`).update({ 
+        currentPlayerIndex: nextPlayerIndex,
+        turnStartTime: firebase.database.ServerValue.TIMESTAMP 
+    });
 }
 
 function updateUI(){
@@ -426,6 +564,10 @@ function updateUI(){
         if(statEl){
             if(currentPlayerIndex === p.id) statEl.classList.add('active-turn');
             else statEl.classList.remove('active-turn');
+            
+            // Thinking indicator
+            if(p.isThinking) statEl.style.borderRight = "4px solid #f1c40f";
+            else statEl.style.borderRight = "none";
         }
         
         const powerupsEl = document.getElementById(`powerups-${p.id}`);
@@ -442,6 +584,24 @@ function updateUI(){
 function openShop() { 
     if(currentPlayerIndex !== myPlayerId || isRolling) return; 
     document.getElementById('shop-modal').style.display='flex'; 
+}
+
+function openTeacherDash() {
+    const tbody = document.getElementById('teacher-stats-tbody');
+    tbody.innerHTML = '';
+    players.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #eee';
+        tr.innerHTML = `
+            <td style="padding:10px;">${p.name} (${p.odd})</td>
+            <td style="padding:10px;">${p.money}д</td>
+            <td style="padding:10px; color:green;">${p.correct || 0}</td>
+            <td style="padding:10px; color:red;">${p.wrong || 0}</td>
+            <td style="padding:10px; font-size:0.8rem;">${p.lastActivity || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+    document.getElementById('teacher-modal').style.display = 'flex';
 }
 
 function buyItem(type,cost) {
@@ -464,6 +624,8 @@ function getUniqueTask(diff){
 function askQuestion(cat, q, ans, opts, isAdaptive, expl){
     return new Promise(resolve=>{
         const m=document.getElementById('question-modal'); m.style.display='flex';
+        db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ isThinking: true });
+        
         document.getElementById('modal-category').innerText=cat;
         document.getElementById('question-text').innerText=q;
         const oc=document.getElementById('options-container'); oc.innerHTML='';
@@ -471,17 +633,33 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl){
         const fa=document.getElementById('feedback-area'); fa.innerText='';
         currentTaskData = { q, ans, expl };
 
+        const finalize = (res) => {
+            const updates = { isThinking: false };
+            if (res) {
+                studentCorrect++;
+                updates.correct = studentCorrect;
+            } else {
+                studentWrong++;
+                updates.wrong = studentWrong;
+            }
+            updates.lastActivity = (res ? "Точно: " : "Грешно: ") + q;
+            
+            db.ref(`rooms/${roomId}/players/${myPlayerId}`).update(updates);
+            m.style.display='none';
+            resolve(res);
+        };
+
         if(opts && opts.length>0){
             opts.forEach(o=>{
                 const b=document.createElement('button'); b.className='option-btn'; b.innerText=o;
                 b.onclick=()=>{
                     const isCorrect = o === ans;
-                    if(isCorrect){ b.classList.add('correct-answer'); AudioController.play('success'); triggerConfetti(); studentCorrect++; correctStreak++; }
-                    else { b.classList.add('wrong-answer'); AudioController.play('failure'); studentWrong++; correctStreak=0; }
+                    if(isCorrect){ b.classList.add('correct-answer'); AudioController.play('success'); triggerConfetti(); correctStreak++; }
+                    else { b.classList.add('wrong-answer'); AudioController.play('failure'); correctStreak=0; }
                     fa.innerText = isCorrect ? "ТОЧНО! ✅" : `ГРЕШКА! ❌ Точниот одговор е ${ans}.`;
                     fa.style.color = isCorrect ? "green" : "red";
                     sendLiveUpdate(q, o, isCorrect);
-                    setTimeout(()=>{ m.style.display='none'; resolve(isCorrect); }, 2000);
+                    setTimeout(()=>{ finalize(isCorrect); }, 2000);
                 };
                 oc.appendChild(b);
             });
@@ -491,12 +669,12 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl){
             document.getElementById('submit-answer-btn').onclick=()=>{
                 const val = document.getElementById('manual-answer-input').value.trim();
                 const isCorrect = val === ans;
-                if(isCorrect){ AudioController.play('success'); triggerConfetti(); studentCorrect++; correctStreak++; }
-                else { AudioController.play('failure'); studentWrong++; correctStreak=0; }
+                if(isCorrect){ AudioController.play('success'); triggerConfetti(); correctStreak++; }
+                else { AudioController.play('failure'); correctStreak=0; }
                 fa.innerText = isCorrect ? "ТОЧНО! ✅" : `ГРЕШКА! ❌ Точниот одговор е ${ans}.`;
                 fa.style.color = isCorrect ? "green" : "red";
                 sendLiveUpdate(q, val, isCorrect);
-                setTimeout(()=>{ m.style.display='none'; resolve(isCorrect); }, 2000);
+                setTimeout(()=>{ finalize(isCorrect); }, 2000);
             };
         }
     });
@@ -524,13 +702,32 @@ function setupCanvas(){
     canvas=document.getElementById('whiteboard'); 
     if(!canvas) return;
     ctx=canvas.getContext('2d'); 
+    
+    const widthSlider = document.getElementById('pen-width');
+    if(widthSlider) widthSlider.oninput = (e) => penWidth = e.target.value;
+
     function gp(e){const r=canvas.getBoundingClientRect(); return e.touches?{x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top}:{x:e.clientX-r.left,y:e.clientY-r.top};} 
     function st(e){e.preventDefault(); isDrawing=true; const p=gp(e); lastX=p.x; lastY=p.y;} 
-    function mv(e){if(!isDrawing)return; e.preventDefault(); const p=gp(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y;} 
+    function mv(e){
+        if(!isDrawing)return; 
+        e.preventDefault(); 
+        const p=gp(e); 
+        ctx.beginPath(); 
+        ctx.strokeStyle = penColor;
+        ctx.lineWidth = penWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.moveTo(lastX,lastY); 
+        ctx.lineTo(p.x,p.y); 
+        ctx.stroke(); 
+        lastX=p.x; lastY=p.y;
+    } 
     canvas.addEventListener('mousedown',st); canvas.addEventListener('mousemove',mv); canvas.addEventListener('mouseup',()=>isDrawing=false); 
     canvas.addEventListener('touchstart',st,{passive:false}); canvas.addEventListener('touchmove',mv,{passive:false}); 
     resizeCanvas();
 }
+
+function changeColor(c){ penColor = c; }
 function resizeCanvas(){if(canvas){canvas.width=canvas.parentElement.clientWidth; canvas.height=canvas.parentElement.clientHeight;}}
 function clearCanvas(){if(ctx) ctx.clearRect(0,0,canvas.width,canvas.height);}
 window.addEventListener('resize',()=>{resizeCanvas(); updateTokenPositionsMulti();});

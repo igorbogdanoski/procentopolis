@@ -88,8 +88,13 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); height: 100vh; 
 }
 
 .login-form { width: 45%; padding: 40px; display: flex; flex-direction: column; justify-content: center; background: white; text-align: center; }
-.login-form h1 { margin: 0 0 5px 0; color: var(--primary-color); font-size: 2.2rem; font-weight: 900; }
-.login-form .subtitle { color: #7f8c8d; margin-bottom: 30px; font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; font-weight: bold; }
+.login-form h1 { margin: 0; color: var(--primary-color); font-size: 2rem; font-weight: 900; }
+.portal-header { margin-bottom: 25px; }
+.role-selector { background: #f0f4f8; padding: 5px; border-radius: 12px; }
+.role-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; background: transparent; color: #7f8c8d; }
+.role-btn.active { background: white; color: var(--primary-color); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.room-box { background: #fdf2f2; padding: 15px; border-radius: 12px; border: 1px solid #fadbd8; }
+.room-box.teacher-mode { background: #e8f4fd; border-color: #d1e9fa; }
 
 .input-group { margin-bottom: 20px; text-align: left; }
 .input-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #444; font-size: 1rem; }
@@ -232,20 +237,29 @@ canvas { display: block; position: absolute; top: 0; left: 0; width: 100% !impor
 #game-over-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 4000; justify-content: center; align-items: center; }
 
 /* --- CARD OVERLAY --- */
-#card-overlay { z-index: 3200; }
+#card-overlay { z-index: 3200; perspective: 1000px; }
 .card-view {
-    width: 350px; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    overflow: hidden; display: flex; flex-direction: column; align-items: center; border: 2px solid #333;
+    width: 320px; background: white; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    overflow: hidden; display: flex; flex-direction: column; align-items: center; border: 4px solid #333;
+    animation: cardPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-.card-header { width: 100%; height: 80px; display: flex; justify-content: center; align-items: center; color: white; font-size: 1.5rem; font-weight: bold; border-bottom: 2px solid #333; }
-.card-body { padding: 20px; text-align: center; width: 100%; }
-.card-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 1.1rem; }
-.card-actions { padding: 20px; width: 100%; display: flex; flex-direction: column; gap: 10px; }
-.action-btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 1.1rem; cursor: pointer; color: white; transition: 0.2s; }
-.btn-buy { background: #27ae60; }
-.btn-rent { background: #e74c3c; }
-.btn-pass { background: #95a5a6; }
-.btn-build { background: #f39c12; }
+@keyframes cardPop { from { transform: scale(0.5) rotate(-5deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+
+.card-header { width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; color: white; font-size: 1.3rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+.card-body { padding: 20px; text-align: center; width: 100%; background: #fff; }
+.card-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #ddd; font-size: 1rem; color: #555; }
+.card-row span:last-child { font-weight: bold; color: #2c3e50; }
+.card-actions { padding: 15px; width: 100%; display: flex; flex-direction: column; gap: 8px; background: #f9f9f9; }
+
+.action-btn { padding: 14px; border-radius: 12px; border: none; font-weight: bold; font-size: 1rem; cursor: pointer; color: white; transition: all 0.2s; position: relative; overflow: hidden; }
+.action-btn::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: rgba(255,255,255,0.2); transition: 0.3s; }
+.action-btn:hover::after { left: 0; }
+.action-btn:active { transform: scale(0.95); }
+
+.btn-buy { background: linear-gradient(to bottom, #2ecc71, #27ae60); box-shadow: 0 4px 0 #1e8449; }
+.btn-rent { background: linear-gradient(to bottom, #e74c3c, #c0392b); box-shadow: 0 4px 0 #922b21; }
+.btn-pass { background: linear-gradient(to bottom, #95a5a6, #7f8c8d); box-shadow: 0 4px 0 #616a6b; }
+.btn-build { background: linear-gradient(to bottom, #f39c12, #d35400); box-shadow: 0 4px 0 #a04000; }
 .btn-hint { background: #9b59b6; margin-top: 10px; font-size: 0.9rem; } 
 
 /* --- SHOP STYLES --- */
@@ -270,6 +284,7 @@ canvas { display: block; position: absolute; top: 0; left: 0; width: 100% !impor
     animation: floatUp 1.5s ease-out forwards; z-index: 1000; text-shadow: 1px 1px 0 #fff;
 }
 @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-60px) scale(1.2); } }
+@keyframes fadeOutUp { 0% { opacity: 1; transform: translateX(-50%) translateY(0); } 100% { opacity: 0; transform: translateX(-50%) translateY(-40px); } }
 .confetti-piece {
     position: absolute; width: 10px; height: 10px; background: #f1c40f; top: 0; opacity: 0; z-index: 9999;
 }
