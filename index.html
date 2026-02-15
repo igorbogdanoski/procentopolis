@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="mk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Percentopolis - ПроцентОполис</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-overlay">
+    <div class="login-container">
+        <div class="login-info">
+            <h2>📜 УПАТСТВО ЗА ИГРАТА</h2>
+            <ul class="rules-list">
+                <li class="rule-icon-money"><strong>Цел:</strong> Собери најголемо богатство!</li>
+                <li class="rule-icon-calc"><strong>Купување:</strong> Реши задача за да купиш имот. Најскапите (Жолти) бараат впишување одговор.</li>
+                <li class="rule-icon-rent"><strong>Кирија:</strong> Пресметај точно или плати ДУПЛО!</li>
+                <li class="rule-icon-build"><strong>Стратегија:</strong> Купувај моќи во продавницата.</li>
+                <li class="rule-icon-steal"><strong>Инфо:</strong> Играта се зачувува автоматски.</li>
+            </ul>
+
+            <div class="shop-preview">
+                <h3>🛒 СТРАТЕГИЈА: ПРОДАВНИЦА</h3>
+                <div class="shop-preview-grid">
+                    <div class="shop-preview-item">⚖️ <strong>Адвокат:</strong> Штит од данок</div>
+                    <div class="shop-preview-item">🛡️ <strong>Штит:</strong> Штит од кирија</div>
+                    <div class="shop-preview-item">🚀 <strong>Нитро:</strong> Дупло движење</div>
+                    <div class="shop-preview-item">🕵️ <strong>Инсајдер:</strong> Евтин имот</div>
+                </div>
+            </div>
+        </div>
+        <div class="login-form">
+            <h1>🏙️ ПРОЦЕНТОПОЛИС</h1>
+            <p class="subtitle">Математичка авантура</p>
+            <div class="input-group"><label>Име и презиме:</label><input type="text" id="player-name-input" placeholder="Внесете име..." autocomplete="off"></div>
+            <div class="input-group"><label>Одделение:</label><select id="player-odd-input"><option value="8-1">8-1</option><option value="8-2">8-2</option><option value="8-3">8-3</option><option value="8-4">8-4</option></select></div>
+            <div class="input-group"><label>Време (мин):</label><input type="number" id="class-time-input" value="40" min="5" max="90"></div>
+            <button id="login-btn" disabled>🚀 ЗАПОЧНИ / ПРОДОЛЖИ</button>
+            <button onclick="clearSave()" style="margin-top:10px; background:#e74c3c; border:none; color:white; padding:10px; border-radius:10px; cursor:pointer;">🗑️ ИЗБРИШИ ЗАЧУВАНО</button>
+        </div>
+    </div>
+</div>
+
+<!-- Main Game -->
+<div id="game-wrapper" class="blur-filter">
+    <div id="game-board-container">
+        <div id="board"></div>
+        <div id="token-user" class="token">У</div>
+        <div id="token-bot1" class="token">Б1</div>
+        <div id="token-bot2" class="token">Б2</div>
+    </div>
+    <div id="controls-container">
+        <div class="header-info">
+            <div><h1 style="font-size:1.1rem; margin:0;">ПроцентОполис</h1><span id="player-display-name" style="font-size:0.8rem; font-weight:bold; color:#555;">Ученик</span></div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end;"><div id="class-timer">40:00</div></div>
+        </div>
+        <div class="stats-panel">
+            <div id="stat-user" class="player-stat active-turn">
+                <span>🔺 Ти</span>
+                <span id="score-user">1000д</span>
+                <div id="user-powerups" class="active-powerups"></div>
+            </div>
+            <div id="stat-bot1" class="player-stat"><span>🔲 Алфа</span><span id="score-bot1">1000д</span></div>
+            <div id="stat-bot2" class="player-stat"><span>🔴 Бета</span><span id="score-bot2">1000д</span></div>
+        </div>
+        <div id="game-log"></div>
+        <div id="dice-container">
+            <div class="dice" id="dice-visual">
+                <div class="dice-face f1">1</div><div class="dice-face f2">2</div><div class="dice-face f3">3</div><div class="dice-face f4">4</div><div class="dice-face f5">5</div><div class="dice-face f6">6</div>
+            </div>
+        </div>
+        <button id="roll-btn">🎲 ФРЛИ</button>
+        <button id="shop-btn" onclick="openShop()">🛒 ПРОДАВНИЦА</button>
+        <button id="end-game-btn" onclick="triggerGameOver('Рачен крај')" style="margin-top:5px; font-size:0.8rem; background:transparent; border:1px solid #ccc; color:#888;">🏁 ИЗВЕШТАЈ</button>
+    </div>
+</div>
+
+<!-- Question Modal -->
+<div id="question-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header" style="background:var(--primary-color); color:white; padding:15px; font-weight:bold; display:flex; justify-content:space-between;">
+            <span id="modal-category">Задача</span>
+            <span onclick="closeModal()" style="cursor:pointer; font-size:1.5rem;">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="question-side">
+                <div id="question-text" style="font-size:1.3rem; font-weight:bold; margin-bottom:20px;">...</div>
+                <div id="options-container"></div>
+                <div id="input-answer-container">
+                    <p style="font-size:0.9rem; color:#666; margin-bottom:5px;">Впиши број (користи точка за децимали):</p>
+                    <input type="text" id="manual-answer-input" placeholder="пр. 25.5">
+                    <button id="submit-answer-btn">ПОТВРДИ ОДГОВОР</button>
+                </div>
+                <button class="action-btn btn-hint" onclick="drawVisualHint()">🎨 ВИЗУЕЛНА ПОМОШ (HINT)</button>
+                <div id="feedback-area" style="margin-top:20px; font-weight:bold;"></div>
+            </div>
+            <div class="whiteboard-side" id="canvas-parent">
+                <canvas id="whiteboard"></canvas>
+                <div style="position:absolute; bottom:15px; left:50%; transform:translateX(-50%); background:white; padding:5px 15px; border-radius:20px; box-shadow:0 2px 10px rgba(0,0,0,0.1); z-index:100;">
+                    <button onclick="clearCanvas()" style="padding:5px 10px; border-radius:5px; border:1px solid #ddd; cursor:pointer;">🗑️ Избриши</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SHOP MODAL -->
+<div id="shop-modal" class="modal-overlay">
+    <div class="modal-mini" style="width:600px; display:block; position:relative; top:auto; left:auto; transform:none; animation:none;">
+        <h2>🛒 ПРОДАВНИЦА ЗА МОЌИ</h2>
+        <p>Искористи ги парите за стратегија!</p>
+        <div class="shop-grid">
+            <div class="shop-item" onclick="buyItem('lawyer', 300)"><div class="shop-icon">⚖️</div><h3>Адвокат</h3><p>Те штити од следната даночна инспекција.</p><div class="shop-price">300д</div></div>
+            <div class="shop-item" onclick="buyItem('shield', 250)"><div class="shop-icon">🛡️</div><h3>Златен Штит</h3><p>Еднаш не плаќаш кирија кај противник.</p><div class="shop-price">250д</div></div>
+            <div class="shop-item" onclick="buyItem('nitro', 150)"><div class="shop-icon">🚀</div><h3>Нитро Коцка</h3><p>Следното фрлање е со дупла вредност.</p><div class="shop-price">150д</div></div>
+            <div class="shop-item" onclick="buyItem('bribe', 500)"><div class="shop-icon">🕵️</div><h3>Инсајдер</h3><p>Земи го следниот имот на кој ќе застанеш за 1 денар.</p><div class="shop-price">500д</div></div>
+        </div>
+        <button class="action-btn btn-pass" style="margin-top:20px; width:100%;" onclick="document.getElementById('shop-modal').style.display='none'">ЗАТВОРИ</button>
+    </div>
+</div>
+
+<!-- NEW: Property Card Overlay -->
+<div id="card-overlay" class="modal-overlay"></div>
+
+<!-- Game Over -->
+<div id="game-over-overlay">
+    <div class="modal-mini" style="width:600px; display:block; position:relative; top:auto; left:auto; transform:none; animation:none;">
+        <h2>🏆 КРАЈ НА ИГРАТА</h2>
+        <p id="report-text" style="text-align:left; line-height:1.6; font-size:0.9rem; max-height: 300px; overflow-y:auto;"></p>
+        <div id="qrcode" style="margin:15px auto; display:flex; justify-content:center;"></div>
+        <button onclick="clearSave(); location.reload()" style="padding:10px 20px; background:var(--primary-color); color:white; border:none; border-radius:8px; cursor:pointer; margin-top:10px;">НОВА ИГРА</button>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

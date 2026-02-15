@@ -1,0 +1,443 @@
+// --- CONFIGURATION ---
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNkHKbA26KzoP5JkboXUPfj3THuws-OvVSOowWgNce0TUQOZmAV-5UbTz9ZjFzxUhX0Q/exec"; 
+const TOTAL_CELLS = 20;
+
+// --- VARIABLES ---
+let studentName = "", studentOdd = "", studentCorrect = 0, studentWrong = 0;
+let usedQuestionIds = [], remainingTime = 40 * 60, players = [], currentPlayerIndex = 0, gameBoard = [], isRolling = false;
+let timerInterval;
+let canvas, ctx, isDrawing = false, lastX = 0, lastY = 0;
+let diceRotationCounter = 0;
+let currentDifficultyLevel = 1; // 1=Easy, 2=Medium, 3=Hard (For Adaptive events)
+let correctStreak = 0;
+let currentTaskData = null;
+
+// --- AUDIO ---
+const AudioController = {
+    ctx: null,
+    init: function() { window.AudioContext = window.AudioContext||window.webkitAudioContext; this.ctx = new AudioContext(); },
+    play: function(type) {
+        if (!this.ctx) return;
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); osc.connect(gain); gain.connect(this.ctx.destination); const now = this.ctx.currentTime;
+        if (type === 'roll') { osc.type='triangle'; osc.frequency.setValueAtTime(100,now); osc.frequency.exponentialRampToValueAtTime(600,now+0.3); gain.gain.setValueAtTime(0.3,now); gain.gain.exponentialRampToValueAtTime(0.01,now+0.3); osc.start(now); osc.stop(now+0.3); }
+        else if (type === 'step') { osc.type='square'; osc.frequency.setValueAtTime(400,now); gain.gain.setValueAtTime(0.1,now); gain.gain.exponentialRampToValueAtTime(0.01,now+0.05); osc.start(now); osc.stop(now+0.05); }
+        else if (type === 'success') { this.playTone(523.25,now,0.1); this.playTone(659.25,now+0.1,0.1); this.playTone(783.99,now+0.2,0.3); }
+        else if (type === 'failure') { osc.type='sawtooth'; osc.frequency.setValueAtTime(150,now); osc.frequency.linearRampToValueAtTime(100,now+0.4); gain.gain.setValueAtTime(0.3,now); gain.gain.linearRampToValueAtTime(0.01,now+0.4); osc.start(now); osc.stop(now+0.4); }
+        else if (type === 'money') { osc.type='sine'; osc.frequency.setValueAtTime(1200,now); gain.gain.setValueAtTime(0.3,now); gain.gain.exponentialRampToValueAtTime(0.01,now+0.5); osc.start(now); osc.stop(now+0.5); }
+    },
+    playTone: function(f,t,d) { const o=this.ctx.createOscillator(); const g=this.ctx.createGain(); o.connect(g); g.connect(this.ctx.destination); o.type='sine'; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(0.2,t); g.gain.exponentialRampToValueAtTime(0.01,t+d); o.start(t); o.stop(t+d); }
+};
+
+// --- EFFECTS ---
+function triggerConfetti() {
+    const c=['#e74c3c','#3498db','#f1c40f','#27ae60','#9b59b6'];
+    for(let i=0;i<50;i++){
+        const p=document.createElement('div'); p.className='confetti-piece'; p.style.backgroundColor=c[Math.floor(Math.random()*c.length)];
+        p.style.left=Math.random()*100+'vw'; p.style.top='-10px'; p.style.width=Math.random()*10+5+'px'; p.style.height=Math.random()*5+5+'px';
+        const d=Math.random()*2+1; p.style.transition=`top ${d}s ease-in, transform ${d}s linear, opacity ${d}s ease-in`; p.style.opacity=1;
+        document.body.appendChild(p); setTimeout(()=>{p.style.top='100vh'; p.style.transform=`rotate(${Math.random()*360}deg)`; p.style.opacity=0;},50);
+        setTimeout(()=>{document.body.removeChild(p);},d*1000);
+    }
+}
+function showFloatingText(amount, pid) {
+    if(amount===0)return; const pt=document.getElementById(pid===0?'token-user':(pid===1?'token-bot1':'token-bot2')); if(!pt)return;
+    const r=pt.getBoundingClientRect(); const t=document.createElement('div'); t.className='floating-text';
+    t.innerText=(amount>0?'+':'')+amount+'д'; t.style.color=amount>0?'#27ae60':'#e74c3c'; t.style.left=r.left+'px'; t.style.top=r.top+'px';
+    document.body.appendChild(t); setTimeout(()=>{document.body.removeChild(t);},1500);
+}
+
+// --- DATA ---
+function shuffleArray(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const allTasks=[];
+for(let i=0;i<220;i++){
+    let diff=(i%3)+1; let rate=5+(i%15)*5; let base=50+(i*10);
+    if(diff===1){rate=[10,20,25,50][i%4]; base=[100,200,50,80,120,400][i%6];}
+    let cv=(base*rate)/100; let cs=cv%1===0?cv.toString():cv.toFixed(1);
+    let expl=`💡 Постапка: ${rate}% од ${base} се пресметува како (${rate} ÷ 100) × ${base} = ${cs}.`;
+    let opts=[...new Set([((base*rate)/10).toFixed(1), (base+rate).toString(), rate.toString(), ((base*(100-rate))/100).toFixed(1)])];
+    while(opts.length<4){opts.push((parseFloat(cs)+Math.floor(Math.random()*10)+1).toString());}
+    if(!opts.includes(cs))opts[0]=cs; let fo=shuffleArray(opts).slice(0,4); if(!fo.includes(cs))fo[0]=cs;
+    allTasks.push({id:100+i, difficulty:diff, question:`Пресметај ${rate}% од ${base}.`, correct_answer:cs, options:shuffleArray(fo), raw:{rate,base}, explanation:expl});
+}
+
+const hardProperties = [4, 9, 14, 19];
+const boardConfig = [
+    {name:"СТАРТ",type:"start",color:"#ecf0f1"}, {name:"Улица Децимала",type:"property",group:"south",color:"#3498db"}, {name:"Парк на Дропки",type:"property",group:"south",color:"#3498db"}, {name:"Плоштад 10%",type:"property",group:"south",color:"#3498db"}, {name:"Булевар Еуклид",type:"property",group:"south",color:"#3498db"},
+    {name:"ЗАТВОР / ОДМОР",type:"jail",color:"#7f8c8d"}, {name:"Авенија Алгебра",type:"property",group:"east",color:"#27ae60"}, {name:"Њутн Маало",type:"property",group:"east",color:"#27ae60"}, {name:"Пазар за Проценти",type:"property",group:"east",color:"#27ae60"}, {name:"Кула на Питагора",type:"property",group:"east",color:"#27ae60"},
+    {name:"ШАНСА",type:"chance",color:"#f39c12"}, {name:"Банка за Камати",type:"property",group:"north",color:"#e74c3c"}, {name:"Гаус Хајтс",type:"property",group:"north",color:"#e74c3c"}, {name:"Статистичка Зона",type:"property",group:"north",color:"#e74c3c"}, {name:"Финансиски Центар",type:"property",group:"north",color:"#e74c3c"},
+    {name:"ДАНОК",type:"tax",color:"#34495e"}, {name:"Кружен Тек 'Пи'",type:"property",group:"west",color:"#f1c40f"}, {name:"Лимит Лејн",type:"property",group:"west",color:"#f1c40f"}, {name:"Вектор Вју",type:"property",group:"west",color:"#f1c40f"}, {name:"Матрица Маркет",type:"property",group:"west",color:"#f1c40f"}
+];
+
+window.onload = () => {
+    document.getElementById('player-name-input').oninput=(e)=>document.getElementById('login-btn').disabled=e.target.value.trim().length<3;
+    const saved = localStorage.getItem('percentopolis_save');
+    const btn = document.getElementById('login-btn');
+    if(saved) btn.innerText = "📂 ПРОДОЛЖИ ИГРА";
+    
+    btn.onclick = () => {
+        if(saved) loadGame();
+        else startGame();
+    };
+    setupCanvas();
+};
+
+function startGame() {
+    AudioController.init();
+    studentName = document.getElementById('player-name-input').value;
+    studentOdd = document.getElementById('player-odd-input').value;
+    remainingTime = (parseInt(document.getElementById('class-time-input').value)||40)*60;
+    players = [
+        {id:0, name:studentName, odd:studentOdd, money:1000, pos:0, isBot:false, color:'var(--player-color)', powerups:{lawyer:false, shield:false, nitro:false, bribe:false}},
+        {id:1, name:"Алфа", odd:"BOT", money:1000, pos:0, isBot:true, color:'var(--bot1-color)', powerups:{}},
+        {id:2, name:"Бета", odd:"BOT", money:1000, pos:0, isBot:true, color:'var(--bot2-color)', powerups:{}}
+    ];
+    initGame(true);
+}
+
+function initGame(isNew) {
+    if(isNew) {
+        gameBoard = boardConfig.map((c, i) => {
+            let diff = (i<5)?1:(i<15)?2:3; 
+            // Hard mode for expensive properties
+            if(hardProperties.includes(i)) diff = 3; 
+            return {...c, index:i, owner:null, buildings:0, price:150+(i*40), difficulty:diff, rentPercent:10*diff};
+        });
+    }
+    document.getElementById('player-display-name').innerText = `Ученик: ${studentName}`;
+    document.getElementById('login-overlay').style.display='none';
+    document.getElementById('game-wrapper').classList.remove('blur-filter');
+    renderBoard(); updateUI(); startTimer();
+    document.getElementById('roll-btn').onclick = playTurn;
+}
+
+// --- PHASE 4: SAVE SYSTEM ---
+function saveGame() {
+    const state = {
+        studentName, studentOdd, studentCorrect, studentWrong,
+        remainingTime, currentPlayerIndex, players, gameBoard,
+        currentDifficultyLevel, correctStreak
+    };
+    localStorage.setItem('percentopolis_save', JSON.stringify(state));
+}
+
+function loadGame() {
+    AudioController.init();
+    const saved = JSON.parse(localStorage.getItem('percentopolis_save'));
+    if(saved) {
+        studentName = saved.studentName; studentOdd = saved.studentOdd;
+        studentCorrect = saved.studentCorrect; studentWrong = saved.studentWrong;
+        remainingTime = saved.remainingTime; currentPlayerIndex = saved.currentPlayerIndex;
+        players = saved.players; gameBoard = saved.gameBoard;
+        currentDifficultyLevel = saved.currentDifficultyLevel || 1;
+        correctStreak = saved.correctStreak || 0;
+        initGame(false);
+    }
+}
+
+function clearSave() {
+    localStorage.removeItem('percentopolis_save');
+    location.reload();
+}
+
+// --- PHASE 4: LIVE TEACHER DASHBOARD ---
+function sendLiveUpdate(question, answer, isCorrect) {
+    if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE") return; 
+
+    const payload = {
+        player: studentName + " (" + studentOdd + ")",
+        score: players[0].money,
+        correct: studentCorrect,
+        wrong: studentWrong,
+        last_question: question,
+        last_answer: answer
+    };
+
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).catch(err => console.log("Sync error", err));
+}
+
+// --- PHASE 3: SHOP ---
+function openShop() { if(players[currentPlayerIndex].isBot || isRolling) return; document.getElementById('shop-modal').style.display='flex'; }
+function buyItem(type,cost) {
+    const p=players[0];
+    if(p.money<cost) { alert("Немаш доволно пари!"); return; }
+    p.money-=cost; p.powerups[type]=true;
+    updateMoney(p,0); log(`🛒 Купи: ${type.toUpperCase()}`);
+    document.getElementById('shop-modal').style.display='none'; AudioController.play('money');
+}
+
+// --- RENDER & GAMEPLAY ---
+function renderBoard(){
+    const b=document.getElementById('board'); b.innerHTML='';
+    const gp=[{r:1,c:1},{r:1,c:2},{r:1,c:3},{r:1,c:4},{r:1,c:5},{r:1,c:6},{r:2,c:6},{r:3,c:6},{r:4,c:6},{r:5,c:6},{r:6,c:6},{r:6,c:5},{r:6,c:4},{r:6,c:3},{r:6,c:2},{r:6,c:1},{r:5,c:1},{r:4,c:1},{r:3,c:1},{r:2,c:1}];
+    gameBoard.forEach((c,i)=>{
+        const d=document.createElement('div'); d.className=`cell type-${c.type}`; if(c.group)d.classList.add(`group-${c.group}`); d.id=`cell-${i}`;
+        d.style.gridRow=gp[i].r; d.style.gridColumn=gp[i].c;
+        d.innerHTML=`<div class="cell-name">${c.name}</div>${c.type==='property'?`<div class="cell-price">${c.price}д</div>`:''}<div class="building-container" id="bld-${i}"></div>`;
+        b.appendChild(d);
+    });
+    updateTokenPositions();
+}
+
+function updateTokenPositions(){
+    players.forEach(p=>{
+        const c=document.getElementById(`cell-${p.pos}`); const t=document.getElementById(`token-${p.isBot?'bot'+p.id:'user'}`);
+        if(!c||!t)return; const r=c.getBoundingClientRect(); const cr=document.getElementById('game-board-container').getBoundingClientRect();
+        t.style.left=(r.left-cr.left+r.width/2-16+(p.id*3))+'px'; t.style.top=(r.top-cr.top+r.height/2-16+(p.id*2))+'px';
+    });
+}
+
+function startTimer(){
+    timerInterval=setInterval(()=>{
+        if(remainingTime>0){ remainingTime--; const m=Math.floor(remainingTime/60),s=remainingTime%60; document.getElementById('class-timer').innerText=`${m}:${s<10?'0'+s:s}`; if(remainingTime===0)triggerGameOver("ВРЕМЕТО ИСТЕЧЕ"); }
+    },1000);
+}
+
+function rollDiceAnimation(){
+    return new Promise(r=>{
+        const d=document.getElementById('dice-visual'); d.parentElement.classList.add('dice-shake'); AudioController.play('roll');
+        setTimeout(()=>{
+            d.parentElement.classList.remove('dice-shake'); const roll=Math.floor(Math.random()*6)+1;
+            diceRotationCounter++; const bs=1080*diceRotationCounter; const rot=[{x:0,y:0},{x:0,y:180},{x:0,y:-90},{x:0,y:90},{x:-90,y:0},{x:90,y:0}];
+            d.style.transition='transform 1.5s cubic-bezier(0.1,0.9,0.2,1)'; d.style.transform=`rotateX(${bs+rot[roll-1].x}deg) rotateY(${bs+rot[roll-1].y}deg)`;
+            setTimeout(()=>{r(roll);},1600);
+        },400);
+    });
+}
+
+async function playTurn(){
+    if(isRolling)return; isRolling=true; document.getElementById('roll-btn').disabled=true;
+    document.querySelectorAll('.cell').forEach(c=>c.classList.remove('active-cell'));
+    const p=players[currentPlayerIndex]; const roll=await rollDiceAnimation(); log(`${p.name} фрли ${roll}.`);
+    
+    let steps=roll;
+    if(p.powerups && p.powerups.nitro){ steps*=2; p.powerups.nitro=false; updateMoney(p,0); log("🚀 НИТРО! Дупло движење!"); }
+
+    let passedStart=false;
+    for(let k=0;k<steps;k++){
+        p.pos=(p.pos+1)%TOTAL_CELLS; if(p.pos===0)passedStart=true;
+        updateTokenPositions(); AudioController.play('step'); await new Promise(r=>setTimeout(r,400));
+    }
+    
+    const ac=document.getElementById(`cell-${p.pos}`); if(ac)ac.classList.add('active-cell'); await new Promise(r=>setTimeout(r,200));
+
+    if(passedStart){
+        const b=Math.floor(p.money*0.15); log(`🎯 Помина СТАРТ!`);
+        if(!p.isBot){
+            const t=getUniqueTask(0); 
+            const ok=await askQuestion("СТАРТ БОНУС", `За ${b}д (15%), реши:\n${t.question}`, t.correct_answer, t.options, true, t.explanation);
+            if(ok){ updateMoney(p,b); log(`✅ Доби бонус.`); } else log(`❌ Нема бонус.`);
+        } else updateMoney(p,200);
+    }
+
+    const c=gameBoard[p.pos];
+    if(!p.isBot) await showLandingCard(p,c);
+    else {
+        if(c.type==='property'){
+            if(!c.owner) await handleBotBuy(p,c);
+            else if(c.owner!==p.id){ const rent=Math.floor(c.price*(c.rentPercent/100)); updateMoney(p,-rent); updateMoney(players[c.owner],rent); }
+        } else if(c.type==='chance') updateMoney(p,Math.random()>0.5?100:-50);
+        else if(c.type==='tax') updateMoney(p,-Math.floor(p.money*0.1));
+    }
+    saveGame(); 
+    endTurn();
+}
+
+function updateMoney(p,amt){ p.money+=amt; if(amt!==0){ AudioController.play('money'); showFloatingText(amt,p.id); } updateUI(); }
+
+function showLandingCard(p,c){
+    return new Promise(resolve=>{
+        const o=document.getElementById('card-overlay'); o.style.display='flex'; o.innerHTML='';
+        const rc=(res)=>{o.style.display='none'; resolve(res);};
+        let html='';
+        
+        if(c.type==='chance'){
+            const amt=[150,100,-50,-100,200][Math.floor(Math.random()*5)]; const isPos=amt>0;
+            html=`<div class="flip-card" id="cc"><div class="flip-card-inner"><div class="flip-card-front"><h1>❓</h1><h2>ШАНСА</h2></div><div class="flip-card-back"><h1>${isPos?'💰':'💸'}</h1><h2 style="color:${isPos?'green':'red'}">${isPos?'+':''}${amt}д</h2><button class="action-btn btn-build hidden-btn" id="btc">${isPos?'Реши за да ДОБИЕШ':'Реши за да ИЗБЕГНЕШ'}</button></div></div></div>`;
+            o.innerHTML=html;
+            document.getElementById('cc').onclick=async function(){
+                this.classList.add('flipped');
+                setTimeout(async ()=>{
+                    const btc=document.getElementById('btc'); btc.style.display='block';
+                    btc.onclick=async (e)=>{
+                        e.stopPropagation();
+                        const t=getUniqueTask(1);
+                        const ok=await askQuestion("ШАНСА", t.question, t.correct_answer, t.options, true, t.explanation);
+                        if(ok) updateMoney(p, isPos?amt:0);
+                        else if(!isPos) updateMoney(p, amt);
+                        rc();
+                    };
+                },800);
+            };
+        } else if(c.type==='tax'){
+            const tax=Math.floor(p.money*0.1);
+            html=`<div class="card-view"><div class="card-header" style="background:#34495e">ДАНOК</div><div class="card-body"><p>Инспекција утврди да треба да платите 10% данок.</p><h2>${tax}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-tax">ПЛАТИ</button>${p.powerups.lawyer?'<button class="action-btn btn-buy" id="use-lawyer">ВИКАЈ АДВОКАТ (⚖️)</button>':''}</div></div>`;
+            o.innerHTML=html;
+            document.getElementById('pay-tax').onclick=()=>{updateMoney(p,-tax); rc();};
+            if(p.powerups.lawyer) document.getElementById('use-lawyer').onclick=()=>{p.powerups.lawyer=false; log("⚖️ Адвокатот ве спаси од данок!"); rc();};
+        } else if(c.type==='property'){
+            const rent=Math.floor(c.price*(c.rentPercent/100));
+            if(!c.owner){
+                html=`<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><div class="card-row"><span>Цена:</span><span>${c.price}д</span></div><div class="card-row"><span>Кирија:</span><span>${rent}д</span></div></div><div class="card-actions"><button class="action-btn btn-buy" id="buy-prop">КУПИ (РEШИ ЗАДАЧА)</button><button class="action-btn btn-pass" id="pass-prop">ПОМИНУВАЈ</button></div></div>`;
+                o.innerHTML=html;
+                document.getElementById('buy-prop').onclick=async ()=>{
+                    const isHard = c.difficulty === 3;
+                    const t=getUniqueTask(c.difficulty);
+                    const ok=await askQuestion("КУПУВАЊЕ", t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation);
+                    if(ok){
+                        let finalPrice = c.price;
+                        if(p.powerups.bribe){ finalPrice=1; p.powerups.bribe=false; log("🕵️ Инсајдерска зделка! Купено за 1д."); }
+                        c.owner=p.id; updateMoney(p,-finalPrice); updateVisualOwnership(c.index,p.id); log(`🏠 ${p.name} купи ${c.name}`);
+                    }
+                    rc();
+                };
+                document.getElementById('pass-prop').onclick=()=>rc();
+            } else if(c.owner!==p.id){
+                html=`<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Сопственик: ${players[c.owner].name}</p><h2>Кирија: ${rent}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">ПЛАТИ (РEШИ ЗА ДА НЕ БИДЕ ДУПЛО)</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">КОРИСТИ ШТИТ (🛡️)</button>':''}</div></div>`;
+                o.innerHTML=html;
+                document.getElementById('pay-rent').onclick=async ()=>{
+                    const t=getUniqueTask(2);
+                    const ok=await askQuestion("КИРИЈА", `Пресметај точно за нормална кирија (${rent}д), инаку плаќаш дупло!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation);
+                    const finalRent = ok ? rent : rent*2;
+                    updateMoney(p,-finalRent); updateMoney(players[c.owner],finalRent);
+                    rc();
+                };
+                if(p.powerups.shield) document.getElementById('use-shield').onclick=()=>{p.powerups.shield=false; log("🛡️ Штитот ве спаси од кирија!"); rc();};
+            } else {
+                html=`<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Ваш имот</p><div class="card-row"><span>Згради:</span><span>${c.buildings}</span></div></div><div class="card-actions">${c.buildings<3?`<button class="action-btn btn-build" id="build-btn">ГРАДИ (${Math.floor(c.price*0.4)}д)</button>`:''} <button class="action-btn btn-pass" id="pass-prop">ЗАТВОРИ</button></div></div>`;
+                o.innerHTML=html;
+                if(document.getElementById('build-btn')) document.getElementById('build-btn').onclick=async ()=>{ await handleUserBuild(p,c); rc(); };
+                document.getElementById('pass-prop').onclick=()=>rc();
+            }
+        } else rc();
+    });
+}
+
+function getUniqueTask(diff){
+    let filtered = allTasks.filter(t => t.difficulty === (diff||1) && !usedQuestionIds.includes(t.id));
+    if(filtered.length === 0){ usedQuestionIds = []; filtered = allTasks.filter(t => t.difficulty === (diff||1)); }
+    const t = filtered[Math.floor(Math.random()*filtered.length)];
+    usedQuestionIds.push(t.id);
+    return t;
+}
+
+function askQuestion(cat, q, ans, opts, isAdaptive, expl){
+    return new Promise(resolve=>{
+        const m=document.getElementById('question-modal'); m.style.display='flex';
+        document.getElementById('modal-category').innerText=cat;
+        document.getElementById('question-text').innerText=q;
+        const oc=document.getElementById('options-container'); oc.innerHTML='';
+        const ic=document.getElementById('input-answer-container'); ic.style.display='none';
+        const fa=document.getElementById('feedback-area'); fa.innerText='';
+        currentTaskData = { q, ans, expl };
+
+        if(opts && opts.length>0){
+            opts.forEach(o=>{
+                const b=document.createElement('button'); b.className='option-btn'; b.innerText=o;
+                b.onclick=()=>{
+                    const isCorrect = o === ans;
+                    if(isCorrect){ b.classList.add('correct-answer'); AudioController.play('success'); triggerConfetti(); studentCorrect++; correctStreak++; }
+                    else { b.classList.add('wrong-answer'); AudioController.play('failure'); studentWrong++; correctStreak=0; }
+                    fa.innerText = isCorrect ? "ТОЧНО! ✅" : `ГРЕШКА! ❌ Точниот одговор е ${ans}.`;
+                    fa.style.color = isCorrect ? "green" : "red";
+                    sendLiveUpdate(q, o, isCorrect);
+                    setTimeout(()=>{ m.style.display='none'; resolve(isCorrect); }, 2000);
+                };
+                oc.appendChild(b);
+            });
+        } else {
+            ic.style.display='flex';
+            document.getElementById('manual-answer-input').value='';
+            document.getElementById('submit-answer-btn').onclick=()=>{
+                const val = document.getElementById('manual-answer-input').value.trim();
+                const isCorrect = val === ans;
+                if(isCorrect){ AudioController.play('success'); triggerConfetti(); studentCorrect++; correctStreak++; }
+                else { AudioController.play('failure'); studentWrong++; correctStreak=0; }
+                fa.innerText = isCorrect ? "ТОЧНО! ✅" : `ГРЕШКА! ❌ Точниот одговор е ${ans}.`;
+                fa.style.color = isCorrect ? "green" : "red";
+                sendLiveUpdate(q, val, isCorrect);
+                setTimeout(()=>{ m.style.display='none'; resolve(isCorrect); }, 2000);
+            };
+        }
+    });
+}
+
+function drawVisualHint(){
+    if(!currentTaskData || !currentTaskData.expl) return;
+    const fa=document.getElementById('feedback-area');
+    fa.innerHTML = `<div style="background:#fff3cd; padding:10px; border-radius:10px; border:1px solid #ffeeba; font-size:0.9rem; margin-bottom:10px;">${currentTaskData.expl}</div>`;
+}
+
+function closeModal(){document.getElementById('question-modal').style.display='none';}
+function log(msg){const l=document.getElementById('game-log'); const n=document.createElement('div'); n.innerText='> '+msg; l.prepend(n);}
+function updateUI(){
+    players.forEach(p=>{
+        const el = document.getElementById(`score-${p.isBot?'bot'+p.id:'user'}`);
+        if(el) el.innerText=`${p.money}д`;
+        const s=document.getElementById(`stat-${p.isBot?'bot'+p.id:'user'}`);
+        if(s) {
+            if(players[currentPlayerIndex].id===p.id) s.classList.add('active-turn'); 
+            else s.classList.remove('active-turn');
+        }
+    });
+    const pc=document.getElementById('user-powerups'); 
+    if(pc){
+        pc.innerHTML='';
+        const u=players[0]; 
+        if(u.powerups.lawyer)pc.innerHTML+='⚖️'; 
+        if(u.powerups.shield)pc.innerHTML+='🛡️'; 
+        if(u.powerups.nitro)pc.innerHTML+='🚀'; 
+        if(u.powerups.bribe)pc.innerHTML+='🕵️';
+    }
+}
+function updateVisualOwnership(idx,pid){const e=document.getElementById(`cell-${idx}`); if(e){e.classList.remove('owned-p0','owned-p1','owned-p2'); e.classList.add(`owned-p${pid}`);}}
+
+// Improved Bot Logic (Smarter)
+async function handleBotBuy(bot,c){
+    if(bot.money >= c.price + 100 && Math.random()<0.7){
+        c.owner=bot.id; bot.money-=c.price; updateVisualOwnership(c.index,bot.id);
+    }
+}
+
+async function handleUserBuild(p,c){
+    const t=getUniqueTask(3); 
+    const ok=await askQuestion("ГРАДЕЊЕ", t.question, t.correct_answer, [], true, t.explanation);
+    if(ok){ updateMoney(p,-Math.floor(c.price*0.4)); c.buildings++; c.rentPercent+=15; document.getElementById(`bld-${c.index}`).innerHTML+='🏠'; log("🏠 Изградено!"); }
+}
+
+function endTurn(){
+    currentPlayerIndex=(currentPlayerIndex+1)%players.length; isRolling=false; 
+    const rollBtn = document.getElementById('roll-btn');
+    if(rollBtn) rollBtn.disabled=false; 
+    updateUI();
+    if(players[currentPlayerIndex].isBot) setTimeout(playTurn,1500);
+}
+
+function triggerGameOver(r){ 
+    clearInterval(timerInterval); 
+    document.getElementById('game-over-overlay').style.display='flex'; 
+    let rep=`Играч: ${studentName}\nПричина: ${r}\nПари: ${players[0].money}д\nТочни: ${studentCorrect}, Грешни: ${studentWrong}`; 
+    document.getElementById('report-text').innerText=rep; 
+    new QRCode(document.getElementById("qrcode"),{text:rep,width:128,height:128}); 
+}
+
+// Canvas
+function setupCanvas(){ 
+    canvas=document.getElementById('whiteboard'); 
+    if(!canvas) return;
+    ctx=canvas.getContext('2d'); 
+    function gp(e){const r=canvas.getBoundingClientRect(); return e.touches?{x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top}:{x:e.clientX-r.left,y:e.clientY-r.top};} 
+    function st(e){e.preventDefault(); isDrawing=true; const p=gp(e); lastX=p.x; lastY=p.y;} 
+    function mv(e){if(!isDrawing)return; e.preventDefault(); const p=gp(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y;} 
+    canvas.addEventListener('mousedown',st); canvas.addEventListener('mousemove',mv); canvas.addEventListener('mouseup',()=>isDrawing=false); 
+    canvas.addEventListener('touchstart',st,{passive:false}); canvas.addEventListener('touchmove',mv,{passive:false}); 
+    resizeCanvas();
+}
+function resizeCanvas(){if(canvas){canvas.width=canvas.parentElement.clientWidth; canvas.height=canvas.parentElement.clientHeight;}}
+function clearCanvas(){if(ctx) ctx.clearRect(0,0,canvas.width,canvas.height);}
+window.addEventListener('resize',()=>{resizeCanvas(); updateTokenPositions();});
