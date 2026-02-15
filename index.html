@@ -78,13 +78,24 @@
                 <div class="input-group room-box">
                     <label id="room-label">🏠 ПРИКЛУЧИ СЕ ВО СОБА:</label>
                     <input type="text" id="room-id-input" placeholder="Код на соба (пр. ROOM123)" autocomplete="off">
+                    <div id="teacher-settings" style="display:none; margin-top:15px; border-top:1px solid #ddd; padding-top:10px;">
+                        <label>📊 ТЕЖИНА НА ЗАДАЧИТЕ:</label>
+                        <select id="room-difficulty-select" style="margin-top:5px; background:white;">
+                            <option value="easy">ЛЕСНО (Почетно ниво)</option>
+                            <option value="standard" selected>СТАНДАРДНО (8-мо одделение)</option>
+                            <option value="hard">НАПРЕДНО (Натпревари)</option>
+                        </select>
+                    </div>
                     <p id="room-hint" style="font-size: 0.75rem; color: #7f8c8d; margin-top: 5px;">Внеси го кодот што го доби од наставникот.</p>
                 </div>
 
                 <button id="login-btn" disabled>🚀 ВЛЕЗИ ВО АВАНТУРАТА</button>
             </div>
             <div id="lobby-section" style="display:none;">
-                <h2 id="current-room-display">Соба: ---</h2>
+                <div style="background: var(--primary-color); color: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; text-align: center;">
+                    <p style="margin:0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Код за приклучување:</p>
+                    <h2 id="current-room-display" style="margin: 5px 0 0 0; font-size: 2.5rem; font-weight: 900; letter-spacing: 2px;">---</h2>
+                </div>
                 <div id="players-list" style="margin: 20px 0; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 10px; min-height: 100px;">
                     <p>Играчи во собата:</p>
                     <ul id="lobby-players-ul" style="list-style: none; padding: 0;"></ul>

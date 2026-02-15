@@ -136,6 +136,7 @@ function setRole(role) {
         sBtn.classList.remove('active');
         tBtn.classList.add('active');
         studentFields.style.display = 'none';
+        document.getElementById('teacher-settings').style.display = 'block';
         roomBox.classList.add('teacher-mode');
         roomLabel.innerText = "🏠 КРЕИРАЈ НОВА СОБА:";
         roomInput.placeholder = "Име на соба (пр. МАТЕМАТИКА8)";
@@ -144,6 +145,7 @@ function setRole(role) {
         tBtn.classList.remove('active');
         sBtn.classList.add('active');
         studentFields.style.display = 'block';
+        document.getElementById('teacher-settings').style.display = 'none';
         roomBox.classList.remove('teacher-mode');
         roomLabel.innerText = "🏠 ПРИКЛУЧИ СЕ ВО СОБА:";
         roomInput.placeholder = "Код на соба (пр. ROOM123)";
@@ -165,19 +167,21 @@ async function joinRoom() {
     
     document.getElementById('auth-section').style.display = 'none';
     document.getElementById('lobby-section').style.display = 'block';
-    document.getElementById('current-room-display').innerText = `Соба: ${roomId}`;
+    document.getElementById('current-room-display').innerText = roomId;
     
     const roomRef = db.ref('rooms/' + roomId);
     
     roomRef.once('value', snapshot => {
         if (!snapshot.exists()) {
             isCreator = true;
+            const diffLevel = document.getElementById('room-difficulty-select').value;
             roomRef.set({
                 status: 'waiting',
                 players: [],
                 currentPlayerIndex: 0,
                 remainingTime: 40 * 60,
                 turnStartTime: Date.now(),
+                difficultyMode: diffLevel,
                 gameBoard: boardConfig.map((c, i) => {
                     let diff = (i < 5) ? 1 : (i < 15) ? 2 : 3;
                     if (hardProperties.includes(i)) diff = 3;
@@ -235,6 +239,7 @@ function handleRoomUpdate(snapshot) {
     const data = snapshot.val();
     if (!data) return;
     
+    window.roomDifficultyMode = data.difficultyMode || 'standard';
     players = data.players || [];
     gameBoard = data.gameBoard || [];
     currentPlayerIndex = data.currentPlayerIndex || 0;
@@ -655,8 +660,20 @@ function buyItem(type,cost) {
 }
 
 function getUniqueTask(diff){
-    let filtered = allTasks.filter(t => t.difficulty === (diff||1) && !usedQuestionIds.includes(t.id));
-    if(filtered.length === 0){ usedQuestionIds = []; filtered = allTasks.filter(t => t.difficulty === (diff||1)); }
+    const roomRef = db.ref(`rooms/${roomId}`);
+    let finalDiff = diff || 1;
+
+    // Shift difficulty based on room mode
+    // We need to check if we have the difficultyMode globally or fetch it
+    // For simplicity, we'll use a global roomDifficulty variable updated in handleRoomUpdate
+    if (window.roomDifficultyMode === 'easy') {
+        finalDiff = Math.max(1, finalDiff - 1);
+    } else if (window.roomDifficultyMode === 'hard') {
+        finalDiff = Math.min(3, finalDiff + 1);
+    }
+
+    let filtered = allTasks.filter(t => t.difficulty === finalDiff && !usedQuestionIds.includes(t.id));
+    if(filtered.length === 0){ usedQuestionIds = []; filtered = allTasks.filter(t => t.difficulty === finalDiff); }
     const t = filtered[Math.floor(Math.random()*filtered.length)];
     usedQuestionIds.push(t.id);
     return t;
