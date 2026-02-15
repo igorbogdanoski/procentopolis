@@ -520,6 +520,8 @@ async function showLandingCardMulti(p, c){
                 document.getElementById('buy-prop').onclick = async () => {
                     const isHard = c.difficulty === 3;
                     const t = getUniqueTask(c.difficulty);
+                    // Hide the card overlay immediately to show the question clearly
+                    o.style.display = 'none';
                     const ok = await askQuestion("КУПУВАЊЕ", t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation);
                     if(ok){
                         let finalPrice = c.price;
@@ -528,7 +530,7 @@ async function showLandingCardMulti(p, c){
                         updateMoneyMulti(myPlayerId, -finalPrice);
                         db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
                     }
-                    rc();
+                    resolve();
                 };
                 document.getElementById('pass-prop').onclick = () => rc();
             } else if(c.owner !== myPlayerId){
@@ -536,11 +538,13 @@ async function showLandingCardMulti(p, c){
                 o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Сопственик: ${ownerName}</p><h2>Кирија: ${rent}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">ПЛАТИ</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">ШТИТ (🛡️)</button>':''}</div></div>`;
                 document.getElementById('pay-rent').onclick = async () => {
                     const t = getUniqueTask(c.difficulty);
+                    // Hide the card overlay immediately
+                    o.style.display = 'none';
                     const ok = await askQuestion("КИРИЈА", `Точен одговор за ${rent}д, инаку ${rent*2}д!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation);
                     const finalRent = ok ? rent : rent * 2;
                     updateMoneyMulti(myPlayerId, -finalRent);
                     updateMoneyMulti(c.owner, finalRent);
-                    rc();
+                    resolve();
                 };
                 if(p.powerups.shield) document.getElementById('use-shield').onclick = () => {
                     p.powerups.shield = false;
@@ -552,13 +556,15 @@ async function showLandingCardMulti(p, c){
                 const bldBtn = document.getElementById('build-btn');
                 if(bldBtn) bldBtn.onclick = async () => {
                     const t = getUniqueTask(3);
+                    // Hide the card overlay immediately
+                    o.style.display = 'none';
                     const ok = await askQuestion("ГРАДЕЊЕ", t.question, t.correct_answer, [], true, t.explanation);
                     if(ok){
                         const cost = Math.floor(c.price * 0.4);
                         db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ buildings: c.buildings + 1, rentPercent: c.rentPercent + 15 });
                         updateMoneyMulti(myPlayerId, -cost);
                     }
-                    rc();
+                    resolve();
                 };
                 document.getElementById('pass-prop').onclick = () => rc();
             }
