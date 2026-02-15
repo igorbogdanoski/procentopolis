@@ -214,7 +214,7 @@ async function joinRoom() {
                     name: studentName,
                     odd: studentOdd,
                     role: currentRole,
-                    money: currentRole === 'teacher' ? 0 : 1000,
+                    money: currentRole === 'teacher' ? 0 : 2000,
                     pos: 0,
                     emoji: myTokenEmoji,
                     color: currentRole === 'teacher' ? 'transparent' : `var(--p${myPlayerId}-color)`,
@@ -245,12 +245,29 @@ function handleRoomUpdate(snapshot) {
     currentPlayerIndex = data.currentPlayerIndex || 0;
     remainingTime = data.remainingTime;
     
+    // Update Class Timer UI
+    const classTimerEl = document.getElementById('class-timer');
+    if (classTimerEl) {
+        const m = Math.floor(remainingTime / 60);
+        const s = remainingTime % 60;
+        classTimerEl.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+    
     // Turn Timer Logic
     if (data.turnStartTime && data.turnStartTime !== window.lastTurnStartTime) {
         window.lastTurnStartTime = data.turnStartTime;
         clearInterval(localTurnTicker);
+        
+        // Offset detection to fix clock drift
+        let serverOffset = 0;
+        const offsetRef = db.ref(".info/serverTimeOffset");
+        offsetRef.once("value", (snap) => {
+            serverOffset = snap.val();
+        });
+
         const updateTimerDisplay = () => {
-            const elapsed = Math.floor((Date.now() - data.turnStartTime) / 1000);
+            const serverTimeNow = Date.now() + serverOffset;
+            const elapsed = Math.floor((serverTimeNow - data.turnStartTime) / 1000);
             turnRemainingTime = Math.max(0, 30 - elapsed);
             const timerEl = document.getElementById('turn-timer');
             if(timerEl) timerEl.innerText = `Потег: ${turnRemainingTime}s`;
@@ -410,12 +427,15 @@ function updateBoardVisuals() {
 function startTimerMulti() {
     if (timerInterval) return;
     timerInterval = setInterval(() => {
-        if (remainingTime > 0) {
-            remainingTime--;
-            db.ref('rooms/' + roomId).update({ remainingTime: remainingTime });
-        } else {
-            clearInterval(timerInterval);
-        }
+        // Fetch the latest value from Firebase before decrementing to avoid sync issues
+        db.ref('rooms/' + roomId + '/remainingTime').once('value', snapshot => {
+            let currentRem = snapshot.val();
+            if (currentRem > 0) {
+                db.ref('rooms/' + roomId).update({ remainingTime: currentRem - 1 });
+            } else {
+                clearInterval(timerInterval);
+            }
+        });
     }, 1000);
 }
 
@@ -586,17 +606,20 @@ function endTurnMulti(){
     isRolling = false;
     let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
     
-    // Skip teachers in turn rotation
+    // Skip null/undefined players and teachers in turn rotation
     let safety = 0;
-    while(players[nextPlayerIndex] && players[nextPlayerIndex].role === 'teacher' && safety < 10){
+    while((!players[nextPlayerIndex] || players[nextPlayerIndex].role === 'teacher') && safety < 10){
         nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
         safety++;
     }
 
-    db.ref(`rooms/${roomId}`).update({ 
-        currentPlayerIndex: nextPlayerIndex,
-        turnStartTime: firebase.database.ServerValue.TIMESTAMP 
-    });
+    // Double check if we landed on a valid student player
+    if (players[nextPlayerIndex] && players[nextPlayerIndex].role !== 'teacher') {
+        db.ref(`rooms/${roomId}`).update({ 
+            currentPlayerIndex: nextPlayerIndex,
+            turnStartTime: firebase.database.ServerValue.TIMESTAMP 
+        });
+    }
 }
 
 function updateUI(){
