@@ -4,13 +4,13 @@ const TOTAL_CELLS = 20;
 
 // Firebase Placeholder Config (USER MUST UPDATE THIS)
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-    projectId: "YOUR_PROJECT",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyAFWnl4j7FO_lDP2UgQV3wOOPWeqVREwZo",
+    authDomain: "percentopolis.firebaseapp.com",
+    databaseURL: "https://percentopolis-default-rtdb.europe-west1.firebasedatabase.app/",
+    projectId: "percentopolis",
+    storageBucket: "percentopolis.firebasestorage.app",
+    messagingSenderId: "150378785304",
+    appId: "1:150378785304:web:90d334cb30ed57bd1f716d"
 };
 
 // Initialize Firebase
