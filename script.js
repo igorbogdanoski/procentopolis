@@ -260,6 +260,9 @@ async function playTurnMulti(){
     document.getElementById('roll-btn').disabled = true;
     
     const p = players[myPlayerId];
+    const token = document.getElementById(`token-${myPlayerId}`);
+    if(token) token.classList.add('walking');
+
     const roll = await rollDiceAnimation();
     log(`${p.name} фрли ${roll}.`);
     
@@ -274,12 +277,19 @@ async function playTurnMulti(){
     for(let k=0; k<steps; k++){
         p.pos = (p.pos + 1) % TOTAL_CELLS;
         if(p.pos === 0) passedStart = true;
+        
+        // Sync each step to Firebase so others see movement
+        db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ pos: p.pos });
+        
         updateTokenPositionsMulti();
         AudioController.play('step');
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 450)); // Slightly slower for better visibility
     }
     
-    db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ pos: p.pos, powerups: p.powerups });
+    if(token) token.classList.remove('walking');
+
+    // Sync powerups at the end
+    db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
 
     if(passedStart){
         const b = Math.floor(p.money * 0.15);
@@ -367,7 +377,7 @@ async function showLandingCardMulti(p, c){
                 const ownerName = (players[c.owner] && players[c.owner].name) ? players[c.owner].name : "Противник";
                 o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Сопственик: ${ownerName}</p><h2>Кирија: ${rent}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">ПЛАТИ</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">ШТИТ (🛡️)</button>':''}</div></div>`;
                 document.getElementById('pay-rent').onclick = async () => {
-                    const t = getUniqueTask(2);
+                    const t = getUniqueTask(c.difficulty);
                     const ok = await askQuestion("КИРИЈА", `Точен одговор за ${rent}д, инаку ${rent*2}д!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation);
                     const finalRent = ok ? rent : rent * 2;
                     updateMoneyMulti(myPlayerId, -finalRent);
