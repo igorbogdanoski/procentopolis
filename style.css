@@ -5,9 +5,12 @@
     --accent-color: #f1c40f;
     
     /* Player Colors */
-    --player-color: #2196f3;
-    --bot1-color: #9c27b0;
-    --bot2-color: #e91e63;
+    --p0-color: #2196f3;
+    --p1-color: #9c27b0;
+    --p2-color: #e91e63;
+    --p3-color: #ff9800;
+    --p4-color: #4caf50;
+    --p5-color: #795548;
 
     /* Group Colors */
     --group-south: #aed6f1;
@@ -119,22 +122,29 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); height: 100vh; 
 .group-west::after { background-color: #f1c40f; }
 
 /* Ownership Backgrounds */
-.owned-p0 { background-color: #e3f2fd !important; border: 3px solid var(--player-color) !important; }
-.owned-p1 { background-color: #f3e5f5 !important; border: 3px solid var(--bot1-color) !important; }
-.owned-p2 { background-color: #fce4ec !important; border: 3px solid var(--bot2-color) !important; }
+.owned-p0 { background-color: #e3f2fd !important; border: 3px solid var(--p0-color) !important; }
+.owned-p1 { background-color: #f3e5f5 !important; border: 3px solid var(--p1-color) !important; }
+.owned-p2 { background-color: #fce4ec !important; border: 3px solid var(--p2-color) !important; }
+.owned-p3 { background-color: #fff3e0 !important; border: 3px solid var(--p3-color) !important; }
+.owned-p4 { background-color: #e8f5e9 !important; border: 3px solid var(--p4-color) !important; }
+.owned-p5 { background-color: #efebe9 !important; border: 3px solid var(--p5-color) !important; }
 
 .active-cell { transform: scale(1.08); z-index: 50; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: 3px solid #e74c3c !important; }
 
 /* --- TOKENS (GEOMETRIC SHAPES) --- */
 .token { 
-    width: 32px; height: 32px; position: absolute; transition: all 0.3s linear; 
+    width: 30px; height: 30px; position: absolute; transition: all 0.3s linear; 
     z-index: 60; box-shadow: 0 4px 8px rgba(0,0,0,0.4); 
     font-weight: bold; font-size: 10px; display: flex; align-items: center; justify-content: center; color: white; 
+    display: none; /* Hidden by default, shown when player exists */
 }
 
-#token-user { background-color: var(--player-color); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); border-radius: 0; padding-top: 5px; width: 36px; height: 36px; }
-#token-bot1 { background-color: var(--bot1-color); border-radius: 4px; border: 2px solid white; }
-#token-bot2 { background-color: var(--bot2-color); border-radius: 50%; border: 2px solid white; }
+#token-0 { background-color: var(--p0-color); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); border-radius: 0; padding-top: 5px; }
+#token-1 { background-color: var(--p1-color); border-radius: 4px; border: 2px solid white; }
+#token-2 { background-color: var(--p2-color); border-radius: 50%; border: 2px solid white; }
+#token-3 { background-color: var(--p3-color); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+#token-4 { background-color: var(--p4-color); clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
+#token-5 { background-color: var(--p5-color); clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
 
 .building-container { display: flex; gap: 1px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); z-index: 5; }
 
