@@ -23,7 +23,7 @@ let usedQuestionIds = [], remainingTime = 40 * 60, players = [], currentPlayerIn
 let myPlayerId = null;
 let roomId = null;
 let isCreator = false;
-let timerInterval, turnTimerInterval;
+let timerInterval, turnTimerInterval, localTurnTicker;
 let canvas, ctx, isDrawing = false, lastX = 0, lastY = 0;
 let penColor = '#000000';
 let penWidth = 3;
@@ -32,6 +32,7 @@ let currentDifficultyLevel = 1;
 let correctStreak = 0;
 let currentTaskData = null;
 let turnRemainingTime = 30;
+let myTokenEmoji = "👤";
 
 // --- DATA ---
 function shuffleArray(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -104,6 +105,11 @@ window.onload = () => {
     }
 };
 
+function selectToken(emoji, btn) {
+    myTokenEmoji = emoji;
+    document.querySelectorAll('.token-choice').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
 function checkLoginValid() {
     const nameVal = document.getElementById('player-name-input').value.trim();
     const roomVal = document.getElementById('room-id-input').value.trim();
@@ -203,9 +209,11 @@ async function joinRoom() {
                     id: myPlayerId,
                     name: studentName,
                     odd: studentOdd,
-                    money: 1000,
+                    role: currentRole,
+                    money: currentRole === 'teacher' ? 0 : 1000,
                     pos: 0,
-                    color: `var(--p${myPlayerId}-color)`,
+                    emoji: myTokenEmoji,
+                    color: currentRole === 'teacher' ? 'transparent' : `var(--p${myPlayerId}-color)`,
                     powerups: { lawyer: false, shield: false, nitro: false, bribe: false }
                 };
                 playersRef.child(myPlayerId).set(newPlayer);
@@ -229,21 +237,25 @@ function handleRoomUpdate(snapshot) {
     
     players = data.players || [];
     gameBoard = data.gameBoard || [];
-    const prevTurnIndex = currentPlayerIndex;
     currentPlayerIndex = data.currentPlayerIndex || 0;
     remainingTime = data.remainingTime;
     
     // Turn Timer Logic
     if (data.turnStartTime) {
-        const elapsed = Math.floor((Date.now() - data.turnStartTime) / 1000);
-        turnRemainingTime = Math.max(0, 30 - elapsed);
-        document.getElementById('turn-timer').innerText = `Потег: ${turnRemainingTime}s`;
-        
-        // Auto-skip if time is up and I'm the current player
-        if (turnRemainingTime === 0 && currentPlayerIndex === myPlayerId && !isRolling) {
-            log("Времето истече! Потегот се префрла.");
-            endTurnMulti();
-        }
+        clearInterval(localTurnTicker);
+        const updateTimerDisplay = () => {
+            const elapsed = Math.floor((Date.now() - data.turnStartTime) / 1000);
+            turnRemainingTime = Math.max(0, 30 - elapsed);
+            document.getElementById('turn-timer').innerText = `Потег: ${turnRemainingTime}s`;
+            
+            if (turnRemainingTime === 0 && currentPlayerIndex === myPlayerId && !isRolling && currentRole !== 'teacher') {
+                log("Времето истече! Потегот се префрла.");
+                clearInterval(localTurnTicker);
+                endTurnMulti();
+            }
+        };
+        updateTimerDisplay();
+        localTurnTicker = setInterval(updateTimerDisplay, 1000);
     }
 
     updateLobbyUI();
@@ -353,9 +365,20 @@ function syncGameState() {
 
 function updateTokenPositionsMulti() {
     players.forEach(p => {
-        const c = document.getElementById(`cell-${p.pos}`);
         const t = document.getElementById(`token-${p.id}`);
-        if (!c || !t) return;
+        if(!t) return;
+        
+        // Hide teacher token
+        if(p.role === 'teacher') {
+            t.style.display = 'none';
+            return;
+        }
+
+        const c = document.getElementById(`cell-${p.pos}`);
+        if (!c) return;
+        
+        t.style.display = 'flex';
+        t.innerText = p.emoji || "👤";
         const r = c.getBoundingClientRect();
         const cr = document.getElementById('game-board-container').getBoundingClientRect();
         const offsetX = (p.id % 3) * 8 - 8;
@@ -548,7 +571,15 @@ async function showLandingCardMulti(p, c){
 
 function endTurnMulti(){
     isRolling = false;
-    const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
+    let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
+    
+    // Skip teachers in turn rotation
+    let safety = 0;
+    while(players[nextPlayerIndex] && players[nextPlayerIndex].role === 'teacher' && safety < 10){
+        nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
+        safety++;
+    }
+
     db.ref(`rooms/${roomId}`).update({ 
         currentPlayerIndex: nextPlayerIndex,
         turnStartTime: firebase.database.ServerValue.TIMESTAMP 
@@ -557,17 +588,21 @@ function endTurnMulti(){
 
 function updateUI(){
     players.forEach(p => {
-        const scoreEl = document.getElementById(`score-${p.id}`);
-        if(scoreEl) scoreEl.innerText = `${p.money}д`;
-        
         const statEl = document.getElementById(`stat-${p.id}`);
         if(statEl){
-            if(currentPlayerIndex === p.id) statEl.classList.add('active-turn');
-            else statEl.classList.remove('active-turn');
-            
-            // Thinking indicator
-            if(p.isThinking) statEl.style.borderRight = "4px solid #f1c40f";
-            else statEl.style.borderRight = "none";
+            // Hide teacher from stats or show differently
+            if(p.role === 'teacher') statEl.style.display = 'none';
+            else {
+                statEl.style.display = 'flex';
+                const scoreEl = document.getElementById(`score-${p.id}`);
+                if(scoreEl) scoreEl.innerText = `${p.money}д`;
+                
+                if(currentPlayerIndex === p.id) statEl.classList.add('active-turn');
+                else statEl.classList.remove('active-turn');
+                
+                if(p.isThinking) statEl.style.borderRight = "4px solid #f1c40f";
+                else statEl.style.borderRight = "none";
+            }
         }
         
         const powerupsEl = document.getElementById(`powerups-${p.id}`);
