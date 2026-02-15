@@ -127,29 +127,29 @@ function setRole(role) {
     const sBtn = document.getElementById('role-student');
     const tBtn = document.getElementById('role-teacher');
     const studentFields = document.getElementById('student-only-fields');
+    const studentClassBox = document.getElementById('student-class-box');
     const roomBox = document.querySelector('.room-box');
     const roomLabel = document.getElementById('room-label');
-    const roomHint = document.getElementById('room-hint');
     const roomInput = document.getElementById('room-id-input');
 
     if (role === 'teacher') {
         sBtn.classList.remove('active');
         tBtn.classList.add('active');
         studentFields.style.display = 'none';
+        studentClassBox.style.display = 'none';
         document.getElementById('teacher-settings').style.display = 'block';
         roomBox.classList.add('teacher-mode');
         roomLabel.innerText = "🏠 КРЕИРАЈ НОВА СОБА:";
         roomInput.placeholder = "Име на соба (пр. МАТЕМАТИКА8)";
-        roomHint.innerText = "Остави празно за автоматски генериран код.";
     } else {
         tBtn.classList.remove('active');
         sBtn.classList.add('active');
         studentFields.style.display = 'block';
+        studentClassBox.style.display = 'block';
         document.getElementById('teacher-settings').style.display = 'none';
         roomBox.classList.remove('teacher-mode');
         roomLabel.innerText = "🏠 ПРИКЛУЧИ СЕ ВО СОБА:";
         roomInput.placeholder = "Код на соба (пр. ROOM123)";
-        roomHint.innerText = "Внеси го кодот што го доби од наставникот.";
     }
     checkLoginValid();
 }
@@ -246,16 +246,18 @@ function handleRoomUpdate(snapshot) {
     remainingTime = data.remainingTime;
     
     // Turn Timer Logic
-    if (data.turnStartTime) {
+    if (data.turnStartTime && data.turnStartTime !== window.lastTurnStartTime) {
+        window.lastTurnStartTime = data.turnStartTime;
         clearInterval(localTurnTicker);
         const updateTimerDisplay = () => {
             const elapsed = Math.floor((Date.now() - data.turnStartTime) / 1000);
             turnRemainingTime = Math.max(0, 30 - elapsed);
-            document.getElementById('turn-timer').innerText = `Потег: ${turnRemainingTime}s`;
+            const timerEl = document.getElementById('turn-timer');
+            if(timerEl) timerEl.innerText = `Потег: ${turnRemainingTime}s`;
             
             if (turnRemainingTime === 0 && currentPlayerIndex === myPlayerId && !isRolling && currentRole !== 'teacher') {
-                log("Времето истече! Потегот се префрла.");
                 clearInterval(localTurnTicker);
+                log("Времето истече! Потегот се префрла.");
                 endTurnMulti();
             }
         };
@@ -635,18 +637,46 @@ function openShop() {
 function openTeacherDash() {
     const tbody = document.getElementById('teacher-stats-tbody');
     tbody.innerHTML = '';
+    
+    let totalCorrect = 0;
+    let totalAttempted = 0;
+    let activePlayers = 0;
+
     players.forEach(p => {
+        if(p.role === 'teacher') return;
+        activePlayers++;
+        totalCorrect += (p.correct || 0);
+        totalAttempted += (p.correct || 0) + (p.wrong || 0);
+
         const tr = document.createElement('tr');
-        tr.style.borderBottom = '1px solid #eee';
+        tr.style.borderBottom = '1px solid #f1f5f9';
+        const successRate = ((p.correct || 0) + (p.wrong || 0)) === 0 ? 0 : Math.round((p.correct / (p.correct + p.wrong)) * 100);
+        
         tr.innerHTML = `
-            <td style="padding:10px;">${p.name} (${p.odd})</td>
-            <td style="padding:10px;">${p.money}д</td>
-            <td style="padding:10px; color:green;">${p.correct || 0}</td>
-            <td style="padding:10px; color:red;">${p.wrong || 0}</td>
-            <td style="padding:10px; font-size:0.8rem;">${p.lastActivity || '-'}</td>
+            <td style="padding:20px;">
+                <div style="font-weight:700; color:#1e293b;">${p.name}</div>
+                <div style="font-size:0.8rem; color:#64748b;">${p.odd}</div>
+            </td>
+            <td style="padding:20px; font-weight:800; color:#2563eb;">${p.money}д</td>
+            <td style="padding:20px;">
+                <span style="color:#16a34a; font-weight:bold;">${p.correct || 0}</span> / 
+                <span style="color:#dc2626; font-weight:bold;">${p.wrong || 0}</span>
+                <div style="font-size:0.7rem; color:#94a3b8;">${successRate}% успех</div>
+            </td>
+            <td style="padding:20px; font-size:0.85rem; color:#475569; max-width:200px;">${p.lastActivity || 'Чека потег...'}</td>
+            <td style="padding:20px;">
+                <span style="padding:5px 12px; border-radius:20px; font-size:0.75rem; font-weight:bold; background:${p.isThinking?'#fef3c7':'#dcfce7'}; color:${p.isThinking?'#92400e':'#166534'};">
+                    ${p.isThinking ? '🤔 Размислува' : '✅ Подготвен'}
+                </span>
+            </td>
         `;
         tbody.appendChild(tr);
     });
+
+    document.getElementById('dash-player-count').innerText = activePlayers;
+    document.getElementById('dash-total-correct').innerText = totalCorrect;
+    document.getElementById('dash-avg-success').innerText = totalAttempted === 0 ? '0%' : Math.round((totalCorrect / totalAttempted) * 100) + '%';
+    
     document.getElementById('teacher-modal').style.display = 'flex';
 }
 
@@ -797,6 +827,7 @@ function renderBoard(){
     const gp=[{r:1,c:1},{r:1,c:2},{r:1,c:3},{r:1,c:4},{r:1,c:5},{r:1,c:6},{r:2,c:6},{r:3,c:6},{r:4,c:6},{r:5,c:6},{r:6,c:6},{r:6,c:5},{r:6,c:4},{r:6,c:3},{r:6,c:2},{r:6,c:1},{r:5,c:1},{r:4,c:1},{r:3,c:1},{r:2,c:1}];
     gameBoard.forEach((c,i)=>{
         const d=document.createElement('div'); d.className=`cell type-${c.type}`; if(c.group)d.classList.add(`group-${c.group}`); d.id=`cell-${i}`;
+        if(c.owner !== null && c.owner !== undefined) d.classList.add(`owned-p${c.owner}`);
         d.style.gridRow=gp[i].r; d.style.gridColumn=gp[i].c;
         d.innerHTML=`<div class="cell-name">${c.name}</div>${c.type==='property'?`<div class="cell-price">${c.price}д</div>`:''}<div class="building-container" id="bld-${i}"></div>`;
         b.appendChild(d);
