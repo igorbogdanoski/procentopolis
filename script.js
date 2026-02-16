@@ -565,11 +565,48 @@ function checkLoginValid() {
     const roomVal = document.getElementById('room-id-input').value.trim();
     const loginBtn = document.getElementById('login-btn');
     const teacherDashBtn = document.getElementById('teacher-dashboard-btn');
+    const nameError = document.getElementById('name-error');
+    const roomError = document.getElementById('room-error');
 
-    if (currentRole === 'teacher') {
-        teacherDashBtn.disabled = nameVal.length < 3;
+    // Validate name
+    let nameValid = true;
+    if (nameVal.length === 0) {
+        nameError.innerText = '❌ Внесете име';
+        nameError.style.display = 'block';
+        nameValid = false;
+    } else if (nameVal.length < 3) {
+        nameError.innerText = '❌ Името мора да има минимум 3 карактери';
+        nameError.style.display = 'block';
+        nameValid = false;
+    } else if (nameVal.length > 30) {
+        nameError.innerText = '❌ Името мора да има максимум 30 карактери';
+        nameError.style.display = 'block';
+        nameValid = false;
     } else {
-        loginBtn.disabled = nameVal.length < 3 || roomVal.length < 3;
+        nameError.style.display = 'none';
+    }
+
+    // Validate room code (only for students)
+    let roomValid = true;
+    if (currentRole === 'student') {
+        if (roomVal.length === 0) {
+            roomError.innerText = '❌ Внесете код на соба';
+            roomError.style.display = 'block';
+            roomValid = false;
+        } else if (roomVal.length < 3) {
+            roomError.innerText = '❌ Кодот мора да има минимум 3 карактери';
+            roomError.style.display = 'block';
+            roomValid = false;
+        } else {
+            roomError.style.display = 'none';
+        }
+    }
+
+    // Enable/disable buttons
+    if (currentRole === 'teacher') {
+        teacherDashBtn.disabled = !nameValid;
+    } else {
+        loginBtn.disabled = !nameValid || !roomValid;
     }
 }
 
