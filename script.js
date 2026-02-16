@@ -17,6 +17,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// --- TIME SYNC ---
+let serverOffset = 0;
+db.ref(".info/serverTimeOffset").on("value", (snap) => {
+    serverOffset = snap.val() || 0;
+});
+function getServerTime() { return Date.now() + serverOffset; }
+
 // --- VARIABLES ---
 let studentName = "", studentOdd = "", studentCorrect = 0, studentWrong = 0;
 let usedQuestionIds = [], remainingTime = 40 * 60, players = [], currentPlayerIndex = 0, gameBoard = [], isRolling = false;
@@ -234,8 +241,8 @@ async function joinRoom() {
                 players: [],
                 currentPlayerIndex: 0,
                 remainingTime: 40 * 60,
-                gameEndTime: Date.now() + (40 * 60 * 1000),
-                turnStartTime: Date.now(),
+                gameEndTime: getServerTime() + (40 * 60 * 1000),
+                turnStartTime: getServerTime(),
                 difficultyMode: diffLevel,
                 gameBoard: boardConfig.map((c, i) => {
                     let diff = (i < 5) ? 1 : (i < 15) ? 2 : 3;
@@ -342,18 +349,12 @@ function handleRoomUpdate(snapshot) {
     gameBoard = data.gameBoard || [];
     currentPlayerIndex = data.currentPlayerIndex || 0;
 
-    // Robust server time offset detection
-    let serverOffset = 0;
-    db.ref(".info/serverTimeOffset").once("value", (snap) => {
-        serverOffset = snap.val() || 0;
-    });
-
     // Update Class Timer UI from gameEndTime (robust sync)
     const classTimerEl = document.getElementById('class-timer');
     if (classTimerEl && data.gameEndTime) {
         if (window.mainGameTicker) clearInterval(window.mainGameTicker);
         window.mainGameTicker = setInterval(() => {
-            const serverTimeNow = Date.now() + serverOffset;
+            const serverTimeNow = getServerTime();
             const remMs = data.gameEndTime - serverTimeNow;
             remainingTime = Math.max(0, Math.floor(remMs / 1000));
             
@@ -373,25 +374,21 @@ function handleRoomUpdate(snapshot) {
         window.lastTurnStartTime = data.turnStartTime;
         clearInterval(localTurnTicker);
         
-        // Offset detection to fix clock drift
-        let serverOffset = 0;
-        db.ref(".info/serverTimeOffset").on("value", (snap) => {
-            serverOffset = snap.val() || 0;
-        });
-
         const updateTimerDisplay = () => {
-            const serverTimeNow = Date.now() + serverOffset;
+            const serverTimeNow = getServerTime();
+            // If the timestamp is a local placeholder, it might be negative or far in the past/future
+            // until the server actually writes it. We skip if it looks invalid.
+            if (data.turnStartTime < 0 || data.turnStartTime > serverTimeNow + 10000) return;
+
             const elapsed = Math.floor((serverTimeNow - data.turnStartTime) / 1000);
             
-            // Increased turn duration to 45 seconds for better educational experience
             const turnLimit = 45;
-            turnRemainingTime = Math.max(0, (turnLimit + 2) - elapsed);
+            turnRemainingTime = Math.max(0, (turnLimit + 1) - elapsed);
             const displayTime = Math.min(turnLimit, turnRemainingTime);
             
             const timerEl = document.getElementById('turn-timer');
             if(timerEl) timerEl.innerText = `Потег: ${displayTime}s`;
             
-            // Only auto-end turn if we are sure the turn is over and it's our turn
             if (turnRemainingTime === 0 && currentPlayerIndex === myPlayerId && !isRolling && currentRole !== 'teacher' && data.turnStartTime > 0) {
                 clearInterval(localTurnTicker);
                 log("Времето истече! Потегот се префрла.");
@@ -487,7 +484,7 @@ async function createMultipleRooms() {
                 status: 'waiting',
                 players: [],
                 currentPlayerIndex: 0,
-                gameEndTime: Date.now() + (40 * 60 * 1000),
+                gameEndTime: getServerTime() + (40 * 60 * 1000),
                 turnStartTime: 0,
                 difficultyMode: diffLevel,
                 teacherName: name,
@@ -528,7 +525,7 @@ async function startAllMyRooms() {
                     status: 'playing',
                     currentPlayerIndex: firstStudent, 
                     turnStartTime: firebase.database.ServerValue.TIMESTAMP,
-                    gameEndTime: Date.now() + (40 * 60 * 1000)
+                    gameEndTime: getServerTime() + (40 * 60 * 1000)
                 });
             }
         }
@@ -553,7 +550,7 @@ function requestStartGame() {
         status: 'playing',
         currentPlayerIndex: firstStudent, 
         turnStartTime: firebase.database.ServerValue.TIMESTAMP,
-        gameEndTime: Date.now() + (40 * 60 * 1000)
+        gameEndTime: getServerTime() + (40 * 60 * 1000)
     });
 }
 
