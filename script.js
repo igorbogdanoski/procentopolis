@@ -239,43 +239,48 @@ async function joinRoom() {
         playersRef.once('value', pSnap => {
             const currentPlayers = pSnap.val() || [];
             
-            // Check if player is already in the list (reconnection)
-            let existingPid = -1;
-            currentPlayers.forEach((p, idx) => {
-                if (p && p.name === studentName) existingPid = idx;
-            });
-
-            if (existingPid !== -1) {
-                myPlayerId = existingPid;
+            if (currentRole === 'teacher') {
+                myPlayerId = -1; // Teacher is a spectator
+                roomRef.update({ teacherName: studentName });
             } else {
-                if (currentPlayers.length >= 7) { // 6 players + 1 teacher
-                    alert("Собата е полна!");
-                    location.reload();
-                    return;
+                // Check for existing session (reconnection)
+                let existingPid = -1;
+                currentPlayers.forEach((p, idx) => {
+                    if (p && p.name === studentName) existingPid = idx;
+                });
+
+                if (existingPid !== -1) {
+                    myPlayerId = existingPid;
+                } else {
+                    if (currentPlayers.length >= 6) {
+                        alert("Собата е полна!");
+                        location.reload();
+                        return;
+                    }
+                    myPlayerId = currentPlayers.length;
+                    const newPlayer = {
+                        id: myPlayerId,
+                        name: studentName,
+                        odd: studentOdd,
+                        role: 'student',
+                        money: 3000,
+                        pos: 0,
+                        emoji: myTokenEmoji,
+                        color: `var(--p${myPlayerId}-color)`,
+                        powerups: { lawyer: false, shield: false, nitro: false, bribe: false },
+                        hasLoan: false,
+                        jailTurns: 0
+                    };
+                    playersRef.child(myPlayerId).set(newPlayer);
                 }
-                myPlayerId = currentPlayers.length;
-                const newPlayer = {
-                    id: myPlayerId,
-                    name: studentName,
-                    odd: studentOdd,
-                    role: currentRole,
-                    isSpectator: (currentRole === 'teacher'),
-                    money: currentRole === 'teacher' ? 0 : 3000,
-                    pos: 0,
-                    emoji: myTokenEmoji,
-                    color: currentRole === 'teacher' ? 'transparent' : `var(--p${myPlayerId}-color)`,
-                    powerups: { lawyer: false, shield: false, nitro: false, bribe: false },
-                    hasLoan: false,
-                    jailTurns: 0
-                };
-                playersRef.child(myPlayerId).set(newPlayer);
             }
 
             // Save session
             localStorage.setItem('percentopolis_session', JSON.stringify({
                 name: studentName,
                 roomId: roomId,
-                playerId: myPlayerId
+                playerId: myPlayerId,
+                role: currentRole
             }));
 
             roomRef.on('value', handleRoomUpdate);
@@ -383,30 +388,23 @@ function updateLobbyUI() {
     const ul = document.getElementById('lobby-players-ul');
     ul.innerHTML = '';
     players.forEach(p => {
+        if (!p) return;
         const li = document.createElement('li');
         li.innerText = `👤 ${p.name} (${p.odd})`;
-        if (p.id === 0) li.innerText += " (Креатор)";
         ul.appendChild(li);
     });
     
     document.getElementById('start-game-btn-multi').style.display = isCreator ? 'block' : 'none';
+    if (currentRole === 'teacher') {
+        document.getElementById('create-another-btn').style.display = 'block';
+    }
 }
 
 function requestStartGame() {
     if (!isCreator) return;
-    
-    // Find the first student to start the game
-    let firstStudentIndex = 0;
-    for(let i=0; i<players.length; i++){
-        if(players[i] && !players[i].isSpectator){
-            firstStudentIndex = i;
-            break;
-        }
-    }
-
     db.ref('rooms/' + roomId).update({ 
         status: 'playing',
-        currentPlayerIndex: firstStudentIndex,
+        currentPlayerIndex: 0, // First student starts
         turnStartTime: firebase.database.ServerValue.TIMESTAMP 
     });
 }
@@ -503,7 +501,7 @@ function startTimerMulti() {
 }
 
 async function playTurnMulti(){
-    if(isRolling || currentPlayerIndex !== myPlayerId) return;
+    if(myPlayerId === -1 || isRolling || currentPlayerIndex !== myPlayerId) return;
     isRolling = true;
     document.getElementById('roll-btn').disabled = true;
     
@@ -561,6 +559,7 @@ async function playTurnMulti(){
 }
 
 async function updateMoneyMulti(pid, amt){
+    if(pid === -1) return;
     if(amt === 0) return;
     const p = players[pid];
     let newMoney = p.money + amt;
@@ -891,6 +890,7 @@ function openTeacherDash() {
 }
 
 function buyItem(type,cost) {
+    if(myPlayerId === -1) return;
     const p=players[myPlayerId];
     if(p.money<cost) { alert("Немаш доволно пари!"); return; }
     p.powerups[type]=true;
@@ -993,6 +993,15 @@ function triggerGameOver(r){
     clearInterval(localTurnTicker);
     document.getElementById('game-over-overlay').style.display='flex'; 
     
+    if (myPlayerId === -1) {
+        let summary = "КРАЈНИ РЕЗУЛТАТИ:\n\n";
+        players.forEach(p => {
+            if(p) summary += `${p.name}: ${p.money}д\n`;
+        });
+        document.getElementById('report-text').innerText = summary;
+        return;
+    }
+
     const p = players[myPlayerId];
     let finalMoney = p.money;
     let loanNote = "";
