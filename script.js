@@ -512,24 +512,34 @@ async function updateMoneyMulti(pid, amt){
     let newMoney = p.money + amt;
     
     if (newMoney < 0 && pid === myPlayerId) {
+        // Step 1: Offer Loan if available
         if (!p.hasLoan) {
             log("⚠️ КРИЗА! Немаш доволно пари. Банката ти нуди КРЕДИТ.");
-            const t = getUniqueTask(3); // Hard task for loan
+            const t = getUniqueTask(3);
             const ok = await askQuestion("🏦 БАНКАРСКИ КРЕДИТ", `Реши ја задачата за 1500д кредит, инаку ГУБИШ! \n\n ${t.question}`, t.correct_answer, [], true, t.explanation);
             
             if (ok) {
                 newMoney += 1500;
-                db.ref(`rooms/${roomId}/players/${pid}`).update({ money: newMoney, hasLoan: true });
-                log("✅ Кредитот е одобрен! Внимавај, ова ти е последна шанса.");
+                p.money = newMoney;
+                p.hasLoan = true;
+                await db.ref(`rooms/${roomId}/players/${pid}`).update({ money: newMoney, hasLoan: true });
+                log("✅ Кредитот е одобрен!");
+            }
+        }
+
+        // Step 2: If still in debt, check if has properties to sell
+        if (newMoney < 0) {
+            const myProps = gameBoard.filter(c => c.owner === pid);
+            if (myProps.length > 0) {
+                log("⚠️ Сè уште си во минус! Мора да продадеш имот за да преживееш.");
+                await showSellPropertyModal(pid, newMoney);
+                return; // Modal will handle further logic
             } else {
+                // Final Bankruptcy
                 db.ref(`rooms/${roomId}/players/${pid}`).update({ money: -1, isEliminated: true });
-                triggerGameOver("Банкрот! Не успеа да го добиеш кредитот.");
+                triggerGameOver("Банкрот! Немаш повеќе пари ниту имоти.");
                 return;
             }
-        } else {
-            db.ref(`rooms/${roomId}/players/${pid}`).update({ money: -1, isEliminated: true });
-            triggerGameOver("Банкрот! Веќе искористи еден кредит.");
-            return;
         }
     } else {
         db.ref(`rooms/${roomId}/players/${pid}`).update({ money: newMoney });
@@ -538,6 +548,55 @@ async function updateMoneyMulti(pid, amt){
     AudioController.play('money');
     showFloatingTextMulti(amt, pid);
 }
+
+async function showSellPropertyModal(pid, currentDebt) {
+    return new Promise(resolve => {
+        const o = document.getElementById('card-overlay');
+        o.style.display = 'flex';
+        o.innerHTML = '';
+        
+        const myProps = gameBoard.filter(c => c.owner === pid);
+        let debt = Math.abs(currentDebt);
+
+        const container = document.createElement('div');
+        container.className = 'modal-mini';
+        container.style.display = 'block';
+        container.style.width = '500px';
+        container.innerHTML = `
+            <h2 style="color:#e74c3c">🆘 ПРИНУДНА ПРОДАЖБА</h2>
+            <p>Ти фалат уште <b>${debt}д</b>. Продај некој од твоите имоти за 50% од цената.</p>
+            <div id="sell-list" style="margin:20px 0; max-height:200px; overflow-y:auto; text-align:left;"></div>
+        `;
+
+        const list = container.querySelector('#sell-list');
+        myProps.forEach(prop => {
+            const sellValue = Math.floor(prop.price * 0.5);
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.style.marginBottom = '10px';
+            btn.innerHTML = `🏙️ ${prop.name} (Земи ${sellValue}д)`;
+            btn.onclick = async () => {
+                // Update Firebase: remove owner
+                await db.ref(`rooms/${roomId}/gameBoard/${prop.index}`).update({ owner: null, buildings: 0 });
+                // Update Local money
+                let p = players[pid];
+                p.money += sellValue;
+                await db.ref(`rooms/${roomId}/players/${pid}`).update({ money: p.money });
+                
+                log(`💸 Го продаде ${prop.name} за ${sellValue}д.`);
+                o.style.display = 'none';
+                
+                // Recursively check if still in debt
+                updateMoneyMulti(pid, 0); 
+                resolve();
+            };
+            list.appendChild(btn);
+        });
+
+        o.appendChild(container);
+    });
+}
+
 
 function showFloatingTextMulti(amount, pid) {
     if(amount===0)return; const pt=document.getElementById(`token-${pid}`); if(!pt)return;
