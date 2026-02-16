@@ -108,19 +108,23 @@
                 <button id="login-btn" disabled>🚀 ВЛЕЗИ ВО ИГРА</button>
             </div>
             <div id="lobby-section" style="display:none;">
-                <div style="background: var(--primary-color); color: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; text-align: center;">
-                    <p style="margin:0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Код за приклучување:</p>
-                    <h2 id="current-room-display" style="margin: 5px 0 0 0; font-size: 2.5rem; font-weight: 900; letter-spacing: 2px;">---</h2>
+                <div style="background: #1e40af; color: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; text-align: center; box-shadow: 0 10px 25px rgba(30, 64, 175, 0.2);">
+                    <p style="margin:0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; opacity: 0.8;">ПРИКЛУЧИ СЕ СО КОД:</p>
+                    <h2 id="current-room-display" style="margin: 5px 0 0 0; font-size: 3rem; font-weight: 950; letter-spacing: 4px;">---</h2>
                 </div>
-                <div id="players-list" style="margin: 20px 0; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 10px; min-height: 100px;">
-                    <p>Играчи во собата:</p>
-                    <ul id="lobby-players-ul" style="list-style: none; padding: 0;"></ul>
+                <div id="players-list" style="margin: 20px 0; text-align: left; background: #f8fafc; padding: 20px; border-radius: 15px; min-height: 120px; border: 1px solid #e2e8f0;">
+                    <p style="font-weight: 800; color: #64748b; font-size: 0.8rem; margin-top: 0;">👥 УЧЕНИЦИ ВО СОБАТА:</p>
+                    <ul id="lobby-players-ul" style="list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></ul>
                 </div>
-                <button id="start-game-btn-multi" style="width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">ЗАПОЧНИ ИГРА</button>
-                <button id="open-dash-direct-btn" onclick="openTeacherDash()" style="display:none; margin-top:10px; width: 100%; padding: 15px; background: #8b5cf6; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">📊 ОТВОРИ КОНТРОЛЕН ЦЕНТАР</button>
-                <button id="start-all-rooms-btn" onclick="startAllMyRooms()" style="display:none; margin-top:10px; width: 100%; padding: 15px; background: #3b82f6; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">🚀 СТАРТУВАЈ ГИ СИТЕ МОИ СОБИ</button>
-                <button id="create-another-btn" onclick="location.reload()" style="display:none; margin-top:10px; width: 100%; padding: 12px; background: #34495e; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">➕ КРЕИРАЈ УШТЕ ЕДНА СОБА</button>
-                <p style="font-size: 0.8rem; color: #666; margin-top: 10px;">Само креаторот на собата може да ја започне играта.</p>
+                
+                <div id="teacher-lobby-controls" style="display:none; flex-direction:column; gap:10px;">
+                    <button id="open-dash-direct-btn" onclick="openTeacherDash()" style="width: 100%; padding: 18px; background: #8b5cf6; color: white; border: none; border-radius: 16px; font-weight: 900; cursor: pointer; box-shadow: 0 10px 20px rgba(139, 92, 246, 0.2); font-size: 1rem; border: 2px solid rgba(255,255,255,0.2);">📊 ОТВОРИ КОНТРОЛЕН ЦЕНТАР</button>
+                    <button id="start-all-rooms-btn" onclick="startAllMyRooms()" style="width: 100%; padding: 15px; background: #3b82f6; color: white; border: none; border-radius: 16px; font-weight: 800; cursor: pointer; font-size: 0.9rem;">🚀 СТАРТУВАЈ ГИ СИТЕ СОБИ</button>
+                    <button id="create-another-btn" onclick="location.reload()" style="width: 100%; padding: 12px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 16px; font-weight: 700; cursor: pointer; font-size: 0.8rem;">➕ КРЕИРАЈ УШТЕ ЕДНА СОБА</button>
+                </div>
+
+                <button id="start-game-btn-multi" style="width: 100%; padding: 20px; background: #10b981; color: white; border: none; border-radius: 16px; font-weight: 900; cursor: pointer; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); font-size: 1.1rem; margin-top: 10px;">ЗАПОЧНИ ИГРА</button>
+                <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 15px; font-weight: 600;">Само наставникот може да ја започне играта.</p>
             </div>
             <button onclick="clearSave()" style="margin-top:10px; background:#e74c3c; border:none; color:white; padding:10px; border-radius:10px; cursor:pointer;">🗑️ ИЗБРИШИ ЗАЧУВАНО</button>
         </div>

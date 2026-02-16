@@ -329,8 +329,9 @@ async function joinRoom() {
                         name: studentName,
                         odd: studentOdd,
                         role: 'student',
-                        money: 4000,
+                        money: 2000,
                         pos: 0,
+                        streak: 0,
                         emoji: myTokenEmoji,
                         color: `var(--p${myPlayerId}-color)`,
                         powerups: { lawyer: false, shield: false, nitro: false, bribe: false },
@@ -488,19 +489,30 @@ function sendEmoji(emoji) {
 
 function updateLobbyUI() {
     const ul = document.getElementById('lobby-players-ul');
+    if (!ul) return;
     ul.innerHTML = '';
     players.forEach(p => {
         if (!p) return;
         const li = document.createElement('li');
-        li.innerText = `👤 ${p.name} (${p.odd})`;
+        li.style.cssText = "background:white; padding:8px 12px; border-radius:10px; border:1px solid #e2e8f0; font-size:0.85rem; display:flex; align-items:center; gap:8px;";
+        li.innerHTML = `<span style="font-size:1.2rem;">${p.emoji || '👤'}</span> <span style="font-weight:700; color:#1e293b;">${p.name}</span>`;
         ul.appendChild(li);
     });
     
-    document.getElementById('start-game-btn-multi').style.display = isCreator ? 'block' : 'none';
-    if (currentRole === 'teacher') {
+    const startBtn = document.getElementById('start-game-btn-multi');
+    const teacherControls = document.getElementById('teacher-lobby-controls');
+    
+    if (isCreator || currentRole === 'teacher') {
+        if (startBtn) startBtn.style.display = isCreator ? 'block' : 'none';
+        if (teacherControls) teacherControls.style.display = 'flex';
+        
+        const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
+        document.getElementById('start-all-rooms-btn').style.display = (myRooms.length > 1) ? 'block' : 'none';
         document.getElementById('create-another-btn').style.display = 'block';
-        document.getElementById('start-all-rooms-btn').style.display = 'block';
         document.getElementById('open-dash-direct-btn').style.display = 'block';
+    } else {
+        if (startBtn) startBtn.style.display = 'none';
+        if (teacherControls) teacherControls.style.display = 'none';
     }
 }
 
@@ -848,7 +860,15 @@ async function showSellPropertyModal(pid, currentDebt) {
 function showFloatingTextMulti(amount, pid) {
     if(amount===0)return; const pt=document.getElementById(`token-${pid}`); if(!pt)return;
     const r=pt.getBoundingClientRect(); const t=document.createElement('div'); t.className='floating-text';
-    t.innerText=(amount>0?'+':'')+amount+'д'; t.style.color=amount>0?'#27ae60':'#e74c3c'; t.style.left=r.left+'px'; t.style.top=r.top+'px';
+    
+    if (typeof amount === 'string') {
+        t.innerText = amount;
+        t.style.color = '#9b59b6'; // Purple for rewards
+    } else {
+        t.innerText=(amount>0?'+':'')+amount+'д'; t.style.color=amount>0?'#27ae60':'#e74c3c';
+    }
+    
+    t.style.left=r.left+'px'; t.style.top=r.top+'px';
     document.body.appendChild(t); setTimeout(()=>{document.body.removeChild(t);},1500);
 }
 
@@ -1320,13 +1340,30 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
         currentTaskData = { q, ans, expl, hint };
 
         const finalize = (res) => {
+            const p = players[myPlayerId];
             const updates = { isThinking: false };
             if (res) {
                 studentCorrect++;
                 updates.correct = studentCorrect;
+                p.streak = (p.streak || 0) + 1;
+                updates.streak = p.streak;
+                
+                // STREAK REWARD: Every 3 correct answers
+                if (p.streak > 0 && p.streak % 3 === 0) {
+                    const rewards = ['lawyer', 'shield', 'nitro'];
+                    const chosen = rewards[Math.floor(Math.random() * rewards.length)];
+                    p.powerups[chosen] = true;
+                    updates.powerups = p.powerups;
+                    
+                    const emojiMap = { lawyer: '⚖️', shield: '🛡️', nitro: '🚀' };
+                    log(`🔥 БРАВО! 3 по ред точно! Доби награда: ${emojiMap[chosen]}`);
+                    showFloatingTextMulti(`+${emojiMap[chosen]}`, myPlayerId);
+                }
             } else {
                 studentWrong++;
                 updates.wrong = studentWrong;
+                p.streak = 0;
+                updates.streak = 0;
             }
             updates.lastActivity = (res ? "Точно: " : "Грешно: ") + q;
             
@@ -1340,8 +1377,8 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
                 const b=document.createElement('button'); b.className='option-btn'; b.innerText=o;
                 b.onclick=()=>{
                     const isCorrect = o === ans;
-                    if(isCorrect){ b.classList.add('correct-answer'); AudioController.play('success'); triggerConfetti(); correctStreak++; }
-                    else { b.classList.add('wrong-answer'); AudioController.play('failure'); correctStreak=0; }
+                    if(isCorrect){ b.classList.add('correct-answer'); AudioController.play('success'); triggerConfetti(); }
+                    else { b.classList.add('wrong-answer'); AudioController.play('failure'); }
                     fa.innerText = isCorrect ? "ТОЧНО! ✅" : `ГРЕШКА! ❌ Точниот одговор е ${ans}.`;
                     fa.style.color = isCorrect ? "green" : "red";
                     sendLiveUpdate(q, o, isCorrect);
@@ -1355,8 +1392,8 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
             document.getElementById('submit-answer-btn').onclick=()=>{
                 const val = document.getElementById('manual-answer-input').value.trim();
                 const isCorrect = val === ans;
-                if(isCorrect){ AudioController.play('success'); triggerConfetti(); correctStreak++; }
-                else { AudioController.play('failure'); correctStreak=0; }
+                if(isCorrect){ AudioController.play('success'); triggerConfetti(); }
+                else { AudioController.play('failure'); }
                 fa.innerText = isCorrect ? "ТОЧНО! ✅" : `ГРЕШКА! ❌ Точниот одговор е ${ans}.`;
                 fa.style.color = isCorrect ? "green" : "red";
                 sendLiveUpdate(q, val, isCorrect);
