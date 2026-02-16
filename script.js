@@ -17,6 +17,58 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// --- ERROR HANDLING & NOTIFICATIONS ---
+function showError(message) {
+    const toast = createToast(message, 'error');
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 5000);
+    console.error('[PERCENTOPOLIS ERROR]', message);
+}
+
+function showWarning(message) {
+    const toast = createToast(message, 'warning');
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+    console.warn('[PERCENTOPOLIS WARNING]', message);
+}
+
+function showSuccess(message) {
+    const toast = createToast(message, 'success');
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+function createToast(message, type) {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed; top: 20px; right: 20px; z-index: 10000;
+        padding: 15px 20px; border-radius: 12px; font-weight: bold;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 400px;
+        animation: slideIn 0.3s ease-out;
+        font-size: 0.9rem; line-height: 1.4;
+    `;
+    const colors = {
+        error: 'background: #fee2e2; color: #991b1b; border: 2px solid #fca5a5;',
+        warning: 'background: #fef3c7; color: #92400e; border: 2px solid #fbbf24;',
+        success: 'background: #d1fae5; color: #065f46; border: 2px solid #34d399;'
+    };
+    toast.style.cssText += colors[type] || colors.error;
+    toast.innerText = message;
+    return toast;
+}
+
+// Connection monitoring
+let isOnline = true;
+db.ref('.info/connected').on('value', (snap) => {
+    const wasOnline = isOnline;
+    isOnline = snap.val() === true;
+    if (!isOnline && wasOnline) {
+        showWarning('⚠️ Нема интернет конекција. Се обидувам да се поврзам...');
+    } else if (isOnline && !wasOnline) {
+        showSuccess('✅ Конекцијата е вратена!');
+    }
+});
+
 // --- TIME SYNC ---
 let serverOffset = 0;
 db.ref(".info/serverTimeOffset").on("value", (snap) => {
@@ -657,10 +709,10 @@ function initMultiplayerGame() {
     
     renderBoard();
     updateUI();
-    
-    // Auto-resync logic: force sync UI every 10 seconds in case of minor connection glitches
-    setInterval(syncGameState, 10000);
-    
+
+    // NOTE: Removed auto-resync - Firebase listeners handle updates automatically
+    // Using only Firebase real-time listeners for better performance
+
     document.getElementById('roll-btn').onclick = playTurnMulti;
 }
 
@@ -1063,6 +1115,7 @@ function openShop() {
 
 let activeDashRoomId = null;
 let dashRoomListener = null;
+let gridListeners = {}; // Track grid view listeners for cleanup
 
 function openTeacherDash() {
     const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
@@ -1136,6 +1189,12 @@ function toggleGridView(showGrid) {
         title.innerText = "ПРЕГЛЕД НА СИТЕ СОБИ";
         renderDashGrid();
     } else {
+        // Clean up grid listeners when switching back to single view
+        Object.keys(gridListeners).forEach(rid => {
+            db.ref(`rooms/${rid}`).off('value', gridListeners[rid]);
+        });
+        gridListeners = {};
+
         single.style.display = 'block';
         grid.style.display = 'none';
         backBtn.style.display = 'none';
@@ -1146,8 +1205,15 @@ function toggleGridView(showGrid) {
 function renderDashGrid() {
     const container = document.getElementById('dash-grid-container');
     container.innerHTML = '';
+
+    // Clean up old listeners before creating new ones
+    Object.keys(gridListeners).forEach(rid => {
+        db.ref(`rooms/${rid}`).off('value', gridListeners[rid]);
+    });
+    gridListeners = {};
+
     const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
-    
+
     myRooms.forEach(rid => {
         const card = document.createElement('div');
         card.style.cssText = "background:white; border-radius:15px; padding:20px; border:1px solid #e2e8f0; box-shadow:0 4px 6px rgba(0,0,0,0.02); cursor:pointer;";
@@ -1171,8 +1237,8 @@ function renderDashGrid() {
         card.onclick = () => switchDashRoom(rid);
         container.appendChild(card);
 
-        // Listen for live updates on this card
-        db.ref(`rooms/${rid}`).on('value', snap => {
+        // Listen for live updates on this card - STORE reference for cleanup
+        const listener = snap => {
             const data = snap.val();
             if (!data) return;
             const players = (data.players || []).filter(p => p && p.role !== 'teacher');
@@ -1190,7 +1256,11 @@ function renderDashGrid() {
             if (playersEl) playersEl.innerText = players.length;
             const successEl = document.getElementById(`grid-success-${rid}`);
             if (successEl) successEl.innerText = success + '%';
-        });
+        };
+
+        // Store listener reference and attach it
+        gridListeners[rid] = listener;
+        db.ref(`rooms/${rid}`).on('value', listener);
     });
 }
 
