@@ -169,7 +169,7 @@ const tutorialSteps = [
                       <li><strong>Реши задача</strong> за да купиш имот</li>
                   </ol>
                   <div class="tutorial-highlight">
-                      <strong>⏱️ ВАЖНО:</strong> Имаш <strong>45 секунди</strong> за секој потег!
+                      <strong>⏱️ ВАЖНО:</strong> Имаш <strong>30 секунди</strong> за секој потег!
                   </div>`
     },
     {
@@ -234,7 +234,7 @@ const tutorialSteps = [
                   <div class="tutorial-highlight">
                       <strong>🎯 ЗАПОМНИ:</strong><br>
                       • Решавај точно за да купуваш имоти<br>
-                      • Внимавај на времето (45 секунди)<br>
+                      • Внимавај на времето (30 секунди)<br>
                       • Користи ги моќите паметно<br>
                       • Забавувај се и учи! 📚
                   </div>
@@ -876,8 +876,8 @@ function handleRoomUpdate(snapshot) {
             }
 
             const elapsed = Math.floor((serverTimeNow - data.turnStartTime) / 1000);
-            
-            const turnLimit = 45;
+
+            const turnLimit = 30; // Changed from 45s to 30s for faster gameplay
             turnRemainingTime = Math.max(0, turnLimit - elapsed);
             const displayTime = turnRemainingTime;
             
