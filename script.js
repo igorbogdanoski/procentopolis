@@ -329,7 +329,7 @@ async function joinRoom() {
                         name: studentName,
                         odd: studentOdd,
                         role: 'student',
-                        money: 2000,
+                        money: 1000,
                         pos: 0,
                         streak: 0,
                         emoji: myTokenEmoji,
@@ -412,18 +412,22 @@ function handleRoomUpdate(snapshot) {
     if (data.turnStartTime && data.turnStartTime !== window.lastTurnStartTime) {
         window.lastTurnStartTime = data.turnStartTime;
         clearInterval(localTurnTicker);
-        
+
         const updateTimerDisplay = () => {
             const serverTimeNow = getServerTime();
-            // If the timestamp is a local placeholder, it might be negative or far in the past/future
-            // until the server actually writes it. We skip if it looks invalid.
-            if (data.turnStartTime < 0 || data.turnStartTime > serverTimeNow + 10000) return;
+
+            // Ensure turnStartTime is valid and from the server
+            if (!data.turnStartTime || data.turnStartTime <= 0 || data.turnStartTime > serverTimeNow + 60000) {
+                const timerEl = document.getElementById('turn-timer');
+                if(timerEl) timerEl.innerText = `Подготовка...`;
+                return;
+            }
 
             const elapsed = Math.floor((serverTimeNow - data.turnStartTime) / 1000);
             
             const turnLimit = 45;
-            turnRemainingTime = Math.max(0, (turnLimit + 1) - elapsed);
-            const displayTime = Math.min(turnLimit, turnRemainingTime);
+            turnRemainingTime = Math.max(0, turnLimit - elapsed);
+            const displayTime = turnRemainingTime;
             
             const timerEl = document.getElementById('turn-timer');
             if(timerEl) timerEl.innerText = `Потег: ${displayTime}s`;
@@ -634,7 +638,7 @@ function initMultiplayerGame() {
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('game-wrapper').classList.remove('blur-filter');
     
-    if (isCreator) {
+    if (isCreator || currentRole === 'teacher') {
         document.getElementById('teacher-dash-btn-fixed').style.display = 'block';
     }
 
