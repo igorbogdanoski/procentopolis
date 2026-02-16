@@ -1597,8 +1597,14 @@ function showCreateRoomInterface() {
     }
     activeDashRoomId = null;
 
+    // Ensure containers are in correct state (show single, hide grid)
+    const single = document.getElementById('dash-single-room-container');
+    const grid = document.getElementById('dash-grid-container');
+    single.style.display = 'block';
+    grid.style.display = 'none';
+    document.getElementById('dash-back-to-list').style.display = 'none';
+
     // Update UI to show create interface
-    toggleGridView(false); // Ensure we're in single view, not grid
     document.getElementById('dash-active-room-title').innerText = 'КРЕИРАЈ НОВА СОБА';
     document.getElementById('dash-start-btn').style.display = 'none';
     document.getElementById('dash-download-btn').style.display = 'none';
@@ -1609,7 +1615,7 @@ function showCreateRoomInterface() {
         el.style.borderColor = 'rgba(255,255,255,0.1)';
     });
 
-    const container = document.getElementById('dash-single-room-container');
+    const container = single;
     container.innerHTML = `
         <div style="max-width:600px; margin:60px auto; padding:40px; background:white; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
             <h2 style="margin:0 0 10px 0; color:#1e293b; font-size:1.8rem;">✨ Креирај нова соба</h2>
