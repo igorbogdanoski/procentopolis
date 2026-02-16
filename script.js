@@ -1590,6 +1590,25 @@ function openTeacherDash() {
 }
 
 function showCreateRoomInterface() {
+    // BUGFIX: Clear active room and stop listening to previous room
+    if (dashRoomListener && activeDashRoomId) {
+        db.ref(`rooms/${activeDashRoomId}`).off('value', dashRoomListener);
+        dashRoomListener = null;
+    }
+    activeDashRoomId = null;
+
+    // Update UI to show create interface
+    toggleGridView(false); // Ensure we're in single view, not grid
+    document.getElementById('dash-active-room-title').innerText = 'КРЕИРАЈ НОВА СОБА';
+    document.getElementById('dash-start-btn').style.display = 'none';
+    document.getElementById('dash-download-btn').style.display = 'none';
+
+    // Deselect all room buttons in sidebar
+    document.querySelectorAll('.dash-room-item').forEach(el => {
+        el.style.background = 'rgba(255,255,255,0.05)';
+        el.style.borderColor = 'rgba(255,255,255,0.1)';
+    });
+
     const container = document.getElementById('dash-single-room-container');
     container.innerHTML = `
         <div style="max-width:600px; margin:60px auto; padding:40px; background:white; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
