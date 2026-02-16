@@ -1,0 +1,92 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "rooms": {
+      "$roomId": {
+        ".read": true,
+
+        ".write": "newData.exists() && (
+          !data.exists() ||
+          data.child('teacherName').exists()
+        )",
+
+        "status": {
+          ".write": "newData.isString() && (
+            newData.val() === 'waiting' ||
+            newData.val() === 'playing' ||
+            newData.val() === 'finished'
+          )"
+        },
+
+        "players": {
+          "$playerId": {
+            ".write": "newData.exists()",
+
+            "name": {
+              ".validate": "newData.isString() &&
+                            newData.val().length >= 3 &&
+                            newData.val().length <= 30"
+            },
+
+            "money": {
+              ".validate": "newData.isNumber() &&
+                            newData.val() >= -5000 &&
+                            newData.val() <= 1000000"
+            },
+
+            "pos": {
+              ".validate": "newData.isNumber() &&
+                            newData.val() >= 0 &&
+                            newData.val() <= 19"
+            },
+
+            "role": {
+              ".validate": "newData.val() === 'student' ||
+                            newData.val() === 'teacher'"
+            }
+          }
+        },
+
+        "gameBoard": {
+          "$cellIndex": {
+            ".write": true,
+
+            "owner": {
+              ".validate": "newData.val() === null ||
+                            (newData.isNumber() &&
+                             newData.val() >= 0 &&
+                             newData.val() <= 5)"
+            },
+
+            "buildings": {
+              ".validate": "newData.isNumber() &&
+                            newData.val() >= 0 &&
+                            newData.val() <= 5"
+            }
+          }
+        },
+
+        "currentPlayerIndex": {
+          ".validate": "newData.isNumber() &&
+                        newData.val() >= 0 &&
+                        newData.val() < 6"
+        },
+
+        "turnStartTime": {
+          ".validate": "newData.isNumber()"
+        },
+
+        "gameEndTime": {
+          ".validate": "newData.isNumber()"
+        },
+
+        "remainingTime": {
+          ".validate": "newData.isNumber() &&
+                        newData.val() >= 0"
+        }
+      }
+    }
+  }
+}

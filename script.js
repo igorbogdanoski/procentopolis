@@ -76,6 +76,34 @@ db.ref(".info/serverTimeOffset").on("value", (snap) => {
 });
 function getServerTime() { return Date.now() + serverOffset; }
 
+// --- INPUT VALIDATION & SANITIZATION ---
+function sanitizeInput(input) {
+    if (typeof input !== 'string') return '';
+    return input.trim().replace(/[<>]/g, '').slice(0, 100);
+}
+
+function validatePlayerName(name) {
+    const sanitized = sanitizeInput(name);
+    if (sanitized.length < 3) {
+        return { valid: false, error: 'Името мора да има минимум 3 карактери' };
+    }
+    if (sanitized.length > 30) {
+        return { valid: false, error: 'Името мора да има максимум 30 карактери' };
+    }
+    return { valid: true, sanitized };
+}
+
+function validateRoomCode(code) {
+    const sanitized = sanitizeInput(code).toUpperCase();
+    if (sanitized.length < 3 || sanitized.length > 20) {
+        return { valid: false, error: 'Кодот мора да биде помеѓу 3 и 20 карактери' };
+    }
+    if (!/^[A-Z0-9\-]+$/.test(sanitized)) {
+        return { valid: false, error: 'Кодот може да содржи само букви, броеви и цртички' };
+    }
+    return { valid: true, sanitized };
+}
+
 // --- VARIABLES ---
 let studentName = "", studentOdd = "", studentCorrect = 0, studentWrong = 0;
 let usedQuestionIds = [], remainingTime = 40 * 60, players = [], currentPlayerIndex = 0, gameBoard = [], isRolling = false;
