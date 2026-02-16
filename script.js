@@ -1544,8 +1544,37 @@ let dashRoomListener = null;
 let gridListeners = {}; // Track grid view listeners for cleanup
 
 function closeTeacherDash() {
-    // Hide the modal
-    document.getElementById('teacher-modal').style.display = 'none';
+    // Hide the modal completely
+    const modal = document.getElementById('teacher-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+
+    // Remove blur from game wrapper
+    const gameWrapper = document.getElementById('game-wrapper');
+    if (gameWrapper) {
+        gameWrapper.classList.remove('blur-filter');
+    }
+
+    // Remove any overlay blocking elements
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        if (overlay.id !== 'teacher-modal') {
+            overlay.style.display = 'none';
+        }
+    });
+
+    // Re-enable body scrolling and interaction
+    document.body.style.overflow = 'auto';
+    document.body.style.pointerEvents = 'auto';
+
+    // Clear any backdrop filters
+    const allElements = document.querySelectorAll('*');
+    allElements.forEach(el => {
+        if (el.style.backdropFilter || el.style.webkitBackdropFilter) {
+            el.style.backdropFilter = 'none';
+            el.style.webkitBackdropFilter = 'none';
+        }
+    });
 
     // Ensure the reopen button is visible
     const reopenBtn = document.getElementById('teacher-dash-btn-fixed');
@@ -1599,7 +1628,11 @@ function openTeacherDash() {
         switchDashRoom(myRooms[0]);
     }
 
-    document.getElementById('teacher-modal').style.display = 'flex';
+    const modal = document.getElementById('teacher-modal');
+    modal.style.display = 'flex';
+
+    // Ensure proper modal display
+    document.body.style.overflow = 'hidden';
 }
 
 function showCreateRoomInterface() {
