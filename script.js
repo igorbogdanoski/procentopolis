@@ -203,7 +203,7 @@ async function joinRoom() {
             if (existingPid !== -1) {
                 myPlayerId = existingPid;
             } else {
-                if (currentPlayers.length >= 6) {
+                if (currentPlayers.length >= 7) { // 6 players + 1 teacher
                     alert("Собата е полна!");
                     location.reload();
                     return;
@@ -214,11 +214,13 @@ async function joinRoom() {
                     name: studentName,
                     odd: studentOdd,
                     role: currentRole,
-                    money: currentRole === 'teacher' ? 0 : 2000,
+                    isSpectator: (currentRole === 'teacher'),
+                    money: currentRole === 'teacher' ? 0 : 3000,
                     pos: 0,
                     emoji: myTokenEmoji,
                     color: currentRole === 'teacher' ? 'transparent' : `var(--p${myPlayerId}-color)`,
-                    powerups: { lawyer: false, shield: false, nitro: false, bribe: false }
+                    powerups: { lawyer: false, shield: false, nitro: false, bribe: false },
+                    hasLoan: false
                 };
                 playersRef.child(myPlayerId).set(newPlayer);
             }
@@ -290,6 +292,10 @@ function handleRoomUpdate(snapshot) {
     
     if (data.status === 'playing') {
         syncGameState();
+        // Trigger game over when time is up
+        if (remainingTime <= 0) {
+            triggerGameOver("Времето истече!");
+        }
     }
 
     // Display emoji if any
@@ -342,8 +348,19 @@ function updateLobbyUI() {
 
 function requestStartGame() {
     if (!isCreator) return;
+    
+    // Find the first student to start the game
+    let firstStudentIndex = 0;
+    for(let i=0; i<players.length; i++){
+        if(players[i] && !players[i].isSpectator){
+            firstStudentIndex = i;
+            break;
+        }
+    }
+
     db.ref('rooms/' + roomId).update({ 
         status: 'playing',
+        currentPlayerIndex: firstStudentIndex,
         turnStartTime: firebase.database.ServerValue.TIMESTAMP 
     });
 }
@@ -489,11 +506,35 @@ async function playTurnMulti(){
     endTurnMulti();
 }
 
-function updateMoneyMulti(pid, amt){
+async function updateMoneyMulti(pid, amt){
     if(amt === 0) return;
     const p = players[pid];
-    const newMoney = p.money + amt;
-    db.ref(`rooms/${roomId}/players/${pid}`).update({ money: newMoney });
+    let newMoney = p.money + amt;
+    
+    if (newMoney < 0 && pid === myPlayerId) {
+        if (!p.hasLoan) {
+            log("⚠️ КРИЗА! Немаш доволно пари. Банката ти нуди КРЕДИТ.");
+            const t = getUniqueTask(3); // Hard task for loan
+            const ok = await askQuestion("🏦 БАНКАРСКИ КРЕДИТ", `Реши ја задачата за 1500д кредит, инаку ГУБИШ! \n\n ${t.question}`, t.correct_answer, [], true, t.explanation);
+            
+            if (ok) {
+                newMoney += 1500;
+                db.ref(`rooms/${roomId}/players/${pid}`).update({ money: newMoney, hasLoan: true });
+                log("✅ Кредитот е одобрен! Внимавај, ова ти е последна шанса.");
+            } else {
+                db.ref(`rooms/${roomId}/players/${pid}`).update({ money: -1, isEliminated: true });
+                triggerGameOver("Банкрот! Не успеа да го добиеш кредитот.");
+                return;
+            }
+        } else {
+            db.ref(`rooms/${roomId}/players/${pid}`).update({ money: -1, isEliminated: true });
+            triggerGameOver("Банкрот! Веќе искористи еден кредит.");
+            return;
+        }
+    } else {
+        db.ref(`rooms/${roomId}/players/${pid}`).update({ money: newMoney });
+    }
+    
     AudioController.play('money');
     showFloatingTextMulti(amt, pid);
 }
@@ -803,8 +844,20 @@ function updateVisualOwnership(idx,pid){const e=document.getElementById(`cell-${
 
 function triggerGameOver(r){ 
     clearInterval(timerInterval); 
+    clearInterval(localTurnTicker);
     document.getElementById('game-over-overlay').style.display='flex'; 
-    let rep=`Играч: ${studentName}\nПричина: ${r}\nПари: ${players[myPlayerId].money}д\nТочни: ${studentCorrect}, Грешни: ${studentWrong}`; 
+    
+    const p = players[myPlayerId];
+    let finalMoney = p.money;
+    let loanNote = "";
+    
+    // Repay loan if active
+    if (p.hasLoan && finalMoney > 0) {
+        finalMoney -= 1500;
+        loanNote = "\n(Вратен кредит: -1500д)";
+    }
+    
+    let rep=`Играч: ${studentName}\nПричина: ${r}\nПари: ${finalMoney}д${loanNote}\nТочни: ${studentCorrect}, Грешни: ${studentWrong}`; 
     document.getElementById('report-text').innerText=rep; 
     new QRCode(document.getElementById("qrcode"),{text:rep,width:128,height:128}); 
 }
