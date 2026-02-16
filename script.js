@@ -192,12 +192,14 @@ function setRole(role) {
     const roomBox = document.querySelector('.room-box');
     const roomLabel = document.getElementById('room-label');
     const roomInput = document.getElementById('room-id-input');
+    const roomsContainer = document.getElementById('available-rooms-container');
 
     if (role === 'teacher') {
         sBtn.classList.remove('active');
         tBtn.classList.add('active');
         studentFields.style.display = 'none';
         studentClassBox.style.display = 'none';
+        roomsContainer.style.display = 'none';
         document.getElementById('teacher-settings').style.display = 'block';
         roomBox.classList.add('teacher-mode');
         roomLabel.innerText = "🏠 КРЕИРАЈ НОВА СОБА:";
@@ -207,12 +209,48 @@ function setRole(role) {
         sBtn.classList.add('active');
         studentFields.style.display = 'block';
         studentClassBox.style.display = 'block';
+        roomsContainer.style.display = 'block';
+        fetchAvailableRooms();
         document.getElementById('teacher-settings').style.display = 'none';
         roomBox.classList.remove('teacher-mode');
         roomLabel.innerText = "🏠 ПРИКЛУЧИ СЕ ВО СОБА:";
-        roomInput.placeholder = "Код на соба (пр. ROOM123)";
+        roomInput.placeholder = "Код на соба (пр. 101)";
     }
     checkLoginValid();
+}
+
+function fetchAvailableRooms() {
+    const list = document.getElementById('available-rooms-list');
+    list.innerHTML = '<p style="font-size:0.7rem; color:#94a3b8;">Се вчитуваат активни соби...</p>';
+    
+    db.ref('rooms').once('value', snapshot => {
+        const rooms = snapshot.val();
+        list.innerHTML = '';
+        if (!rooms) {
+            list.innerHTML = '<p style="font-size:0.7rem; color:#94a3b8;">Нема активни соби.</p>';
+            return;
+        }
+
+        let count = 0;
+        Object.keys(rooms).forEach(rid => {
+            const r = rooms[rid];
+            if (r.status === 'waiting') {
+                count++;
+                const btn = document.createElement('button');
+                btn.innerText = rid;
+                btn.style.cssText = "padding:5px 10px; background:#eff6ff; border:1px solid #3b82f6; border-radius:15px; cursor:pointer; font-weight:bold; color:#1e40af; font-size:0.8rem;";
+                btn.onclick = () => {
+                    document.getElementById('room-id-input').value = rid;
+                    checkLoginValid();
+                };
+                list.appendChild(btn);
+            }
+        });
+
+        if (count === 0) {
+            list.innerHTML = '<p style="font-size:0.7rem; color:#94a3b8;">Нема соби кои чекаат играчи.</p>';
+        }
+    });
 }
 
 async function joinRoom() {
@@ -483,9 +521,8 @@ async function createMultipleRooms() {
     alert(`Креирам ${count} нови соби... Почекајте.`);
     
     for (let i = 1; i <= count; i++) {
-        // Pattern: ROOM 1, ROOM 2... (using teacher name prefix to avoid collision in shared Firebase)
-        const safeName = name.replace(/\s+/g, '_').toUpperCase();
-        const newRoomId = `${safeName}-ROOM${i}`;
+        // Simpler room codes (just numbers)
+        const newRoomId = (100 + i).toString();
         
         if (!myRooms.includes(newRoomId)) {
             myRooms.push(newRoomId);
@@ -1035,6 +1072,7 @@ function openTeacherDash() {
 
 function switchDashRoom(rid) {
     activeDashRoomId = rid;
+    toggleGridView(false); // Ensure we show single room view when switching from sidebar
     
     // UI update for sidebar
     document.querySelectorAll('.dash-room-item').forEach(el => {
@@ -1054,6 +1092,77 @@ function switchDashRoom(rid) {
         if (!data) return;
 
         updateDashStats(data);
+    });
+}
+
+function toggleGridView(showGrid) {
+    const single = document.getElementById('dash-single-room-container');
+    const grid = document.getElementById('dash-grid-container');
+    const backBtn = document.getElementById('dash-back-to-list');
+    const title = document.getElementById('dash-active-room-title');
+
+    if (showGrid) {
+        single.style.display = 'none';
+        grid.style.display = 'grid';
+        backBtn.style.display = 'block';
+        title.innerText = "ПРЕГЛЕД НА СИТЕ СОБИ";
+        renderDashGrid();
+    } else {
+        single.style.display = 'block';
+        grid.style.display = 'none';
+        backBtn.style.display = 'none';
+        if (activeDashRoomId) title.innerText = `СОБА: ${activeDashRoomId}`;
+    }
+}
+
+function renderDashGrid() {
+    const container = document.getElementById('dash-grid-container');
+    container.innerHTML = '';
+    const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
+    
+    myRooms.forEach(rid => {
+        const card = document.createElement('div');
+        card.style.cssText = "background:white; border-radius:15px; padding:20px; border:1px solid #e2e8f0; box-shadow:0 4px 6px rgba(0,0,0,0.02); cursor:pointer;";
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <h3 style="margin:0; font-size:1.5rem; font-weight:900;">${rid}</h3>
+                <span id="grid-status-${rid}" style="font-size:0.7rem; font-weight:bold; padding:4px 10px; border-radius:10px;">...</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div style="background:#f8fafc; padding:10px; border-radius:10px; text-align:center;">
+                    <div style="font-size:0.7rem; color:#64748b;">УЧЕНИЦИ</div>
+                    <div id="grid-players-${rid}" style="font-size:1.2rem; font-weight:bold;">0</div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:10px; text-align:center;">
+                    <div style="font-size:0.7rem; color:#64748b;">УСПЕШНОСТ</div>
+                    <div id="grid-success-${rid}" style="font-size:1.2rem; font-weight:bold;">0%</div>
+                </div>
+            </div>
+            <button style="width:100%; margin-top:15px; padding:10px; background:#f1f5f9; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">ДЕТАЛИ ➡️</button>
+        `;
+        card.onclick = () => switchDashRoom(rid);
+        container.appendChild(card);
+
+        // Listen for live updates on this card
+        db.ref(`rooms/${rid}`).on('value', snap => {
+            const data = snap.val();
+            if (!data) return;
+            const players = (data.players || []).filter(p => p && p.role !== 'teacher');
+            const totalCorrect = players.reduce((sum, p) => sum + (p.correct || 0), 0);
+            const totalAttempted = players.reduce((sum, p) => sum + (p.correct || 0) + (p.wrong || 0), 0);
+            const success = totalAttempted === 0 ? 0 : Math.round((totalCorrect / totalAttempted) * 100);
+            
+            const statusEl = document.getElementById(`grid-status-${rid}`);
+            if (statusEl) {
+                statusEl.innerText = data.status === 'playing' ? 'АКТИВНА' : 'ЧЕКАЊЕ';
+                statusEl.style.background = data.status === 'playing' ? '#dcfce7' : '#fef3c7';
+                statusEl.style.color = data.status === 'playing' ? '#166534' : '#92400e';
+            }
+            const playersEl = document.getElementById(`grid-players-${rid}`);
+            if (playersEl) playersEl.innerText = players.length;
+            const successEl = document.getElementById(`grid-success-${rid}`);
+            if (successEl) successEl.innerText = success + '%';
+        });
     });
 }
 
