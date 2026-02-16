@@ -142,8 +142,8 @@ body {
 .teacher-modal-content {
     width: 96vw;
     max-width: 1100px;
-    height: 85vh;
-    max-height: 700px;
+    height: 90vh;
+    max-height: 800px;
     display: flex;
     flex-direction: row;
     padding: 0;
@@ -202,8 +202,8 @@ body {
     /* Teacher dashboard optimization - MORE COMPACT */
     .teacher-modal-content {
         max-width: 1050px;
-        height: 85vh;
-        max-height: 680px;
+        height: 92vh;
+        max-height: 740px;
     }
     #teacher-sidebar {
         width: 190px;
