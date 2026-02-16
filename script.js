@@ -41,11 +41,16 @@ for(let i=0;i<220;i++){
     let diff=(i%3)+1; let rate=5+(i%15)*5; let base=50+(i*10);
     if(diff===1){rate=[10,20,25,50][i%4]; base=[100,200,50,80,120,400][i%6];}
     let cv=(base*rate)/100; let cs=cv%1===0?cv.toString():cv.toFixed(1);
+    let hint=`💡 Совет: ${rate}% е исто што и ${rate}/100. Обиди се да го помножиш ${base} со ${rate/100}.`;
+    if(rate===25) hint="💡 Совет: 25% е исто што и една четвртина (подели го бројот со 4).";
+    if(rate===50) hint="💡 Совет: 50% е исто што и половина (подели го бројот со 2).";
+    if(rate===10) hint="💡 Совет: 10% е исто што и една десетина (подели го бројот со 10).";
+    
     let expl=`💡 Постапка: ${rate}% од ${base} се пресметува како (${rate} ÷ 100) × ${base} = ${cs}.`;
     let opts=[...new Set([((base*rate)/10).toFixed(1), (base+rate).toString(), rate.toString(), ((base*(100-rate))/100).toFixed(1)])];
     while(opts.length<4){opts.push((parseFloat(cs)+Math.floor(Math.random()*10)+1).toString());}
     if(!opts.includes(cs))opts[0]=cs; let fo=shuffleArray(opts).slice(0,4); if(!fo.includes(cs))fo[0]=cs;
-    allTasks.push({id:100+i, difficulty:diff, question:`Пресметај ${rate}% од ${base}.`, correct_answer:cs, options:shuffleArray(fo), raw:{rate,base}, explanation:expl});
+    allTasks.push({id:100+i, difficulty:diff, question:`Пресметај ${rate}% од ${base}.`, correct_answer:cs, options:shuffleArray(fo), raw:{rate,base}, explanation:expl, hint:hint});
 }
 
 const hardProperties = [4, 9, 14, 19];
@@ -642,11 +647,25 @@ async function showLandingCardMulti(p, c){
             };
         } else if(c.type === 'tax'){
             const tax = Math.floor(p.money * 0.1);
-            o.innerHTML = `<div class="card-view"><div class="card-header" style="background:#34495e">ДАНOК</div><div class="card-body"><p>10% данок.</p><h2>${tax}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-tax">ПЛАТИ</button>${p.powerups.lawyer?'<button class="action-btn btn-buy" id="use-lawyer">АДВОКАТ (⚖️)</button>':''}</div></div>`;
-            document.getElementById('pay-tax').onclick = () => { updateMoneyMulti(myPlayerId, -tax); rc(); };
+            o.innerHTML = `<div class="card-view"><div class="card-header" style="background:#34495e">ДАНOК</div><div class="card-body"><p>Инспекција! Реши ја задачата за да избегнеш 10% данок.</p><h2>Казна: ${tax}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-tax-task">РЕШИ ЗАДАЧА</button>${p.powerups.lawyer?'<button class="action-btn btn-buy" id="use-lawyer">АДВОКАТ (⚖️)</button>':''}</div></div>`;
+            
+            document.getElementById('pay-tax-task').onclick = async () => {
+                const t = getUniqueTask(2);
+                o.style.display = 'none';
+                const ok = await askQuestion("ДАНOЧНА ИНСПЕКЦИЈА", `Реши точно за да не платиш ${tax}д данок!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation);
+                if(!ok) {
+                    updateMoneyMulti(myPlayerId, -tax);
+                    log(`❌ Не ја реши задачата и плати ${tax}д данок.`);
+                } else {
+                    log(`✅ Ја реши задачата и го избегна данокот!`);
+                }
+                resolve();
+            };
+            
             if(p.powerups.lawyer) document.getElementById('use-lawyer').onclick = () => {
                 p.powerups.lawyer = false;
                 db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
+                log("⚖️ Адвокатот те спаси од инспекција!");
                 rc();
             };
         } else if(c.type === 'jail'){
@@ -920,9 +939,9 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl){
 }
 
 function drawVisualHint(){
-    if(!currentTaskData || !currentTaskData.expl) return;
+    if(!currentTaskData || !currentTaskData.hint) return;
     const fa=document.getElementById('feedback-area');
-    fa.innerHTML = `<div style="background:#fff3cd; padding:10px; border-radius:10px; border:1px solid #ffeeba; font-size:0.9rem; margin-bottom:10px;">${currentTaskData.expl}</div>`;
+    fa.innerHTML = `<div style="background:#fff3cd; padding:10px; border-radius:10px; border:1px solid #ffeeba; font-size:0.9rem; margin-bottom:10px;">${currentTaskData.hint}</div>`;
 }
 
 function closeModal(){document.getElementById('question-modal').style.display='none';}
