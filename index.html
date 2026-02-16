@@ -130,7 +130,7 @@
     </div>
     <div id="controls-container">
         <div id="teacher-dash-btn-fixed" style="display:none; margin-bottom:10px;">
-            <button onclick="openTeacherDash()" style="width:100%; padding:12px; background:#8b5cf6; color:white; border:none; border-radius:12px; font-weight:900; cursor:pointer; box-shadow:0 4px 12px rgba(139, 92, 246, 0.3); border:2px solid rgba(255,255,255,0.2);">📊 КОНТРОЛЕН ПАНЕЛ ЗА НАСТАВНИК</button>
+            <button onclick="openTeacherDash()" style="width:100%; padding:15px; background:#8b5cf6; color:white; border:none; border-radius:12px; font-weight:900; cursor:pointer; box-shadow:0 6px 20px rgba(139, 92, 246, 0.4); border:3px solid rgba(255,255,255,0.3); font-size:1rem; transition:all 0.2s;">📊 ОТВОРИ КОНТРОЛЕН ПАНЕЛ</button>
         </div>
         <div class="header-info">
             <div><h1 style="font-size:1.1rem; margin:0;">ПроцентОполис</h1><span id="player-display-name" style="font-size:0.8rem; font-weight:bold; color:#555;">Ученик</span></div>
@@ -193,7 +193,7 @@
                     <button id="dash-download-btn" style="display:none; background:#34495e; color:white; border:none; border-radius:8px; padding:10px 20px; font-weight:bold; cursor:pointer;" onclick="downloadRoomReport()">📥 ИЗВЕШТАЈ</button>
                     <button id="dash-grid-view-btn" onclick="toggleGridView(true)" style="background:#8b5cf6; color:white; border:none; border-radius:8px; padding:10px 20px; font-weight:bold; cursor:pointer;">📱 ПРЕГЛЕД НА СИТЕ</button>
                     <button id="dash-start-btn" style="display:none; background:#10b981; color:white; border:none; border-radius:8px; padding:10px 20px; font-weight:bold; cursor:pointer;">СТАРТУВАЈ СОБА</button>
-                    <button onclick="document.getElementById('teacher-modal').style.display='none'" style="background:#f1f5f9; border:none; border-radius:8px; padding:10px 20px; color:#475569; font-weight:bold; cursor:pointer;">ЗАТВОРИ</button>
+                    <button onclick="closeTeacherDash()" style="background:#f1f5f9; border:none; border-radius:8px; padding:10px 20px; color:#475569; font-weight:bold; cursor:pointer;">ЗАТВОРИ</button>
                 </div>
             </div>
             

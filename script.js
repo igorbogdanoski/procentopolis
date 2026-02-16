@@ -1543,6 +1543,17 @@ let activeDashRoomId = null;
 let dashRoomListener = null;
 let gridListeners = {}; // Track grid view listeners for cleanup
 
+function closeTeacherDash() {
+    // Hide the modal
+    document.getElementById('teacher-modal').style.display = 'none';
+
+    // Ensure the reopen button is visible
+    const reopenBtn = document.getElementById('teacher-dash-btn-fixed');
+    if (reopenBtn) {
+        reopenBtn.style.display = 'block';
+    }
+}
+
 function openTeacherDash() {
     const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
     const list = document.getElementById('dash-rooms-list');
