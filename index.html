@@ -117,6 +117,7 @@
                     <ul id="lobby-players-ul" style="list-style: none; padding: 0;"></ul>
                 </div>
                 <button id="start-game-btn-multi" style="width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">ЗАПОЧНИ ИГРА</button>
+                <button id="open-dash-direct-btn" onclick="openTeacherDash()" style="display:none; margin-top:10px; width: 100%; padding: 15px; background: #8b5cf6; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">📊 ОТВОРИ КОНТРОЛЕН ЦЕНТАР</button>
                 <button id="start-all-rooms-btn" onclick="startAllMyRooms()" style="display:none; margin-top:10px; width: 100%; padding: 15px; background: #3b82f6; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">🚀 СТАРТУВАЈ ГИ СИТЕ МОИ СОБИ</button>
                 <button id="create-another-btn" onclick="location.reload()" style="display:none; margin-top:10px; width: 100%; padding: 12px; background: #34495e; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">➕ КРЕИРАЈ УШТЕ ЕДНА СОБА</button>
                 <p style="font-size: 0.8rem; color: #666; margin-top: 10px;">Само креаторот на собата може да ја започне играта.</p>
@@ -199,6 +200,7 @@
                     </div>
                 </div>
                 <div style="display:flex; gap:10px;">
+                    <button id="dash-download-btn" style="display:none; background:#34495e; color:white; border:none; border-radius:8px; padding:10px 20px; font-weight:bold; cursor:pointer;" onclick="downloadRoomReport()">📥 ИЗВЕШТАЈ</button>
                     <button id="dash-grid-view-btn" onclick="toggleGridView(true)" style="background:#8b5cf6; color:white; border:none; border-radius:8px; padding:10px 20px; font-weight:bold; cursor:pointer;">📱 ПРЕГЛЕД НА СИТЕ</button>
                     <button id="dash-start-btn" style="display:none; background:#10b981; color:white; border:none; border-radius:8px; padding:10px 20px; font-weight:bold; cursor:pointer;">СТАРТУВАЈ СОБА</button>
                     <button onclick="document.getElementById('teacher-modal').style.display='none'" style="background:#f1f5f9; border:none; border-radius:8px; padding:10px 20px; color:#475569; font-weight:bold; cursor:pointer;">ЗАТВОРИ</button>

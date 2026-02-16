@@ -500,6 +500,7 @@ function updateLobbyUI() {
     if (currentRole === 'teacher') {
         document.getElementById('create-another-btn').style.display = 'block';
         document.getElementById('start-all-rooms-btn').style.display = 'block';
+        document.getElementById('open-dash-direct-btn').style.display = 'block';
     }
 }
 
@@ -1175,9 +1176,15 @@ function updateDashStats(data) {
     const players = data.players || [];
     const statusText = document.getElementById('dash-room-status');
     const startBtn = document.getElementById('dash-start-btn');
+    const downloadBtn = document.getElementById('dash-download-btn');
 
     statusText.innerText = data.status === 'playing' ? '🟢 Активна игра' : '🟡 Во исчекување на ученици';
     startBtn.style.display = (data.status === 'waiting') ? 'block' : 'none';
+    
+    // Store data globally for report generation
+    window.lastDashData = data;
+    downloadBtn.style.display = (players.length > 0) ? 'block' : 'none';
+
     startBtn.onclick = () => {
         let firstStudent = 0;
         while(players[firstStudent] && players[firstStudent].role !== 'student' && firstStudent < players.length) {
@@ -1239,6 +1246,29 @@ function updateDashStats(data) {
     document.getElementById('dash-player-count').innerText = activePlayers;
     document.getElementById('dash-total-correct').innerText = totalCorrect;
     document.getElementById('dash-avg-success').innerText = totalAttempted === 0 ? '0%' : Math.round((totalCorrect / totalAttempted) * 100) + '%';
+}
+
+function downloadRoomReport() {
+    const data = window.lastDashData;
+    if (!data || !data.players) return;
+    
+    const rid = activeDashRoomId || "room";
+    let csv = "Ученик,Одделение,Богатство,Точни,Грешни,Успех %\n";
+    
+    data.players.filter(p => p && p.role !== 'teacher').forEach(p => {
+        const success = ((p.correct || 0) + (p.wrong || 0)) === 0 ? 0 : Math.round((p.correct / (p.correct + p.wrong)) * 100);
+        csv += `"${p.name}","${p.odd}","${p.money}д","${p.correct || 0}","${p.wrong || 0}","${success}%"\n`;
+    });
+    
+    const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Procentopolis_Izvestaj_${rid}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 function buyItem(type,cost) {
