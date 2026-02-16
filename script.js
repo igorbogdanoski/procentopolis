@@ -55,29 +55,38 @@ for(let i=0;i<220;i++){
     let distractors = new Set();
     let numAns = parseFloat(cs);
     
-    // 1. Decimal slip error
+    // 1. Decimal slip error (very common)
     distractors.add((numAns * 10).toString());
     distractors.add((numAns / 10).toString());
+    distractors.add((numAns * 2).toString()); // Double error
     
-    // 2. Addition error (base + rate)
+    // 2. Addition error (base + rate) - common when confusing % with absolute value
     distractors.add((base + rate).toString());
     
-    // 3. Misinterpreting % as absolute value
+    // 3. Just the rate or just the base
     distractors.add(rate.toString());
     distractors.add(base.toString());
     
-    // 4. Complementary percentage error
-    distractors.add(((base * (100 - rate)) / 100).toFixed(1));
+    // 4. Complementary percentage error (e.g. 20% vs 80%)
+    let comp = (base * (100 - rate)) / 100;
+    distractors.add(comp % 1 === 0 ? comp.toString() : comp.toFixed(1));
 
-    let opts = Array.from(distractors).filter(d => d !== cs);
+    // 5. Half/Double of the answer
+    distractors.add((numAns / 2).toFixed(1));
+    
+    // 6. Misplaced decimal (e.g. 2.5% instead of 25%)
+    distractors.add((base * rate / 10).toFixed(1));
+
+    let opts = Array.from(distractors).filter(d => d !== cs && d !== "0.0" && d !== "0" && parseFloat(d) > 0);
     shuffleArray(opts);
     let finalOptions = opts.slice(0, 3);
     finalOptions.push(cs);
     
-    let hint=`💡 Совет: ${rate}% е исто што и ${rate}/100. Обиди се да го помножиш ${base} со ${rate/100}.`;
-    if(rate===25) hint="💡 Совет: 25% е исто што и една четвртина (подели го бројот со 4).";
-    if(rate===50) hint="💡 Совет: 50% е исто што и половина (подели го бројот со 2).";
-    if(rate===10) hint="💡 Совет: 10% е исто што и една десетина (подели го бројот со 10).";
+    let hint=`💡 Размисли: ${rate}% од ${base} е исто што и дел од него. Подели го ${base} на 100 еднакви делови и земи ${rate} од нив.`;
+    if(rate===25) hint="💡 Совет: 25% е исто што и една четвртина (четврт дел од бројот).";
+    if(rate===50) hint="💡 Совет: 50% е половина од бројот.";
+    if(rate===10) hint="💡 Совет: 10% е десетти дел од бројот.";
+    if(rate===75) hint="💡 Совет: 75% се три четвртини од бројот (пресметај 25% па помножи со 3).";
     
     let expl=`💡 Постапка: ${rate}% од ${base} се пресметува како (${rate} ÷ 100) × ${base} = ${cs}.`;
     
@@ -225,6 +234,7 @@ async function joinRoom() {
                 players: [],
                 currentPlayerIndex: 0,
                 remainingTime: 40 * 60,
+                gameEndTime: Date.now() + (40 * 60 * 1000),
                 turnStartTime: Date.now(),
                 difficultyMode: diffLevel,
                 gameBoard: boardConfig.map((c, i) => {
@@ -242,6 +252,14 @@ async function joinRoom() {
             if (currentRole === 'teacher') {
                 myPlayerId = -1; // Teacher is a spectator
                 roomRef.update({ teacherName: studentName });
+                
+                // Track created rooms for teacher
+                let myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
+                if (!myRooms.includes(roomId)) {
+                    myRooms.push(roomId);
+                    localStorage.setItem('percentopolis_teacher_rooms', JSON.stringify(myRooms));
+                }
+                showTeacherRoomList();
             } else {
                 // Check for existing session (reconnection)
                 let existingPid = -1;
@@ -251,6 +269,9 @@ async function joinRoom() {
 
                 if (existingPid !== -1) {
                     myPlayerId = existingPid;
+                    const pData = currentPlayers[existingPid];
+                    studentCorrect = pData.correct || 0;
+                    studentWrong = pData.wrong || 0;
                 } else {
                     if (currentPlayers.length >= 6) {
                         alert("Собата е полна!");
@@ -263,7 +284,7 @@ async function joinRoom() {
                         name: studentName,
                         odd: studentOdd,
                         role: 'student',
-                        money: 3000,
+                        money: 10000,
                         pos: 0,
                         emoji: myTokenEmoji,
                         color: `var(--p${myPlayerId}-color)`,
@@ -288,6 +309,30 @@ async function joinRoom() {
     });
 }
 
+function showTeacherRoomList() {
+    if (currentRole !== 'teacher') return;
+    const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
+    const container = document.getElementById('teacher-rooms-list');
+    if (!container) return;
+    
+    container.innerHTML = '<p style="font-size:0.7rem; color:#64748b; margin-top:10px;">ВАШИ АКТИВНИ СОБИ:</p>';
+    myRooms.forEach(rid => {
+        const btn = document.createElement('button');
+        btn.innerText = rid;
+        btn.style.margin = "5px";
+        btn.style.padding = "5px 10px";
+        btn.style.borderRadius = "15px";
+        btn.style.border = (rid === roomId) ? "2px solid #2563eb" : "1px solid #ddd";
+        btn.style.background = (rid === roomId) ? "#eff6ff" : "white";
+        btn.style.cursor = "pointer";
+        btn.onclick = () => {
+            document.getElementById('room-id-input').value = rid;
+            joinRoom();
+        };
+        container.appendChild(btn);
+    });
+}
+
 function handleRoomUpdate(snapshot) {
     const data = snapshot.val();
     if (!data) return;
@@ -296,14 +341,31 @@ function handleRoomUpdate(snapshot) {
     players = data.players || [];
     gameBoard = data.gameBoard || [];
     currentPlayerIndex = data.currentPlayerIndex || 0;
-    remainingTime = data.remainingTime;
-    
-    // Update Class Timer UI
+
+    // Robust server time offset detection
+    let serverOffset = 0;
+    db.ref(".info/serverTimeOffset").once("value", (snap) => {
+        serverOffset = snap.val() || 0;
+    });
+
+    // Update Class Timer UI from gameEndTime (robust sync)
     const classTimerEl = document.getElementById('class-timer');
-    if (classTimerEl) {
-        const m = Math.floor(remainingTime / 60);
-        const s = remainingTime % 60;
-        classTimerEl.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+    if (classTimerEl && data.gameEndTime) {
+        if (window.mainGameTicker) clearInterval(window.mainGameTicker);
+        window.mainGameTicker = setInterval(() => {
+            const serverTimeNow = Date.now() + serverOffset;
+            const remMs = data.gameEndTime - serverTimeNow;
+            remainingTime = Math.max(0, Math.floor(remMs / 1000));
+            
+            const m = Math.floor(remainingTime / 60);
+            const s = remainingTime % 60;
+            classTimerEl.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+            
+            if (remainingTime <= 0 && data.status === 'playing') {
+                clearInterval(window.mainGameTicker);
+                triggerGameOver("Времето истече!");
+            }
+        }, 1000);
     }
     
     // Turn Timer Logic
@@ -313,19 +375,24 @@ function handleRoomUpdate(snapshot) {
         
         // Offset detection to fix clock drift
         let serverOffset = 0;
-        const offsetRef = db.ref(".info/serverTimeOffset");
-        offsetRef.once("value", (snap) => {
-            serverOffset = snap.val();
+        db.ref(".info/serverTimeOffset").on("value", (snap) => {
+            serverOffset = snap.val() || 0;
         });
 
         const updateTimerDisplay = () => {
             const serverTimeNow = Date.now() + serverOffset;
             const elapsed = Math.floor((serverTimeNow - data.turnStartTime) / 1000);
-            turnRemainingTime = Math.max(0, 30 - elapsed);
-            const timerEl = document.getElementById('turn-timer');
-            if(timerEl) timerEl.innerText = `Потег: ${turnRemainingTime}s`;
             
-            if (turnRemainingTime === 0 && currentPlayerIndex === myPlayerId && !isRolling && currentRole !== 'teacher') {
+            // Increased turn duration to 45 seconds for better educational experience
+            const turnLimit = 45;
+            turnRemainingTime = Math.max(0, (turnLimit + 2) - elapsed);
+            const displayTime = Math.min(turnLimit, turnRemainingTime);
+            
+            const timerEl = document.getElementById('turn-timer');
+            if(timerEl) timerEl.innerText = `Потег: ${displayTime}s`;
+            
+            // Only auto-end turn if we are sure the turn is over and it's our turn
+            if (turnRemainingTime === 0 && currentPlayerIndex === myPlayerId && !isRolling && currentRole !== 'teacher' && data.turnStartTime > 0) {
                 clearInterval(localTurnTicker);
                 log("Времето истече! Потегот се префрла.");
                 endTurnMulti();
@@ -402,10 +469,22 @@ function updateLobbyUI() {
 
 function requestStartGame() {
     if (!isCreator) return;
+    if (players.filter(p => p && p.role === 'student').length === 0) {
+        alert("Потребен е барем еден ученик за да започне играта!");
+        return;
+    }
+    
+    // Find first valid student index
+    let firstStudent = 0;
+    while(players[firstStudent] && players[firstStudent].role !== 'student' && firstStudent < players.length) {
+        firstStudent++;
+    }
+
     db.ref('rooms/' + roomId).update({ 
         status: 'playing',
-        currentPlayerIndex: 0, // First student starts
-        turnStartTime: firebase.database.ServerValue.TIMESTAMP 
+        currentPlayerIndex: firstStudent, 
+        turnStartTime: firebase.database.ServerValue.TIMESTAMP,
+        gameEndTime: Date.now() + (40 * 60 * 1000)
     });
 }
 
@@ -434,7 +513,6 @@ function initMultiplayerGame() {
     
     renderBoard();
     updateUI();
-    if (isCreator) startTimerMulti();
     
     document.getElementById('roll-btn').onclick = playTurnMulti;
 }
@@ -483,21 +561,6 @@ function updateBoardVisuals() {
             bld.innerHTML = '🏠'.repeat(c.buildings || 0);
         }
     });
-}
-
-function startTimerMulti() {
-    if (timerInterval) return;
-    timerInterval = setInterval(() => {
-        // Fetch the latest value from Firebase before decrementing to avoid sync issues
-        db.ref('rooms/' + roomId + '/remainingTime').once('value', snapshot => {
-            let currentRem = snapshot.val();
-            if (currentRem > 0) {
-                db.ref('rooms/' + roomId).update({ remainingTime: currentRem - 1 });
-            } else {
-                clearInterval(timerInterval);
-            }
-        });
-    }, 1000);
 }
 
 async function playTurnMulti(){
@@ -569,7 +632,7 @@ async function updateMoneyMulti(pid, amt){
         if (!p.hasLoan) {
             log("⚠️ КРИЗА! Немаш доволно пари. Банката ти нуди КРЕДИТ.");
             const t = getUniqueTask(3);
-            const ok = await askQuestion("🏦 БАНКАРСКИ КРЕДИТ", `Реши ја задачата за 1500д кредит, инаку ГУБИШ! \n\n ${t.question}`, t.correct_answer, [], true, t.explanation);
+            const ok = await askQuestion("🏦 БАНКАРСКИ КРЕДИТ", `Реши ја задачата за 1500д кредит, инаку ГУБИШ! \n\n ${t.question}`, t.correct_answer, [], true, t.explanation, t.hint);
             
             if (ok) {
                 newMoney += 1500;
@@ -677,7 +740,7 @@ async function showLandingCardMulti(p, c){
                     if(btc) btc.onclick = async (e) => {
                         e.stopPropagation();
                         const t = getUniqueTask(1);
-                        const ok = await askQuestion("ШАНСА", t.question, t.correct_answer, t.options, true, t.explanation);
+                        const ok = await askQuestion("ШАНСА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint);
                         if(ok) updateMoneyMulti(myPlayerId, isPos ? amt : 0);
                         else if(!isPos) updateMoneyMulti(myPlayerId, amt);
                         rc();
@@ -691,7 +754,7 @@ async function showLandingCardMulti(p, c){
             document.getElementById('pay-tax-task').onclick = async () => {
                 const t = getUniqueTask(2);
                 o.style.display = 'none';
-                const ok = await askQuestion("ДАНOЧНА ИНСПЕКЦИЈА", `Реши точно за да не платиш ${tax}д данок!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation);
+                const ok = await askQuestion("ДАНOЧНА ИНСПЕКЦИЈА", `Реши точно за да не платиш ${tax}д данок!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint);
                 if(!ok) {
                     updateMoneyMulti(myPlayerId, -tax);
                     log(`❌ Не ја реши задачата и плати ${tax}д данок.`);
@@ -722,7 +785,7 @@ async function showLandingCardMulti(p, c){
                     const t = getUniqueTask(c.difficulty);
                     // Hide the card overlay immediately to show the question clearly
                     o.style.display = 'none';
-                    const ok = await askQuestion("КУПУВАЊЕ", t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation);
+                    const ok = await askQuestion("КУПУВАЊЕ", t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation, t.hint);
                     if(ok){
                         let finalPrice = c.price;
                         if(p.powerups.bribe){ finalPrice = 1; p.powerups.bribe = false; }
@@ -740,7 +803,7 @@ async function showLandingCardMulti(p, c){
                     const t = getUniqueTask(c.difficulty);
                     // Hide the card overlay immediately
                     o.style.display = 'none';
-                    const ok = await askQuestion("КИРИЈА", `Точен одговор за ${rent}д, инаку ${rent*2}д!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation);
+                    const ok = await askQuestion("КИРИЈА", `Точен одговор за ${rent}д, инаку ${rent*2}д!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint);
                     const finalRent = ok ? rent : rent * 2;
                     updateMoneyMulti(myPlayerId, -finalRent);
                     updateMoneyMulti(c.owner, finalRent);
@@ -771,7 +834,7 @@ async function showLandingCardMulti(p, c){
                     const t = getUniqueTask(3);
                     // Hide the card overlay immediately
                     o.style.display = 'none';
-                    const ok = await askQuestion("ГРАДЕЊЕ", t.question, t.correct_answer, [], true, t.explanation);
+                    const ok = await askQuestion("ГРАДЕЊЕ", t.question, t.correct_answer, [], true, t.explanation, t.hint);
                     if(ok){
                         const cost = Math.floor(c.price * 0.4);
                         db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ buildings: c.buildings + 1, rentPercent: c.rentPercent + 15 });
@@ -792,15 +855,15 @@ function endTurnMulti(){
     isRolling = false;
     let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
     
-    // Skip null/undefined players and teachers in turn rotation
+    // Skip null/undefined players, teachers, and eliminated players in turn rotation
     let safety = 0;
-    while((!players[nextPlayerIndex] || players[nextPlayerIndex].role === 'teacher') && safety < 10){
+    while((!players[nextPlayerIndex] || players[nextPlayerIndex].role === 'teacher' || players[nextPlayerIndex].isEliminated) && safety < 10){
         nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
         safety++;
     }
 
-    // Double check if we landed on a valid student player
-    if (players[nextPlayerIndex] && players[nextPlayerIndex].role !== 'teacher') {
+    // Double check if we landed on a valid student player who is not eliminated
+    if (players[nextPlayerIndex] && players[nextPlayerIndex].role !== 'teacher' && !players[nextPlayerIndex].isEliminated) {
         db.ref(`rooms/${roomId}`).update({ 
             currentPlayerIndex: nextPlayerIndex,
             turnStartTime: firebase.database.ServerValue.TIMESTAMP 
@@ -919,17 +982,23 @@ function getUniqueTask(diff){
     return t;
 }
 
-function askQuestion(cat, q, ans, opts, isAdaptive, expl){
+function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
     return new Promise(resolve=>{
+        // Hide card-overlay to prevent covering the question
+        document.getElementById('card-overlay').style.display = 'none';
+        
         const m=document.getElementById('question-modal'); m.style.display='flex';
         db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ isThinking: true });
         
+        // Fix for whiteboard size on open
+        setTimeout(resizeCanvas, 100);
+
         document.getElementById('modal-category').innerText=cat;
         document.getElementById('question-text').innerText=q;
         const oc=document.getElementById('options-container'); oc.innerHTML='';
         const ic=document.getElementById('input-answer-container'); ic.style.display='none';
         const fa=document.getElementById('feedback-area'); fa.innerText='';
-        currentTaskData = { q, ans, expl };
+        currentTaskData = { q, ans, expl, hint };
 
         const finalize = (res) => {
             const updates = { isThinking: false };
@@ -1077,7 +1146,21 @@ function setupCanvas(){
 }
 
 function changeColor(c){ penColor = c; }
-function resizeCanvas(){if(canvas){canvas.width=canvas.parentElement.clientWidth; canvas.height=canvas.parentElement.clientHeight;}}
+function resizeCanvas(){
+    if(canvas && canvas.parentElement){
+        const parent = canvas.parentElement;
+        if (canvas.width !== parent.clientWidth || canvas.height !== parent.clientHeight) {
+            // Store content before resize if you want to keep it, but for a whiteboard it's usually fine to clear
+            canvas.width = parent.clientWidth;
+            canvas.height = parent.clientHeight;
+            // Reset context properties as they are lost on resize
+            if(ctx) {
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+            }
+        }
+    }
+}
 function clearCanvas(){if(ctx) ctx.clearRect(0,0,canvas.width,canvas.height);}
 window.addEventListener('resize',()=>{resizeCanvas(); updateTokenPositionsMulti();});
 
