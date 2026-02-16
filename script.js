@@ -464,7 +464,76 @@ function updateLobbyUI() {
     document.getElementById('start-game-btn-multi').style.display = isCreator ? 'block' : 'none';
     if (currentRole === 'teacher') {
         document.getElementById('create-another-btn').style.display = 'block';
+        document.getElementById('start-all-rooms-btn').style.display = 'block';
     }
+}
+
+async function createMultipleRooms() {
+    const count = parseInt(document.getElementById('multi-room-count').value) || 1;
+    const name = document.getElementById('player-name-input').value.trim() || "Наставник";
+    const diffLevel = document.getElementById('room-difficulty-select').value;
+    
+    alert(`Креирам ${count} соби... Почекајте.`);
+    
+    const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
+    
+    for (let i = 0; i < count; i++) {
+        const newRoomId = "ROOM" + Math.floor(1000 + Math.random() * 9000);
+        if (!myRooms.includes(newRoomId)) {
+            myRooms.push(newRoomId);
+            
+            // Initialize room in Firebase
+            await db.ref('rooms/' + newRoomId).set({
+                status: 'waiting',
+                players: [],
+                currentPlayerIndex: 0,
+                gameEndTime: Date.now() + (40 * 60 * 1000),
+                turnStartTime: 0,
+                difficultyMode: diffLevel,
+                teacherName: name,
+                gameBoard: boardConfig.map((c, idx) => {
+                    let diff = (idx < 5) ? 1 : (idx < 15) ? 2 : 3;
+                    if (hardProperties.includes(idx)) diff = 3;
+                    return { ...c, index: idx, owner: null, buildings: 0, price: 150 + (idx * 40), difficulty: diff, rentPercent: 10 * diff };
+                })
+            });
+        }
+    }
+    
+    localStorage.setItem('percentopolis_teacher_rooms', JSON.stringify(myRooms));
+    showTeacherRoomList();
+    alert("Собите се успешно креирани!");
+}
+
+async function startAllMyRooms() {
+    const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
+    if (myRooms.length === 0) return;
+    
+    if (!confirm(`Дали сте сигурни дека сакате да ги стартувате СИТЕ ${myRooms.length} соби одеднаш?`)) return;
+
+    for (const rid of myRooms) {
+        const roomRef = db.ref('rooms/' + rid);
+        const snap = await roomRef.once('value');
+        const data = snap.val();
+        
+        if (data && data.status === 'waiting') {
+            const players = data.players || [];
+            let firstStudent = 0;
+            while(players[firstStudent] && players[firstStudent].role !== 'student' && firstStudent < players.length) {
+                firstStudent++;
+            }
+            
+            if (players.length > 0) {
+                await roomRef.update({ 
+                    status: 'playing',
+                    currentPlayerIndex: firstStudent, 
+                    turnStartTime: firebase.database.ServerValue.TIMESTAMP,
+                    gameEndTime: Date.now() + (40 * 60 * 1000)
+                });
+            }
+        }
+    }
+    alert("Сите соби со играчи се стартувани!");
 }
 
 function requestStartGame() {
