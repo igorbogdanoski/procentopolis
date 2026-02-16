@@ -470,12 +470,23 @@ async function createMultipleRooms() {
     const name = document.getElementById('player-name-input').value.trim() || "Наставник";
     const diffLevel = document.getElementById('room-difficulty-select').value;
     
-    alert(`Креирам ${count} соби... Почекајте.`);
-    
     const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
     
-    for (let i = 0; i < count; i++) {
-        const newRoomId = "ROOM" + Math.floor(1000 + Math.random() * 9000);
+    // If there are many old rooms, ask to clear them
+    if (myRooms.length > 0) {
+        if (confirm("Имате веќе креирано соби. Дали сакате прво да ги ИЗБРИШЕТЕ старите за да почнете со нови (ROOM 1, ROOM 2...)?")) {
+            myRooms.length = 0;
+            localStorage.setItem('percentopolis_teacher_rooms', "[]");
+        }
+    }
+
+    alert(`Креирам ${count} нови соби... Почекајте.`);
+    
+    for (let i = 1; i <= count; i++) {
+        // Pattern: ROOM 1, ROOM 2... (using teacher name prefix to avoid collision in shared Firebase)
+        const safeName = name.replace(/\s+/g, '_').toUpperCase();
+        const newRoomId = `${safeName}-ROOM${i}`;
+        
         if (!myRooms.includes(newRoomId)) {
             myRooms.push(newRoomId);
             
@@ -499,7 +510,20 @@ async function createMultipleRooms() {
     
     localStorage.setItem('percentopolis_teacher_rooms', JSON.stringify(myRooms));
     showTeacherRoomList();
+    if (document.getElementById('teacher-modal').style.display === 'flex') openTeacherDash();
     alert("Собите се успешно креирани!");
+}
+
+function clearAllMyRooms() {
+    if (!confirm("Дали сте сигурни дека сакате да ги избришете СИТЕ ваши соби од листата? (Податоците во Firebase ќе останат, но нема да ги гледате во вашиот панел)")) return;
+    localStorage.setItem('percentopolis_teacher_rooms', "[]");
+    activeDashRoomId = null;
+    if (dashRoomListener) {
+        db.ref(`rooms`).off();
+        dashRoomListener = null;
+    }
+    openTeacherDash();
+    alert("Листата е исчистена.");
 }
 
 async function startAllMyRooms() {
