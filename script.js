@@ -860,36 +860,41 @@ function handleRoomUpdate(snapshot) {
         }, 1000);
     }
     
-    // Turn Timer Logic
+    // Turn Timer Logic - FIXED: Always update timer, not just on turnStartTime change
+    const updateTimerDisplay = () => {
+        const serverTimeNow = getServerTime();
+
+        // Ensure turnStartTime is valid and from the server
+        if (!data.turnStartTime || data.turnStartTime <= 0 || data.turnStartTime > serverTimeNow + 60000) {
+            const timerEl = document.getElementById('turn-timer');
+            if(timerEl) timerEl.innerText = `Подготовка...`;
+            return;
+        }
+
+        const elapsed = Math.floor((serverTimeNow - data.turnStartTime) / 1000);
+
+        const turnLimit = 30; // Changed from 45s to 30s for faster gameplay
+        turnRemainingTime = Math.max(0, turnLimit - elapsed);
+        const displayTime = turnRemainingTime;
+
+        const timerEl = document.getElementById('turn-timer');
+        if(timerEl) timerEl.innerText = `Потег: ${displayTime}s`;
+
+        if (turnRemainingTime === 0 && currentPlayerIndex === myPlayerId && !isRolling && currentRole !== 'teacher' && data.turnStartTime > 0) {
+            clearInterval(localTurnTicker);
+            log("Времето истече! Потегот се префрла.");
+            endTurnMulti();
+        }
+    };
+
+    // Restart timer interval when turn changes
     if (data.turnStartTime && data.turnStartTime !== window.lastTurnStartTime) {
         window.lastTurnStartTime = data.turnStartTime;
         clearInterval(localTurnTicker);
-
-        const updateTimerDisplay = () => {
-            const serverTimeNow = getServerTime();
-
-            // Ensure turnStartTime is valid and from the server
-            if (!data.turnStartTime || data.turnStartTime <= 0 || data.turnStartTime > serverTimeNow + 60000) {
-                const timerEl = document.getElementById('turn-timer');
-                if(timerEl) timerEl.innerText = `Подготовка...`;
-                return;
-            }
-
-            const elapsed = Math.floor((serverTimeNow - data.turnStartTime) / 1000);
-
-            const turnLimit = 30; // Changed from 45s to 30s for faster gameplay
-            turnRemainingTime = Math.max(0, turnLimit - elapsed);
-            const displayTime = turnRemainingTime;
-            
-            const timerEl = document.getElementById('turn-timer');
-            if(timerEl) timerEl.innerText = `Потег: ${displayTime}s`;
-            
-            if (turnRemainingTime === 0 && currentPlayerIndex === myPlayerId && !isRolling && currentRole !== 'teacher' && data.turnStartTime > 0) {
-                clearInterval(localTurnTicker);
-                log("Времето истече! Потегот се префрла.");
-                endTurnMulti();
-            }
-        };
+        updateTimerDisplay();
+        localTurnTicker = setInterval(updateTimerDisplay, 1000);
+    } else if (data.status === 'playing' && !localTurnTicker) {
+        // Ensure timer is always running during gameplay
         updateTimerDisplay();
         localTurnTicker = setInterval(updateTimerDisplay, 1000);
     }
@@ -1339,6 +1344,15 @@ async function showLandingCardMulti(p, c){
         o.style.display = 'flex';
         o.innerHTML = '';
         const rc = (res) => { o.style.display = 'none'; resolve(res); };
+
+        // BUGFIX: Prevent accidental closing - only close if explicitly clicking a button
+        o.onclick = (e) => {
+            // Only allow clicks on the card itself, not the overlay background
+            if (e.target === o) {
+                e.stopPropagation();
+                return false; // Prevent closing when clicking outside
+            }
+        };
         
         if(c.type === 'chance'){
             const amt = [150, 100, -50, -100, 200][Math.floor(Math.random() * 5)];
@@ -1891,9 +1905,12 @@ function getUniqueTask(diff){
 
 function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
     return new Promise(resolve=>{
+        // BUGFIX: Mark question as active to prevent accidental closing
+        isQuestionActive = true;
+
         // Hide card-overlay to prevent covering the question
         document.getElementById('card-overlay').style.display = 'none';
-        
+
         const m=document.getElementById('question-modal'); m.style.display='flex';
         db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ isThinking: true });
         
@@ -1948,9 +1965,10 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
                 triggerCelebration('wrongAnswer');
             }
             updates.lastActivity = (res ? "Точно: " : "Грешно: ") + q;
-            
+
             db.ref(`rooms/${roomId}/players/${myPlayerId}`).update(updates);
             m.style.display='none';
+            isQuestionActive = false; // BUGFIX: Allow closing after answer is submitted
             resolve(res);
         };
 
@@ -1991,7 +2009,16 @@ function drawVisualHint(){
     fa.innerHTML = `<div style="background:#fff3cd; padding:10px; border-radius:10px; border:1px solid #ffeeba; font-size:0.9rem; margin-bottom:10px;">${currentTaskData.hint}</div>`;
 }
 
-function closeModal(){document.getElementById('question-modal').style.display='none';}
+// BUGFIX: Prevent accidental closing of question modal during gameplay
+let isQuestionActive = false;
+function closeModal(){
+    // Prevent closing if a question is active (would cause game to freeze)
+    if (isQuestionActive) {
+        showWarning('⚠️ Мораш да одговориш на прашањето! Не може да затвориш.');
+        return;
+    }
+    document.getElementById('question-modal').style.display='none';
+}
 function log(msg){const l=document.getElementById('game-log'); if(!l) return; const n=document.createElement('div'); n.innerText='> '+msg; l.prepend(n);}
 function updateVisualOwnership(idx,pid){const e=document.getElementById(`cell-${idx}`); if(e){e.classList.remove('owned-p0','owned-p1','owned-p2','owned-p3','owned-p4','owned-p5'); e.classList.add(`owned-p${pid}`);}}
 
