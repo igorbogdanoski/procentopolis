@@ -972,16 +972,105 @@ function openShop() {
     document.getElementById('shop-modal').style.display='flex'; 
 }
 
-function openTeacherDash() {
-    const tbody = document.getElementById('teacher-stats-tbody');
-    tbody.innerHTML = '';
-    
-    let totalCorrect = 0;
-    let totalAttempted = 0;
-    let activePlayers = 0;
+let activeDashRoomId = null;
+let dashRoomListener = null;
 
-    players.forEach(p => {
-        if(p.role === 'teacher') return;
+function openTeacherDash() {
+    const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
+    const list = document.getElementById('dash-rooms-list');
+    list.innerHTML = '';
+    
+    myRooms.forEach(rid => {
+        const btn = document.createElement('div');
+        btn.className = 'dash-room-item';
+        btn.style.cssText = `
+            padding: 15px; margin-bottom: 10px; border-radius: 12px; cursor: pointer;
+            background: ${rid === activeDashRoomId ? '#3b82f6' : 'rgba(255,255,255,0.05)'};
+            transition: 0.2s; border: 1px solid ${rid === activeDashRoomId ? '#3b82f6' : 'rgba(255,255,255,0.1)'};
+        `;
+        btn.innerHTML = `
+            <div style="font-weight:bold; font-size:0.9rem;">${rid}</div>
+            <div id="dash-status-${rid}" style="font-size:0.7rem; color:${rid === activeDashRoomId ? '#dbeafe' : '#94a3b8'};">Проверувам...</div>
+        `;
+        btn.onclick = () => switchDashRoom(rid);
+        list.appendChild(btn);
+
+        // Quick status preview
+        db.ref(`rooms/${rid}/status`).once('value', s => {
+            const statusEl = document.getElementById(`dash-status-${rid}`);
+            if (statusEl) statusEl.innerText = s.val() === 'playing' ? '🟢 ВО ТЕК' : '🟡 ЧЕКАЊЕ';
+        });
+    });
+
+    if (!activeDashRoomId && myRooms.length > 0) {
+        switchDashRoom(myRooms[0]);
+    }
+    
+    document.getElementById('teacher-modal').style.display = 'flex';
+}
+
+function switchDashRoom(rid) {
+    activeDashRoomId = rid;
+    
+    // UI update for sidebar
+    document.querySelectorAll('.dash-room-item').forEach(el => {
+        const isSelected = el.innerText.includes(rid);
+        el.style.background = isSelected ? '#3b82f6' : 'rgba(255,255,255,0.05)';
+        el.style.borderColor = isSelected ? '#3b82f6' : 'rgba(255,255,255,0.1)';
+    });
+
+    document.getElementById('dash-active-room-title').innerText = `СОБА: ${rid}`;
+    
+    if (dashRoomListener) {
+        db.ref(`rooms/${activeDashRoomId}`).off('value', dashRoomListener);
+    }
+
+    dashRoomListener = db.ref(`rooms/${rid}`).on('value', snapshot => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        updateDashStats(data);
+    });
+}
+
+function updateDashStats(data) {
+    const tbody = document.getElementById('teacher-stats-tbody');
+    const emptyState = document.getElementById('dash-empty-state');
+    const players = data.players || [];
+    const statusText = document.getElementById('dash-room-status');
+    const startBtn = document.getElementById('dash-start-btn');
+
+    statusText.innerText = data.status === 'playing' ? '🟢 Активна игра' : '🟡 Во исчекување на ученици';
+    startBtn.style.display = (data.status === 'waiting') ? 'block' : 'none';
+    startBtn.onclick = () => {
+        let firstStudent = 0;
+        while(players[firstStudent] && players[firstStudent].role !== 'student' && firstStudent < players.length) {
+            firstStudent++;
+        }
+        db.ref(`rooms/${activeDashRoomId}`).update({ 
+            status: 'playing',
+            currentPlayerIndex: firstStudent, 
+            turnStartTime: firebase.database.ServerValue.TIMESTAMP,
+            gameEndTime: getServerTime() + (40 * 60 * 1000)
+        });
+    };
+
+    tbody.innerHTML = '';
+    let totalCorrect = 0, totalAttempted = 0, activePlayers = 0;
+
+    const filteredPlayers = players.filter(p => p && p.role !== 'teacher');
+    
+    if (filteredPlayers.length === 0) {
+        emptyState.style.display = 'block';
+        document.getElementById('dash-player-count').innerText = "0";
+        document.getElementById('dash-total-correct').innerText = "0";
+        document.getElementById('dash-avg-success').innerText = "0%";
+        return;
+    }
+
+    emptyState.style.display = 'none';
+
+    filteredPlayers.forEach(p => {
         activePlayers++;
         totalCorrect += (p.correct || 0);
         totalAttempted += (p.correct || 0) + (p.wrong || 0);
@@ -992,19 +1081,19 @@ function openTeacherDash() {
         
         tr.innerHTML = `
             <td style="padding:20px;">
-                <div style="font-weight:700; color:#1e293b;">${p.name}</div>
-                <div style="font-size:0.8rem; color:#64748b;">${p.odd}</div>
+                <div style="font-weight:700; color:#1e293b;">${p.emoji || '👤'} ${p.name}</div>
+                <div style="font-size:0.75rem; color:#64748b;">${p.odd}</div>
             </td>
             <td style="padding:20px; font-weight:800; color:#2563eb;">${p.money}д</td>
             <td style="padding:20px;">
-                <span style="color:#16a34a; font-weight:bold;">${p.correct || 0}</span> / 
-                <span style="color:#dc2626; font-weight:bold;">${p.wrong || 0}</span>
+                <span style="color:#10b981; font-weight:bold;">${p.correct || 0}</span> / 
+                <span style="color:#ef4444; font-weight:bold;">${p.wrong || 0}</span>
                 <div style="font-size:0.7rem; color:#94a3b8;">${successRate}% успех</div>
             </td>
-            <td style="padding:20px; font-size:0.85rem; color:#475569; max-width:200px;">${p.lastActivity || 'Чека потег...'}</td>
+            <td style="padding:20px; font-size:0.8rem; color:#475569; max-width:180px;">${p.lastActivity || '---'}</td>
             <td style="padding:20px;">
-                <span style="padding:5px 12px; border-radius:20px; font-size:0.75rem; font-weight:bold; background:${p.isThinking?'#fef3c7':'#dcfce7'}; color:${p.isThinking?'#92400e':'#166534'};">
-                    ${p.isThinking ? '🤔 Размислува' : '✅ Подготвен'}
+                <span style="padding:6px 14px; border-radius:20px; font-size:0.7rem; font-weight:bold; background:${p.isThinking?'#fef3c7':'#dcfce7'}; color:${p.isThinking?'#92400e':'#166534'};">
+                    ${p.isThinking ? '🤔 РАЗМИСЛУВА' : '✅ ПОДГОТВЕН'}
                 </span>
             </td>
         `;
@@ -1014,8 +1103,6 @@ function openTeacherDash() {
     document.getElementById('dash-player-count').innerText = activePlayers;
     document.getElementById('dash-total-correct').innerText = totalCorrect;
     document.getElementById('dash-avg-success').innerText = totalAttempted === 0 ? '0%' : Math.round((totalCorrect / totalAttempted) * 100) + '%';
-    
-    document.getElementById('teacher-modal').style.display = 'flex';
 }
 
 function buyItem(type,cost) {

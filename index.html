@@ -166,47 +166,71 @@
 
 <!-- TEACHER DASHBOARD MODAL -->
 <div id="teacher-modal" class="modal-overlay">
-    <div class="modal-content" style="width:1200px; height:800px; padding:0;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding:30px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-                <div style="display:flex; align-items:center; gap:20px;">
-                    <div style="font-size:2.5rem; filter: drop-shadow(0 0 10px rgba(59,130,246,0.5));">📊</div>
-                    <div>
-                        <h2 style="margin:0; color:white; font-size:2rem; font-weight:900; letter-spacing:-1px;">КОНТРОЛЕН ПАНЕЛ ЗА НАСТАВНИК</h2>
-                        <p style="margin:0; color:#94a3b8; font-size:1rem; font-weight:500;">Следење на напредокот на одделението во реално време</p>
-                    </div>
-                </div>
-                <button onclick="document.getElementById('teacher-modal').style.display='none'" style="background:rgba(255,255,255,0.1); border:none; border-radius:12px; padding:10px 20px; color:white; font-weight:bold; cursor:pointer; transition:0.2s;">ЗАТВОРИ</button>
+    <div class="modal-content" style="width:1300px; height:850px; padding:0; display:flex; flex-direction:row;">
+        <!-- Sidebar for Room Selection -->
+        <div id="teacher-sidebar" style="width:280px; background:#1e293b; color:white; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,0.1);">
+            <div style="padding:25px; border-bottom:1px solid rgba(255,255,255,0.1);">
+                <h3 style="margin:0; font-size:1.1rem; letter-spacing:1px;">🏫 МОИ СОБИ</h3>
+                <p style="margin:5px 0 0 0; font-size:0.7rem; color:#94a3b8;">Избери соба за детален увид</p>
+            </div>
+            <div id="dash-rooms-list" style="flex:1; overflow-y:auto; padding:15px;">
+                <!-- Room buttons will be injected here -->
+            </div>
+            <div style="padding:20px; background:rgba(0,0,0,0.2);">
+                <button onclick="createMultipleRooms()" style="width:100%; padding:10px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">+ КРЕИРАЈ УШТЕ</button>
             </div>
         </div>
-        <div style="padding:40px; overflow-y:auto; flex:1; background:#f8fafc;">
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; margin-bottom:30px;">
-                <div style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,0.05); border:1px solid #e2e8f0;">
-                    <p style="color:#64748b; font-size:0.8rem; text-transform:uppercase; margin-bottom:5px;">Активни играчи</p>
-                    <h3 id="dash-player-count" style="margin:0; font-size:2rem; color:#1e293b;">0</h3>
+
+        <!-- Main Content Area -->
+        <div style="flex:1; display:flex; flex-direction:column; background:#f8fafc;">
+            <div class="modal-header" style="background: white; padding:25px 40px; border-bottom: 1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h2 id="dash-active-room-title" style="margin:0; color:#1e293b; font-size:1.8rem; font-weight:900;">ГЛАВЕН ПАНЕЛ</h2>
+                    <p id="dash-room-status" style="margin:0; color:#64748b; font-weight:500;">Изберете соба од левата страна</p>
                 </div>
-                <div style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,0.05); border:1px solid #e2e8f0;">
-                    <p style="color:#64748b; font-size:0.8rem; text-transform:uppercase; margin-bottom:5px;">Вкупно точни</p>
-                    <h3 id="dash-total-correct" style="margin:0; font-size:2rem; color:#22c55e;">0</h3>
-                </div>
-                <div style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,0.05); border:1px solid #e2e8f0;">
-                    <p style="color:#64748b; font-size:0.8rem; text-transform:uppercase; margin-bottom:5px;">Просечен успех</p>
-                    <h3 id="dash-avg-success" style="margin:0; font-size:2rem; color:#3b82f6;">0%</h3>
+                <div style="display:flex; gap:10px;">
+                    <button id="dash-start-btn" style="display:none; background:#10b981; color:white; border:none; border-radius:8px; padding:10px 20px; font-weight:bold; cursor:pointer;">СТАРТУВАЈ СОБА</button>
+                    <button onclick="document.getElementById('teacher-modal').style.display='none'" style="background:#f1f5f9; border:none; border-radius:8px; padding:10px 20px; color:#475569; font-weight:bold; cursor:pointer;">ЗАТВОРИ</button>
                 </div>
             </div>
-            <div style="background:white; border-radius:20px; box-shadow:0 10px 15px rgba(0,0,0,0.05); border:1px solid #e2e8f0; overflow:hidden;">
-                <table style="width:100%; border-collapse: collapse; text-align:left;">
-                    <thead style="background:#f1f5f9;">
-                        <tr>
-                            <th style="padding:20px; color:#475569; font-weight:600;">УЧЕНИК</th>
-                            <th style="padding:20px; color:#475569; font-weight:600;">БОГАТСТВО</th>
-                            <th style="padding:20px; color:#475569; font-weight:600;">ТОЧНИ/ГРЕШНИ</th>
-                            <th style="padding:20px; color:#475569; font-weight:600;">АКТИВНОСТ</th>
-                            <th style="padding:20px; color:#475569; font-weight:600;">СТАТУС</th>
-                        </tr>
-                    </thead>
-                    <tbody id="teacher-stats-tbody"></tbody>
-                </table>
+            
+            <div id="dash-main-scroll" style="padding:40px; overflow-y:auto; flex:1;">
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; margin-bottom:30px;">
+                    <div style="background:white; padding:25px; border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,0.02); border:1px solid #e2e8f0;">
+                        <p style="color:#64748b; font-size:0.75rem; text-transform:uppercase; font-weight:700; margin-bottom:10px;">👥 Ученици</p>
+                        <h3 id="dash-player-count" style="margin:0; font-size:2.2rem; color:#1e293b; font-weight:900;">0</h3>
+                    </div>
+                    <div style="background:white; padding:25px; border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,0.02); border:1px solid #e2e8f0;">
+                        <p style="color:#64748b; font-size:0.75rem; text-transform:uppercase; font-weight:700; margin-bottom:10px;">✅ Точни задачи</p>
+                        <h3 id="dash-total-correct" style="margin:0; font-size:2.2rem; color:#10b981; font-weight:900;">0</h3>
+                    </div>
+                    <div style="background:white; padding:25px; border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,0.02); border:1px solid #e2e8f0;">
+                        <p style="color:#64748b; font-size:0.75rem; text-transform:uppercase; font-weight:700; margin-bottom:10px;">📈 Успешност</p>
+                        <h3 id="dash-avg-success" style="margin:0; font-size:2.2rem; color:#3b82f6; font-weight:900;">0%</h3>
+                    </div>
+                </div>
+
+                <div style="background:white; border-radius:20px; box-shadow:0 10px 25px rgba(0,0,0,0.03); border:1px solid #e2e8f0; overflow:hidden;">
+                    <table style="width:100%; border-collapse: collapse; text-align:left;">
+                        <thead style="background:#f1f5f9;">
+                            <tr>
+                                <th style="padding:20px; color:#475569; font-weight:700; font-size:0.8rem;">УЧЕНИК</th>
+                                <th style="padding:20px; color:#475569; font-weight:700; font-size:0.8rem;">БОГАТСТВО</th>
+                                <th style="padding:20px; color:#475569; font-weight:700; font-size:0.8rem;">ТОЧНИ / ГРЕШНИ</th>
+                                <th style="padding:20px; color:#475569; font-weight:700; font-size:0.8rem;">АКТИВНОСТ</th>
+                                <th style="padding:20px; color:#475569; font-weight:700; font-size:0.8rem;">СТАТУС</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacher-stats-tbody">
+                            <!-- Player rows injected here -->
+                        </tbody>
+                    </table>
+                    <div id="dash-empty-state" style="padding:100px; text-align:center; color:#94a3b8;">
+                        <div style="font-size:4rem; margin-bottom:20px;">🕵️‍♂️</div>
+                        <h3>Нема активни ученици во оваа соба</h3>
+                        <p>Чекаме учениците да се приклучат со кодот.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
