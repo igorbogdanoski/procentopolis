@@ -220,7 +220,8 @@ async function joinRoom() {
                     emoji: myTokenEmoji,
                     color: currentRole === 'teacher' ? 'transparent' : `var(--p${myPlayerId}-color)`,
                     powerups: { lawyer: false, shield: false, nitro: false, bribe: false },
-                    hasLoan: false
+                    hasLoan: false,
+                    jailTurns: 0
                 };
                 playersRef.child(myPlayerId).set(newPlayer);
             }
@@ -462,6 +463,14 @@ async function playTurnMulti(){
     document.getElementById('roll-btn').disabled = true;
     
     const p = players[myPlayerId];
+    
+    if (p.jailTurns > 0) {
+        log(`⏳ ${p.name} е на одмор/затвор. Пропушта потег (Уште ${p.jailTurns}).`);
+        db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ jailTurns: p.jailTurns - 1 });
+        endTurnMulti();
+        return;
+    }
+
     const token = document.getElementById(`token-${myPlayerId}`);
     if(token) token.classList.add('walking');
 
@@ -640,6 +649,12 @@ async function showLandingCardMulti(p, c){
                 db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
                 rc();
             };
+        } else if(c.type === 'jail'){
+            o.innerHTML = `<div class="card-view"><div class="card-header" style="background:#7f8c8d">ЗАТВОР / ОДМОР</div><div class="card-body"><p>Одмараш 1 потег.</p></div><div class="card-actions"><button class="action-btn btn-pass" id="jail-ok">ДОБРО</button></div></div>`;
+            document.getElementById('jail-ok').onclick = () => {
+                db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ jailTurns: 1 });
+                rc();
+            };
         } else if(c.type === 'property'){
             const rent = Math.floor(c.price * (c.rentPercent / 100));
             if(c.owner == null){ // Matches null and undefined
@@ -679,7 +694,20 @@ async function showLandingCardMulti(p, c){
                     rc();
                 };
             } else {
-                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Твој имот</p></div><div class="card-actions">${c.buildings<3?`<button class="action-btn btn-build" id="build-btn">ГРАДИ (${Math.floor(c.price*0.4)}д)</button>`:''} <button class="action-btn btn-pass" id="pass-prop">ЗАТВОРИ</button></div></div>`;
+                const groupProps = gameBoard.filter(prop => prop.group === c.group);
+                const ownsAll = groupProps.every(prop => prop.owner === myPlayerId);
+                
+                let buildActionHtml = '';
+                if (c.buildings < 3) {
+                    if (ownsAll) {
+                        buildActionHtml = `<button class="action-btn btn-build" id="build-btn">ГРАДИ (${Math.floor(c.price*0.4)}д)</button>`;
+                    } else {
+                        buildActionHtml = `<p style="font-size:0.8rem; color:#e67e22;">⚠️ Потребен е монопол (сите од оваа боја) за градење.</p>`;
+                    }
+                }
+
+                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Твој имот</p></div><div class="card-actions">${buildActionHtml} <button class="action-btn btn-pass" id="pass-prop">ЗАТВОРИ</button></div></div>`;
+                
                 const bldBtn = document.getElementById('build-btn');
                 if(bldBtn) bldBtn.onclick = async () => {
                     const t = getUniqueTask(3);
@@ -929,11 +957,32 @@ function setupCanvas(){
     const widthSlider = document.getElementById('pen-width');
     if(widthSlider) widthSlider.oninput = (e) => penWidth = e.target.value;
 
-    function gp(e){const r=canvas.getBoundingClientRect(); return e.touches?{x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top}:{x:e.clientX-r.left,y:e.clientY-r.top};} 
-    function st(e){e.preventDefault(); isDrawing=true; const p=gp(e); lastX=p.x; lastY=p.y;} 
+    function gp(e){
+        const r = canvas.getBoundingClientRect();
+        let clientX, clientY;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        return {
+            x: (clientX - r.left) * (canvas.width / r.width),
+            y: (clientY - r.top) * (canvas.height / r.height)
+        };
+    }
+    
+    function st(e){
+        if (e.target === canvas) e.preventDefault();
+        isDrawing=true; 
+        const p=gp(e); 
+        lastX=p.x; lastY=p.y;
+    } 
+    
     function mv(e){
-        if(!isDrawing)return; 
-        e.preventDefault(); 
+        if(!isDrawing) return; 
+        if (e.target === canvas) e.preventDefault();
         const p=gp(e); 
         ctx.beginPath(); 
         ctx.strokeStyle = penColor;
@@ -945,8 +994,17 @@ function setupCanvas(){
         ctx.stroke(); 
         lastX=p.x; lastY=p.y;
     } 
-    canvas.addEventListener('mousedown',st); canvas.addEventListener('mousemove',mv); canvas.addEventListener('mouseup',()=>isDrawing=false); 
-    canvas.addEventListener('touchstart',st,{passive:false}); canvas.addEventListener('touchmove',mv,{passive:false}); 
+    
+    function en(){ isDrawing = false; }
+
+    canvas.addEventListener('mousedown', st);
+    canvas.addEventListener('mousemove', mv);
+    window.addEventListener('mouseup', en);
+    
+    canvas.addEventListener('touchstart', st, {passive:false});
+    canvas.addEventListener('touchmove', mv, {passive:false});
+    canvas.addEventListener('touchend', en);
+    
     resizeCanvas();
 }
 
