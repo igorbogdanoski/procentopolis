@@ -144,6 +144,272 @@ function validateRoomCode(code) {
     return { valid: true, sanitized };
 }
 
+// === PHASE 2: ONBOARDING TUTORIAL SYSTEM ===
+let currentTutorialStep = 0;
+const tutorialSteps = [
+    {
+        icon: '🎮',
+        title: 'Добредојде во ПроцентОполис!',
+        subtitle: 'Најдобрата математичка игра',
+        content: `<p>Ова е образовна игра каде <strong>учиш проценти додека се забавуваш!</strong></p>
+                  <div class="tutorial-highlight">
+                      <strong>🎯 ЦЕЛ:</strong> Собери најголемо богатство со решавање математички задачи!
+                  </div>
+                  <p>Играта е слична на Монопол, но наместо пари користиш <strong>математички вештини</strong> за да станеш најбогат играч!</p>`
+    },
+    {
+        icon: '🎲',
+        title: 'Како да играш?',
+        subtitle: 'Основни правила',
+        content: `<p>Играта е едноставна:</p>
+                  <ol style="line-height: 2; margin-left: 20px;">
+                      <li><strong>Фрли коцка</strong> со копчето "🎲 ФРЛИ"</li>
+                      <li><strong>Движи се</strong> по табла автоматски</li>
+                      <li><strong>Застани на поле</strong> и добиј задача</li>
+                      <li><strong>Реши задача</strong> за да купиш имот</li>
+                  </ol>
+                  <div class="tutorial-highlight">
+                      <strong>⏱️ ВАЖНО:</strong> Имаш <strong>45 секунди</strong> за секој потег!
+                  </div>`
+    },
+    {
+        icon: '🏠',
+        title: 'Купување имоти',
+        subtitle: 'Градење на богатство',
+        content: `<p>Кога ќе застанеш на празно поле:</p>
+                  <div class="tutorial-highlight">
+                      <strong>✅ ТОЧЕН ОДГОВОР:</strong> Купуваш го имотот за полна цена<br>
+                      <strong>❌ ГРЕШКА:</strong> Го губиш имотот и се враќаш на старта
+                  </div>
+                  <p style="margin-top: 20px;">Кога другите играчи ќе застанат на <strong>твој имот</strong>, тие мора да платат <strong>кирија!</strong></p>
+                  <p><strong>💰 Повеќе имоти = Поголемо богатство!</strong></p>`
+    },
+    {
+        icon: '💸',
+        title: 'Плаќање кирија',
+        subtitle: 'Пресметување на рента',
+        content: `<p>Ако застанеш на туѓо поле, мора да платиш кирија!</p>
+                  <div class="tutorial-highlight">
+                      <strong>✅ ТОЧНО ПРЕСМЕТАШ:</strong> Плаќаш нормална кирија<br>
+                      <strong>❌ ПОГРЕШНО ПРЕСМЕТАШ:</strong> Плаќаш <strong>ДУПЛО!</strong> 😱
+                  </div>
+                  <p style="margin-top: 20px;">Затоа внимавај и секогаш <strong>пресметај точно!</strong></p>`
+    },
+    {
+        icon: '🛒',
+        title: 'Продавница за моќи',
+        subtitle: 'Стратешки предности',
+        content: `<p>Со копчето "🛒 ПРОДАВНИЦА" можеш да купиш <strong>специјални моќи:</strong></p>
+                  <ul style="line-height: 2; margin-left: 20px;">
+                      <li><strong>⚖️ Адвокат</strong> - Заштита од данок (300д)</li>
+                      <li><strong>🛡️ Златен Штит</strong> - Не плаќаш кирија (250д)</li>
+                      <li><strong>🚀 Нитро Коцка</strong> - Дупло фрлање (150д)</li>
+                      <li><strong>🕵️ Инсајдер</strong> - Имот за 1 денар (500д)</li>
+                  </ul>
+                  <div class="tutorial-highlight">
+                      <strong>💡 СОВЕТ:</strong> Користи ги паметно за да победиш!
+                  </div>`
+    },
+    {
+        icon: '🎨',
+        title: 'Whiteboard помош',
+        subtitle: 'Цртај и пресметувај',
+        content: `<p>За секоја задача имаш <strong>whiteboard</strong> каде можеш:</p>
+                  <ul style="line-height: 2; margin-left: 20px;">
+                      <li>✏️ Да црташ и пресметуваш</li>
+                      <li>🎨 Да користиш различни бои</li>
+                      <li>🖼️ Да бараш визуелна помош (hint)</li>
+                  </ul>
+                  <div class="tutorial-highlight">
+                      <strong>🎨 СОВЕТ:</strong> Користи го whiteboard за да не грешиш!
+                  </div>`
+    },
+    {
+        icon: '🏆',
+        title: 'Подготвен си!',
+        subtitle: 'Време е да играш',
+        content: `<p style="font-size: 1.2rem; text-align: center; margin: 30px 0;">
+                      <strong>🎉 Одлично! Сега знаеш сè!</strong>
+                  </p>
+                  <div class="tutorial-highlight">
+                      <strong>🎯 ЗАПОМНИ:</strong><br>
+                      • Решавај точно за да купуваш имоти<br>
+                      • Внимавај на времето (45 секунди)<br>
+                      • Користи ги моќите паметно<br>
+                      • Забавувај се и учи! 📚
+                  </div>
+                  <p style="text-align: center; margin-top: 25px; font-size: 1.1rem;">
+                      <strong>Среќно! 🚀</strong>
+                  </p>`
+    }
+];
+
+function showTutorial() {
+    // Check if user has seen tutorial before
+    const hasSeenTutorial = localStorage.getItem('percentopolis_tutorial_completed');
+    if (hasSeenTutorial) return;
+
+    currentTutorialStep = 0;
+    renderTutorialStep();
+    document.getElementById('tutorial-overlay').style.display = 'flex';
+}
+
+function renderTutorialStep() {
+    const step = tutorialSteps[currentTutorialStep];
+    document.getElementById('tutorial-icon').innerText = step.icon;
+    document.getElementById('tutorial-title').innerText = step.title;
+    document.getElementById('tutorial-subtitle').innerText = step.subtitle;
+    document.getElementById('tutorial-content').innerHTML = step.content;
+    document.getElementById('tutorial-progress').innerText = `Чекор ${currentTutorialStep + 1} од ${tutorialSteps.length}`;
+
+    // Update button on last step
+    const nextBtn = document.getElementById('tutorial-next-btn');
+    if (currentTutorialStep === tutorialSteps.length - 1) {
+        nextBtn.innerText = '🚀 Започни игра!';
+        nextBtn.className = 'tutorial-btn tutorial-btn-start';
+    } else {
+        nextBtn.innerText = 'Следно →';
+        nextBtn.className = 'tutorial-btn tutorial-btn-next';
+    }
+}
+
+function nextTutorialStep() {
+    if (currentTutorialStep < tutorialSteps.length - 1) {
+        currentTutorialStep++;
+        renderTutorialStep();
+    } else {
+        completeTutorial();
+    }
+}
+
+function skipTutorial() {
+    if (confirm('Сигурен си дека сакаш да го прескокнеш упатството?')) {
+        completeTutorial();
+    }
+}
+
+function completeTutorial() {
+    localStorage.setItem('percentopolis_tutorial_completed', 'true');
+    document.getElementById('tutorial-overlay').style.display = 'none';
+    showSuccess('✅ Добредојде во играта! Среќно! 🎮');
+}
+
+// === PHASE 2: CONFETTI CELEBRATION SYSTEM ===
+function celebrateWithConfetti(duration = 3000) {
+    const container = document.getElementById('confetti-container');
+    const colors = ['#fbbf24', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444'];
+    const confettiCount = 50;
+
+    for (let i = 0; i < confettiCount; i++) {
+        setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+            confetti.style.animationDelay = '0s';
+            container.appendChild(confetti);
+
+            setTimeout(() => confetti.remove(), 4000);
+        }, i * (duration / confettiCount));
+    }
+}
+
+// === PHASE 2: ACHIEVEMENT SYSTEM ===
+const achievements = {
+    firstProperty: { icon: '🏠', title: 'Прв имот!', description: 'Купи го првиот имот' },
+    perfectAnswer: { icon: '🎯', title: 'Совршено!', description: 'Одговори точно на прв обид' },
+    streak3: { icon: '🔥', title: 'Во оган!', description: '3 точни одговори по ред' },
+    streak5: { icon: '⚡', title: 'Непобедлив!', description: '5 точни одговори по ред' },
+    richPlayer: { icon: '💰', title: 'Богат играч!', description: 'Имаш над 1500 денари' },
+    shopMaster: { icon: '🛒', title: 'Шопинг мајстор!', description: 'Купи моќ од продавницата' },
+    speedster: { icon: '⚡', title: 'Брзинец!', description: 'Одговори за помалку од 10 секунди' },
+    comeback: { icon: '💪', title: 'Враќање!', description: 'Точен одговор после грешка' }
+};
+
+let unlockedAchievements = new Set();
+
+function unlockAchievement(achievementKey) {
+    if (unlockedAchievements.has(achievementKey)) return;
+
+    unlockedAchievements.add(achievementKey);
+    const achievement = achievements[achievementKey];
+
+    // Show achievement toast
+    const toast = document.createElement('div');
+    toast.className = 'achievement-toast';
+    toast.innerHTML = `
+        <div class="achievement-icon">${achievement.icon}</div>
+        <div class="achievement-content">
+            <div class="achievement-title">${achievement.title}</div>
+            <div class="achievement-description">${achievement.description}</div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+
+    // Celebrate with confetti
+    celebrateWithConfetti(2000);
+
+    // Remove toast after 5 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(400px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
+
+// === PHASE 2: CELEBRATION TRIGGERS ===
+let lastAnswerWasCorrect = false;
+let answerTimeStart = 0;
+
+function triggerCelebration(type, data = {}) {
+    switch(type) {
+        case 'correctAnswer':
+            celebrateWithConfetti(1500);
+            if (!lastAnswerWasCorrect) {
+                unlockAchievement('comeback');
+            }
+            lastAnswerWasCorrect = true;
+
+            // Check for speed achievement
+            if (answerTimeStart && (Date.now() - answerTimeStart) < 10000) {
+                unlockAchievement('speedster');
+            }
+            break;
+
+        case 'wrongAnswer':
+            lastAnswerWasCorrect = false;
+            break;
+
+        case 'propertyPurchased':
+            if (data.isFirst) {
+                unlockAchievement('firstProperty');
+            }
+            celebrateWithConfetti(2000);
+            break;
+
+        case 'streak':
+            if (data.count === 3) {
+                unlockAchievement('streak3');
+            } else if (data.count === 5) {
+                unlockAchievement('streak5');
+            }
+            break;
+
+        case 'richPlayer':
+            unlockAchievement('richPlayer');
+            break;
+
+        case 'shopPurchase':
+            unlockAchievement('shopMaster');
+            break;
+
+        case 'gameWin':
+            celebrateWithConfetti(5000);
+            break;
+    }
+}
+
 // --- VARIABLES ---
 let studentName = "", studentOdd = "", studentCorrect = 0, studentWrong = 0;
 let usedQuestionIds = [], remainingTime = 40 * 60, players = [], currentPlayerIndex = 0, gameBoard = [], isRolling = false;
@@ -411,6 +677,11 @@ async function joinRoom() {
     document.getElementById('auth-section').style.display = 'none';
     document.getElementById('lobby-section').style.display = 'block';
     document.getElementById('current-room-display').innerText = roomId;
+
+    // PHASE 2: Show tutorial for students on first join
+    if (currentRole === 'student') {
+        setTimeout(() => showTutorial(), 500);
+    }
     
     const roomRef = db.ref('rooms/' + roomId);
     
@@ -950,6 +1221,11 @@ async function updateMoneyMulti(pid, amt){
         }
     } else {
         db.ref(`rooms/${roomId}/players/${pid}`).update({ money: newMoney });
+
+        // PHASE 2: Check for rich player achievement
+        if (pid === myPlayerId && newMoney >= 1500 && p.money < 1500) {
+            triggerCelebration('richPlayer');
+        }
     }
     
     AudioController.play('money');
@@ -1091,6 +1367,11 @@ async function showLandingCardMulti(p, c){
                         db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ owner: myPlayerId });
                         updateMoneyMulti(myPlayerId, -finalPrice);
                         db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
+
+                        // PHASE 2: Check if this is first property
+                        const myProperties = gameBoard.filter(prop => prop.owner === myPlayerId);
+                        const isFirstProperty = myProperties.length === 0; // Will be 1 after update
+                        triggerCelebration('propertyPurchased', { isFirst: isFirstProperty });
                     }
                     resolve();
                 };
@@ -1457,21 +1738,52 @@ function updateDashStats(data) {
         const tr = document.createElement('tr');
         tr.style.borderBottom = '1px solid #f1f5f9';
         const successRate = ((p.correct || 0) + (p.wrong || 0)) === 0 ? 0 : Math.round((p.correct / (p.correct + p.wrong)) * 100);
-        
+
+        // PHASE 2: Enhanced Analytics - Performance color coding
+        let performanceColor = '#ef4444'; // Red (struggling)
+        let performanceLabel = 'Потреба од помош';
+        let performanceIcon = '⚠️';
+
+        if (successRate >= 75) {
+            performanceColor = '#10b981'; // Green (excellent)
+            performanceLabel = 'Одличен';
+            performanceIcon = '⭐';
+        } else if (successRate >= 50) {
+            performanceColor = '#fbbf24'; // Yellow (good)
+            performanceLabel = 'Добар';
+            performanceIcon = '👍';
+        }
+
+        // PHASE 2: Streak badge
+        const streakBadge = (p.streak && p.streak >= 3) ?
+            `<span style="margin-left:8px; padding:3px 8px; background:#fbbf24; color:#78350f; border-radius:12px; font-size:0.65rem; font-weight:900;">🔥 ${p.streak} ПО РЕД</span>` : '';
+
         tr.innerHTML = `
             <td style="padding:20px;">
-                <div style="font-weight:700; color:#1e293b;">${p.emoji || '👤'} ${p.name}</div>
+                <div style="font-weight:700; color:#1e293b; font-size:1rem;">${p.emoji || '👤'} ${p.name}${streakBadge}</div>
                 <div style="font-size:0.75rem; color:#64748b;">${p.odd}</div>
             </td>
-            <td style="padding:20px; font-weight:800; color:#2563eb;">${p.money}д</td>
             <td style="padding:20px;">
-                <span style="color:#10b981; font-weight:bold;">${p.correct || 0}</span> / 
-                <span style="color:#ef4444; font-weight:bold;">${p.wrong || 0}</span>
-                <div style="font-size:0.7rem; color:#94a3b8;">${successRate}% успех</div>
+                <div style="font-weight:800; color:#2563eb; font-size:1.1rem;">${p.money}д</div>
+                <div style="font-size:0.7rem; color:#64748b; margin-top:3px;">
+                    ${p.money >= 1500 ? '💰 Богат' : p.money < 500 ? '⚠️ Криза' : '📊 Стабилен'}
+                </div>
             </td>
-            <td style="padding:20px; font-size:0.8rem; color:#475569; max-width:180px;">${p.lastActivity || '---'}</td>
             <td style="padding:20px;">
-                <span style="padding:6px 14px; border-radius:20px; font-size:0.7rem; font-weight:bold; background:${p.isThinking?'#fef3c7':'#dcfce7'}; color:${p.isThinking?'#92400e':'#166534'};">
+                <div style="margin-bottom:8px;">
+                    <span style="color:#10b981; font-weight:bold; font-size:1.1rem;">${p.correct || 0}</span> /
+                    <span style="color:#ef4444; font-weight:bold; font-size:1.1rem;">${p.wrong || 0}</span>
+                </div>
+                <div style="background:#f1f5f9; height:8px; border-radius:10px; overflow:hidden; margin-top:5px;">
+                    <div style="width:${successRate}%; height:100%; background:${performanceColor}; transition:width 0.3s ease;"></div>
+                </div>
+                <div style="font-size:0.7rem; color:#64748b; margin-top:5px;">${performanceIcon} ${successRate}% успешност</div>
+            </td>
+            <td style="padding:20px; font-size:0.8rem; color:#475569; max-width:180px;">
+                ${p.lastActivity || '---'}
+            </td>
+            <td style="padding:20px;">
+                <span style="padding:8px 16px; border-radius:20px; font-size:0.75rem; font-weight:800; background:${p.isThinking?'#fef3c7':'#dcfce7'}; color:${p.isThinking?'#92400e':'#166534'}; display:inline-block;">
                     ${p.isThinking ? '🤔 РАЗМИСЛУВА' : '✅ ПОДГОТВЕН'}
                 </span>
             </td>
@@ -1515,6 +1827,9 @@ function buyItem(type,cost) {
     updateMoneyMulti(myPlayerId, -cost);
     db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
     document.getElementById('shop-modal').style.display='none';
+
+    // PHASE 2: Trigger shop purchase achievement
+    triggerCelebration('shopPurchase');
 }
 
 function getUniqueTask(diff){
@@ -1555,6 +1870,9 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
         const fa=document.getElementById('feedback-area'); fa.innerText='';
         currentTaskData = { q, ans, expl, hint };
 
+        // PHASE 2: Track answer time for speed achievement
+        answerTimeStart = Date.now();
+
         const finalize = (res) => {
             const p = players[myPlayerId];
             const updates = { isThinking: false };
@@ -1563,14 +1881,22 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
                 updates.correct = studentCorrect;
                 p.streak = (p.streak || 0) + 1;
                 updates.streak = p.streak;
-                
+
+                // PHASE 2: Trigger correct answer celebration
+                triggerCelebration('correctAnswer');
+
+                // PHASE 2: Check for streak achievements
+                if (p.streak === 3 || p.streak === 5) {
+                    triggerCelebration('streak', { count: p.streak });
+                }
+
                 // STREAK REWARD: Every 3 correct answers
                 if (p.streak > 0 && p.streak % 3 === 0) {
                     const rewards = ['lawyer', 'shield', 'nitro'];
                     const chosen = rewards[Math.floor(Math.random() * rewards.length)];
                     p.powerups[chosen] = true;
                     updates.powerups = p.powerups;
-                    
+
                     const emojiMap = { lawyer: '⚖️', shield: '🛡️', nitro: '🚀' };
                     log(`🔥 БРАВО! 3 по ред точно! Доби награда: ${emojiMap[chosen]}`);
                     showFloatingTextMulti(`+${emojiMap[chosen]}`, myPlayerId);
@@ -1580,6 +1906,9 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
                 updates.wrong = studentWrong;
                 p.streak = 0;
                 updates.streak = 0;
+
+                // PHASE 2: Trigger wrong answer (no celebration)
+                triggerCelebration('wrongAnswer');
             }
             updates.lastActivity = (res ? "Точно: " : "Грешно: ") + q;
             

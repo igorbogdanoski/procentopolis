@@ -311,6 +311,30 @@
     </div>
 </div>
 
+<!-- PHASE 2: Onboarding Tutorial -->
+<div id="tutorial-overlay">
+    <div class="tutorial-modal">
+        <div class="tutorial-header">
+            <div class="tutorial-icon" id="tutorial-icon">🎮</div>
+            <h2 class="tutorial-title" id="tutorial-title">Добредојде!</h2>
+            <p class="tutorial-subtitle" id="tutorial-subtitle">Ајде да научиме како се игра</p>
+        </div>
+        <div class="tutorial-content" id="tutorial-content">
+            <!-- Content will be dynamically injected -->
+        </div>
+        <div class="tutorial-footer">
+            <div class="tutorial-progress" id="tutorial-progress">Чекор 1 од 7</div>
+            <div class="tutorial-nav">
+                <button class="tutorial-btn tutorial-btn-skip" onclick="skipTutorial()">Прескокни</button>
+                <button class="tutorial-btn tutorial-btn-next" id="tutorial-next-btn" onclick="nextTutorialStep()">Следно →</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PHASE 2: Confetti Container -->
+<div id="confetti-container" class="confetti-container"></div>
+
 <script src="script.js"></script>
 </body>
 </html>
