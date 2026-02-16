@@ -329,7 +329,7 @@ async function joinRoom() {
                         name: studentName,
                         odd: studentOdd,
                         role: 'student',
-                        money: 10000,
+                        money: 4000,
                         pos: 0,
                         emoji: myTokenEmoji,
                         color: `var(--p${myPlayerId}-color)`,
@@ -622,7 +622,7 @@ function initMultiplayerGame() {
     document.getElementById('game-wrapper').classList.remove('blur-filter');
     
     if (isCreator) {
-        document.getElementById('teacher-dash-btn').style.display = 'block';
+        document.getElementById('teacher-dash-btn-fixed').style.display = 'block';
     }
 
     const statsPanel = document.getElementById('stats-panel-multi');
@@ -640,6 +640,9 @@ function initMultiplayerGame() {
     
     renderBoard();
     updateUI();
+    
+    // Auto-resync logic: force sync UI every 10 seconds in case of minor connection glitches
+    setInterval(syncGameState, 10000);
     
     document.getElementById('roll-btn').onclick = playTurnMulti;
 }
