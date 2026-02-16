@@ -880,7 +880,9 @@ function handleRoomUpdate(snapshot) {
         const timerEl = document.getElementById('turn-timer');
         if(timerEl) timerEl.innerText = `Потег: ${displayTime}s`;
 
-        if (turnRemainingTime === 0 && currentPlayerIndex === myPlayerId && !isRolling && currentRole !== 'teacher' && data.turnStartTime > 0) {
+        // BUGFIX: Only auto-skip if elapsed >= 30 AND < 35 to prevent race condition
+        // This prevents new player from auto-skipping when they see old turnStartTime
+        if (turnRemainingTime === 0 && elapsed >= 30 && elapsed < 35 && currentPlayerIndex === myPlayerId && !isRolling && currentRole !== 'teacher') {
             clearInterval(localTurnTicker);
             log("Времето истече! Потегот се префрла.");
             endTurnMulti();
