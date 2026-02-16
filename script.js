@@ -38,19 +38,59 @@ let myTokenEmoji = "👤";
 function shuffleArray(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 const allTasks=[];
 for(let i=0;i<220;i++){
-    let diff=(i%3)+1; let rate=5+(i%15)*5; let base=50+(i*10);
-    if(diff===1){rate=[10,20,25,50][i%4]; base=[100,200,50,80,120,400][i%6];}
-    let cv=(base*rate)/100; let cs=cv%1===0?cv.toString():cv.toFixed(1);
+    let diff=(i%3)+1; 
+    let rate=5+(i%15)*5; 
+    let base=50+(i*10);
+    
+    // Level 1 logic
+    if(diff===1){
+        rate=[10,20,25,50][i%4]; 
+        base=[100,200,500,80,120,400][i%6];
+    }
+    
+    let cv=(base*rate)/100; 
+    let cs=cv%1===0?cv.toString():cv.toFixed(1);
+    
+    // Advanced Distractor Logic
+    let distractors = new Set();
+    let numAns = parseFloat(cs);
+    
+    // 1. Decimal slip error
+    distractors.add((numAns * 10).toString());
+    distractors.add((numAns / 10).toString());
+    
+    // 2. Addition error (base + rate)
+    distractors.add((base + rate).toString());
+    
+    // 3. Misinterpreting % as absolute value
+    distractors.add(rate.toString());
+    distractors.add(base.toString());
+    
+    // 4. Complementary percentage error
+    distractors.add(((base * (100 - rate)) / 100).toFixed(1));
+
+    let opts = Array.from(distractors).filter(d => d !== cs);
+    shuffleArray(opts);
+    let finalOptions = opts.slice(0, 3);
+    finalOptions.push(cs);
+    
     let hint=`💡 Совет: ${rate}% е исто што и ${rate}/100. Обиди се да го помножиш ${base} со ${rate/100}.`;
     if(rate===25) hint="💡 Совет: 25% е исто што и една четвртина (подели го бројот со 4).";
     if(rate===50) hint="💡 Совет: 50% е исто што и половина (подели го бројот со 2).";
     if(rate===10) hint="💡 Совет: 10% е исто што и една десетина (подели го бројот со 10).";
     
     let expl=`💡 Постапка: ${rate}% од ${base} се пресметува како (${rate} ÷ 100) × ${base} = ${cs}.`;
-    let opts=[...new Set([((base*rate)/10).toFixed(1), (base+rate).toString(), rate.toString(), ((base*(100-rate))/100).toFixed(1)])];
-    while(opts.length<4){opts.push((parseFloat(cs)+Math.floor(Math.random()*10)+1).toString());}
-    if(!opts.includes(cs))opts[0]=cs; let fo=shuffleArray(opts).slice(0,4); if(!fo.includes(cs))fo[0]=cs;
-    allTasks.push({id:100+i, difficulty:diff, question:`Пресметај ${rate}% од ${base}.`, correct_answer:cs, options:shuffleArray(fo), raw:{rate,base}, explanation:expl, hint:hint});
+    
+    allTasks.push({
+        id:100+i, 
+        difficulty:diff, 
+        question:`Пресметај ${rate}% од ${base}.`, 
+        correct_answer:cs, 
+        options:shuffleArray(finalOptions), 
+        raw:{rate,base}, 
+        explanation:expl, 
+        hint:hint
+    });
 }
 
 const hardProperties = [4, 9, 14, 19];
