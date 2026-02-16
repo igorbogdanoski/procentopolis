@@ -79,33 +79,17 @@
                     </div>
                 </div>
 
-                <div class="input-group room-box">
+                <div class="input-group room-box" id="student-room-box">
                     <label id="room-label">🏠 СОБА:</label>
                     <div id="available-rooms-container" style="display:none; margin-bottom:10px; max-height:150px; overflow-y:auto; border:1px solid #ddd; border-radius:10px; padding:10px; background:white;">
                         <p style="font-size:0.7rem; color:#666; margin-bottom:5px;">ИЗБЕРИ АКТИВНА СОБА:</p>
                         <div id="available-rooms-list" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
                     </div>
                     <input type="text" id="room-id-input" placeholder="Внеси или избери код..." autocomplete="off">
-                    <div id="teacher-rooms-list"></div>
-                    <div id="teacher-settings" style="display:none; margin-top:15px; border-top:1px solid #ddd; padding-top:10px;">
-                        <label>📊 ТЕЖИНА:</label>
-                        <select id="room-difficulty-select" style="margin-bottom:15px;">
-                            <option value="easy">ЛЕСНО</option>
-                            <option value="standard" selected>СТАНДАРДНО</option>
-                            <option value="hard">НАПРЕДНО</option>
-                        </select>
-                        
-                        <div style="background:#f8fafc; padding:10px; border-radius:10px; border:1px solid #e2e8f0; margin-top:10px;">
-                            <label style="font-size:0.7rem;">⚡ БРЗО КРЕИРАЊЕ ПОВЕЌЕ СОБИ:</label>
-                            <div style="display:flex; gap:5px; margin-top:5px;">
-                                <input type="number" id="multi-room-count" value="4" min="1" max="10" style="width:60px; padding:5px;">
-                                <button onclick="createMultipleRooms()" style="flex:1; background:#3b82f6; color:white; border:none; border-radius:8px; font-size:0.7rem; cursor:pointer;">КРЕИРАЈ СЕГА</button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <button id="login-btn" disabled>🚀 ВЛЕЗИ ВО ИГРА</button>
+                <button id="teacher-dashboard-btn" style="display:none; width:100%; padding:20px; font-size:1.2rem; background:#8b5cf6; color:white; border:none; border-radius:16px; cursor:pointer; font-weight:800; margin-top:10px; box-shadow:0 10px 20px rgba(139, 92, 246, 0.3);">📊 ОТВОРИ КОНТРОЛЕН ПАНЕЛ</button>
             </div>
             <div id="lobby-section" style="display:none;">
                 <div style="background: #1e40af; color: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; text-align: center; box-shadow: 0 10px 25px rgba(30, 64, 175, 0.2);">

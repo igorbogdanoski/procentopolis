@@ -204,8 +204,9 @@ let currentRole = 'student';
 window.onload = () => {
     document.getElementById('player-name-input').oninput = checkLoginValid;
     document.getElementById('room-id-input').oninput = checkLoginValid;
-    
+
     document.getElementById('login-btn').onclick = joinRoom;
+    document.getElementById('teacher-dashboard-btn').onclick = openTeacherDashDirectly;
     document.getElementById('start-game-btn-multi').onclick = requestStartGame;
     setupCanvas();
 
@@ -214,7 +215,9 @@ window.onload = () => {
     if (saved) {
         const session = JSON.parse(saved);
         document.getElementById('player-name-input').value = session.name;
-        document.getElementById('room-id-input').value = session.roomId;
+        if (session.role === 'student') {
+            document.getElementById('room-id-input').value = session.roomId;
+        }
     }
 };
 
@@ -226,13 +229,36 @@ function selectToken(emoji, btn) {
 function checkLoginValid() {
     const nameVal = document.getElementById('player-name-input').value.trim();
     const roomVal = document.getElementById('room-id-input').value.trim();
-    const btn = document.getElementById('login-btn');
-    
+    const loginBtn = document.getElementById('login-btn');
+    const teacherDashBtn = document.getElementById('teacher-dashboard-btn');
+
     if (currentRole === 'teacher') {
-        btn.disabled = nameVal.length < 3;
+        teacherDashBtn.disabled = nameVal.length < 3;
     } else {
-        btn.disabled = nameVal.length < 3 || roomVal.length < 3;
+        loginBtn.disabled = nameVal.length < 3 || roomVal.length < 3;
     }
+}
+
+function openTeacherDashDirectly() {
+    studentName = document.getElementById('player-name-input').value.trim();
+
+    if (studentName.length < 3) {
+        showError('❌ Внесете валидно име (минимум 3 карактери)');
+        return;
+    }
+
+    // Save teacher info to localStorage
+    localStorage.setItem('percentopolis_teacher_name', studentName);
+    localStorage.setItem('percentopolis_session', JSON.stringify({
+        name: studentName,
+        role: 'teacher'
+    }));
+
+    // Hide login, show dashboard
+    document.getElementById('login-overlay').style.display = 'none';
+
+    // Open Teacher Dashboard directly
+    openTeacherDash();
 }
 
 function setRole(role) {
@@ -241,9 +267,9 @@ function setRole(role) {
     const tBtn = document.getElementById('role-teacher');
     const studentFields = document.getElementById('student-only-fields');
     const studentClassBox = document.getElementById('student-class-box');
-    const roomBox = document.querySelector('.room-box');
-    const roomLabel = document.getElementById('room-label');
-    const roomInput = document.getElementById('room-id-input');
+    const studentRoomBox = document.getElementById('student-room-box');
+    const loginBtn = document.getElementById('login-btn');
+    const teacherDashBtn = document.getElementById('teacher-dashboard-btn');
     const roomsContainer = document.getElementById('available-rooms-container');
 
     if (role === 'teacher') {
@@ -251,22 +277,20 @@ function setRole(role) {
         tBtn.classList.add('active');
         studentFields.style.display = 'none';
         studentClassBox.style.display = 'none';
+        studentRoomBox.style.display = 'none';
         roomsContainer.style.display = 'none';
-        document.getElementById('teacher-settings').style.display = 'block';
-        roomBox.classList.add('teacher-mode');
-        roomLabel.innerText = "🏠 КРЕИРАЈ НОВА СОБА:";
-        roomInput.placeholder = "Име на соба (пр. МАТЕМАТИКА8)";
+        loginBtn.style.display = 'none';
+        teacherDashBtn.style.display = 'block';
     } else {
         tBtn.classList.remove('active');
         sBtn.classList.add('active');
         studentFields.style.display = 'block';
         studentClassBox.style.display = 'block';
+        studentRoomBox.style.display = 'block';
         roomsContainer.style.display = 'block';
+        loginBtn.style.display = 'block';
+        teacherDashBtn.style.display = 'none';
         fetchAvailableRooms();
-        document.getElementById('teacher-settings').style.display = 'none';
-        roomBox.classList.remove('teacher-mode');
-        roomLabel.innerText = "🏠 ПРИКЛУЧИ СЕ ВО СОБА:";
-        roomInput.placeholder = "Код на соба (пр. 101)";
     }
     checkLoginValid();
 }
@@ -1121,7 +1145,21 @@ function openTeacherDash() {
     const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
     const list = document.getElementById('dash-rooms-list');
     list.innerHTML = '';
-    
+
+    if (myRooms.length === 0) {
+        // Show empty state with create room prompt
+        list.innerHTML = `
+            <div style="padding:40px 20px; text-align:center; color:#94a3b8;">
+                <div style="font-size:3rem; margin-bottom:15px;">📚</div>
+                <h3 style="color:#475569; margin:0 0 10px 0;">Нема креирани соби</h3>
+                <p style="font-size:0.8rem; margin:0; line-height:1.5;">Креирајте ваша прва соба за да почнете<br>да следите напредок на учениците.</p>
+            </div>
+        `;
+        document.getElementById('teacher-modal').style.display = 'flex';
+        showCreateRoomInterface();
+        return;
+    }
+
     myRooms.forEach(rid => {
         const btn = document.createElement('div');
         btn.className = 'dash-room-item';
@@ -1147,8 +1185,44 @@ function openTeacherDash() {
     if (!activeDashRoomId && myRooms.length > 0) {
         switchDashRoom(myRooms[0]);
     }
-    
+
     document.getElementById('teacher-modal').style.display = 'flex';
+}
+
+function showCreateRoomInterface() {
+    const container = document.getElementById('dash-single-room-container');
+    container.innerHTML = `
+        <div style="max-width:600px; margin:60px auto; padding:40px; background:white; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
+            <h2 style="margin:0 0 10px 0; color:#1e293b; font-size:1.8rem;">✨ Креирај нова соба</h2>
+            <p style="color:#64748b; margin:0 0 30px 0;">Внесете детали за вашата прва соба.</p>
+
+            <div style="margin-bottom:20px;">
+                <label style="display:block; font-weight:700; margin-bottom:8px; color:#475569;">🏠 Име на соба:</label>
+                <input type="text" id="new-room-name-input" placeholder="МАТЕМАТИКА-8А" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:1rem;">
+            </div>
+
+            <div style="margin-bottom:30px;">
+                <label style="display:block; font-weight:700; margin-bottom:8px; color:#475569;">📊 Тежина:</label>
+                <select id="new-room-difficulty" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:1rem;">
+                    <option value="easy">ЛЕСНО</option>
+                    <option value="standard" selected>СТАНДАРДНО</option>
+                    <option value="hard">НАПРЕДНО</option>
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button onclick="createSingleRoom()" style="flex:1; padding:15px; background:#8b5cf6; color:white; border:none; border-radius:12px; font-weight:800; cursor:pointer; font-size:1rem;">🚀 КРЕИРАЈ СОБА</button>
+            </div>
+
+            <div style="margin-top:30px; padding-top:30px; border-top:1px solid #e2e8f0;">
+                <p style="font-size:0.85rem; color:#64748b; margin:0 0 10px 0; font-weight:600;">Или креирај повеќе соби одеднаш:</p>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="number" id="dash-multi-room-count" value="4" min="1" max="10" style="width:80px; padding:12px; border:2px solid #e2e8f0; border-radius:10px;">
+                    <button onclick="createMultipleRoomsFromDash()" style="flex:1; padding:12px; background:#3b82f6; color:white; border:none; border-radius:10px; font-weight:700; cursor:pointer;">⚡ КРЕИРАЈ ПОВЕЌЕ</button>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function switchDashRoom(rid) {
@@ -1639,6 +1713,123 @@ function sendLiveUpdate(question, answer, isCorrect) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     }).catch(err => console.log("Sync error", err));
+}
+
+async function createSingleRoom() {
+    const nameInput = document.getElementById('new-room-name-input');
+    const diffSelect = document.getElementById('new-room-difficulty');
+
+    let roomName = nameInput.value.trim().toUpperCase();
+    if (!roomName) {
+        roomName = "ROOM" + Math.floor(1000 + Math.random() * 9000);
+    }
+
+    const difficulty = diffSelect.value;
+    const teacherName = localStorage.getItem('percentopolis_teacher_name') || studentName;
+
+    try {
+        const roomRef = db.ref(`rooms/${roomName}`);
+        const snapshot = await roomRef.once('value');
+
+        if (snapshot.exists()) {
+            showError('❌ Соба со ова име веќе постои. Одберете друго име.');
+            return;
+        }
+
+        await roomRef.set({
+            status: 'waiting',
+            players: [],
+            currentPlayerIndex: 0,
+            remainingTime: 40 * 60,
+            gameEndTime: getServerTime() + (40 * 60 * 1000),
+            turnStartTime: getServerTime(),
+            difficultyMode: difficulty,
+            teacherName: teacherName,
+            createdAt: getServerTime(),
+            gameBoard: boardConfig.map((c, i) => {
+                let diff = (i < 5) ? 1 : (i < 15) ? 2 : 3;
+                if (hardProperties.includes(i)) diff = 3;
+                return { ...c, index: i, owner: null, buildings: 0, price: 150 + (i * 40), difficulty: diff, rentPercent: 10 * diff };
+            })
+        });
+
+        // Add to teacher's rooms
+        let myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
+        if (!myRooms.includes(roomName)) {
+            myRooms.push(roomName);
+            localStorage.setItem('percentopolis_teacher_rooms', JSON.stringify(myRooms));
+        }
+
+        showSuccess(`✅ Собата ${roomName} е креирана!`);
+
+        // Refresh dashboard
+        setTimeout(() => {
+            openTeacherDash();
+            switchDashRoom(roomName);
+        }, 1000);
+
+    } catch (error) {
+        console.error('Error creating room:', error);
+        showError('❌ Грешка при креирање на соба. Обидете се повторно.');
+    }
+}
+
+async function createMultipleRoomsFromDash() {
+    const countInput = document.getElementById('dash-multi-room-count');
+    const diffSelect = document.getElementById('new-room-difficulty');
+    const count = parseInt(countInput.value) || 4;
+    const difficulty = diffSelect.value;
+    const teacherName = localStorage.getItem('percentopolis_teacher_name') || studentName;
+
+    if (count < 1 || count > 10) {
+        showError('❌ Број на соби мора да биде помеѓу 1 и 10');
+        return;
+    }
+
+    showSuccess(`⏳ Креирам ${count} соби...`);
+
+    let myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
+    const createdRooms = [];
+
+    for (let i = 0; i < count; i++) {
+        const roomName = `ROOM${Math.floor(1000 + Math.random() * 9000)}`;
+
+        try {
+            const roomRef = db.ref(`rooms/${roomName}`);
+            await roomRef.set({
+                status: 'waiting',
+                players: [],
+                currentPlayerIndex: 0,
+                remainingTime: 40 * 60,
+                gameEndTime: getServerTime() + (40 * 60 * 1000),
+                turnStartTime: getServerTime(),
+                difficultyMode: difficulty,
+                teacherName: teacherName,
+                createdAt: getServerTime(),
+                gameBoard: boardConfig.map((c, idx) => {
+                    let diff = (idx < 5) ? 1 : (idx < 15) ? 2 : 3;
+                    if (hardProperties.includes(idx)) diff = 3;
+                    return { ...c, index: idx, owner: null, buildings: 0, price: 150 + (idx * 40), difficulty: diff, rentPercent: 10 * diff };
+                })
+            });
+
+            myRooms.push(roomName);
+            createdRooms.push(roomName);
+        } catch (error) {
+            console.error(`Error creating room ${roomName}:`, error);
+        }
+    }
+
+    localStorage.setItem('percentopolis_teacher_rooms', JSON.stringify(myRooms));
+    showSuccess(`✅ Успешно креирани ${createdRooms.length} соби!`);
+
+    // Refresh dashboard
+    setTimeout(() => {
+        openTeacherDash();
+        if (createdRooms.length > 0) {
+            switchDashRoom(createdRooms[0]);
+        }
+    }, 1500);
 }
 
 function clearSave() {
