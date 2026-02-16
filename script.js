@@ -1617,33 +1617,33 @@ function showCreateRoomInterface() {
 
     const container = single;
     container.innerHTML = `
-        <div style="max-width:700px; margin:20px auto; padding:30px; background:white; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
-            <h2 style="margin:0 0 10px 0; color:#1e293b; font-size:1.8rem;">✨ Креирај нова соба</h2>
-            <p style="color:#64748b; margin:0 0 25px 0;">Внесете детали за вашата соба.</p>
+        <div style="max-width:750px; margin:0 auto; padding:25px; background:white; border-radius:15px; box-shadow:0 4px 15px rgba(0,0,0,0.08);">
+            <h2 style="margin:0 0 8px 0; color:#1e293b; font-size:1.6rem;">✨ Креирај нова соба</h2>
+            <p style="color:#64748b; margin:0 0 20px 0; font-size:0.9rem;">Внесете детали за вашата соба.</p>
 
-            <div style="margin-bottom:20px;">
-                <label style="display:block; font-weight:700; margin-bottom:8px; color:#475569;">🏠 Име на соба:</label>
-                <input type="text" id="new-room-name-input" placeholder="МАТЕМАТИКА-8А" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:1rem;">
+            <div style="margin-bottom:18px;">
+                <label style="display:block; font-weight:700; margin-bottom:6px; color:#475569; font-size:0.9rem;">🏠 Име на соба:</label>
+                <input type="text" id="new-room-name-input" placeholder="МАТЕМАТИКА-8А" style="width:100%; padding:10px; border:2px solid #e2e8f0; border-radius:8px; font-size:0.95rem;">
             </div>
 
-            <div style="margin-bottom:25px;">
-                <label style="display:block; font-weight:700; margin-bottom:8px; color:#475569;">📊 Тежина:</label>
-                <select id="new-room-difficulty" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:1rem;">
+            <div style="margin-bottom:20px;">
+                <label style="display:block; font-weight:700; margin-bottom:6px; color:#475569; font-size:0.9rem;">📊 Тежина:</label>
+                <select id="new-room-difficulty" style="width:100%; padding:10px; border:2px solid #e2e8f0; border-radius:8px; font-size:0.95rem;">
                     <option value="easy">ЛЕСНО</option>
                     <option value="standard" selected>СТАНДАРДНО</option>
                     <option value="hard">НАПРЕДНО</option>
                 </select>
             </div>
 
-            <div style="display:flex; gap:10px;">
-                <button onclick="createSingleRoom()" style="flex:1; padding:15px; background:#8b5cf6; color:white; border:none; border-radius:12px; font-weight:800; cursor:pointer; font-size:1rem;">🚀 КРЕИРАЈ СОБА</button>
+            <div style="display:flex; gap:10px; margin-bottom:20px;">
+                <button onclick="createSingleRoom()" style="flex:1; padding:14px; background:#8b5cf6; color:white; border:none; border-radius:10px; font-weight:800; cursor:pointer; font-size:0.95rem;">🚀 КРЕИРАЈ СОБА</button>
             </div>
 
-            <div style="margin-top:25px; padding-top:25px; border-top:1px solid #e2e8f0;">
+            <div style="padding-top:20px; border-top:1px solid #e2e8f0;">
                 <p style="font-size:0.85rem; color:#64748b; margin:0 0 10px 0; font-weight:600;">Или креирај повеќе соби одеднаш:</p>
                 <div style="display:flex; gap:10px; align-items:center;">
-                    <input type="number" id="dash-multi-room-count" value="4" min="1" max="10" style="width:80px; padding:12px; border:2px solid #e2e8f0; border-radius:10px;">
-                    <button onclick="createMultipleRoomsFromDash()" style="flex:1; padding:12px; background:#3b82f6; color:white; border:none; border-radius:10px; font-weight:700; cursor:pointer;">⚡ КРЕИРАЈ ПОВЕЌЕ</button>
+                    <input type="number" id="dash-multi-room-count" value="4" min="1" max="10" style="width:80px; padding:10px; border:2px solid #e2e8f0; border-radius:8px;">
+                    <button onclick="createMultipleRoomsFromDash()" style="flex:1; padding:11px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:700; cursor:pointer;">⚡ КРЕИРАЈ ПОВЕЌЕ</button>
                 </div>
             </div>
         </div>
