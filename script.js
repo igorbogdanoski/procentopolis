@@ -1616,15 +1616,13 @@ function showCreateRoomInterface() {
     });
 
     const container = single;
+    // Get next room number for preview
+    const nextRoomNum = (parseInt(localStorage.getItem('percentopolis_room_counter') || '100') + 1).toString();
+
     container.innerHTML = `
         <div style="max-width:750px; margin:0 auto; padding:25px; background:white; border-radius:15px; box-shadow:0 4px 15px rgba(0,0,0,0.08);">
             <h2 style="margin:0 0 8px 0; color:#1e293b; font-size:1.6rem;">✨ Креирај нова соба</h2>
-            <p style="color:#64748b; margin:0 0 20px 0; font-size:0.9rem;">Внесете детали за вашата соба.</p>
-
-            <div style="margin-bottom:18px;">
-                <label style="display:block; font-weight:700; margin-bottom:6px; color:#475569; font-size:0.9rem;">🏠 Име на соба:</label>
-                <input type="text" id="new-room-name-input" placeholder="МАТЕМАТИКА-8А" style="width:100%; padding:10px; border:2px solid #e2e8f0; border-radius:8px; font-size:0.95rem;">
-            </div>
+            <p style="color:#64748b; margin:0 0 20px 0; font-size:0.9rem;">Следната соба ќе биде: <strong style="color:#8b5cf6; font-size:1.1rem;">${nextRoomNum}</strong></p>
 
             <div style="margin-bottom:20px;">
                 <label style="display:block; font-weight:700; margin-bottom:6px; color:#475569; font-size:0.9rem;">📊 Тежина:</label>
@@ -1636,7 +1634,7 @@ function showCreateRoomInterface() {
             </div>
 
             <div style="display:flex; gap:10px; margin-bottom:20px;">
-                <button onclick="createSingleRoom()" style="flex:1; padding:14px; background:#8b5cf6; color:white; border:none; border-radius:10px; font-weight:800; cursor:pointer; font-size:0.95rem;">🚀 КРЕИРАЈ СОБА</button>
+                <button onclick="createSingleRoom()" style="flex:1; padding:14px; background:#8b5cf6; color:white; border:none; border-radius:10px; font-weight:800; cursor:pointer; font-size:0.95rem;">🚀 КРЕИРАЈ СОБА ${nextRoomNum}</button>
             </div>
 
             <div style="padding-top:20px; border-top:1px solid #e2e8f0;">
@@ -2201,15 +2199,17 @@ function sendLiveUpdate(question, answer, isCorrect) {
     }).catch(err => console.log("Sync error", err));
 }
 
+// Helper function to get next room number (101, 102, 103...)
+function getNextRoomNumber() {
+    let counter = parseInt(localStorage.getItem('percentopolis_room_counter') || '100');
+    counter++;
+    localStorage.setItem('percentopolis_room_counter', counter.toString());
+    return counter.toString();
+}
+
 async function createSingleRoom() {
-    const nameInput = document.getElementById('new-room-name-input');
     const diffSelect = document.getElementById('new-room-difficulty');
-
-    let roomName = nameInput.value.trim().toUpperCase();
-    if (!roomName) {
-        roomName = "ROOM" + Math.floor(1000 + Math.random() * 9000);
-    }
-
+    const roomName = getNextRoomNumber(); // Auto-generate: 101, 102, 103...
     const difficulty = diffSelect.value;
     const teacherName = localStorage.getItem('percentopolis_teacher_name') || studentName;
 
@@ -2218,7 +2218,7 @@ async function createSingleRoom() {
         const snapshot = await roomRef.once('value');
 
         if (snapshot.exists()) {
-            showError('❌ Соба со ова име веќе постои. Одберете друго име.');
+            showError('❌ Соба веќе постои. Обидете се повторно.');
             return;
         }
 
@@ -2278,7 +2278,7 @@ async function createMultipleRoomsFromDash() {
     const createdRooms = [];
 
     for (let i = 0; i < count; i++) {
-        const roomName = `ROOM${Math.floor(1000 + Math.random() * 9000)}`;
+        const roomName = getNextRoomNumber(); // Auto-generate sequential: 101, 102, 103...
 
         try {
             const roomRef = db.ref(`rooms/${roomName}`);
