@@ -1770,13 +1770,19 @@ function updateDashStats(data) {
     const statusText = document.getElementById('dash-room-status');
     const startBtn = document.getElementById('dash-start-btn');
     const downloadBtn = document.getElementById('dash-download-btn');
+    const vizPanel = document.getElementById('dash-viz-panel');
 
     statusText.innerText = data.status === 'playing' ? '🟢 Активна игра' : '🟡 Во исчекување на ученици';
     startBtn.style.display = (data.status === 'waiting') ? 'block' : 'none';
-    
+
     // Store data globally for report generation
     window.lastDashData = data;
     downloadBtn.style.display = (players.length > 0) ? 'block' : 'none';
+
+    // Show visualization panel only when game is playing
+    if (vizPanel) {
+        vizPanel.style.display = (data.status === 'playing' && players.length > 0) ? 'block' : 'none';
+    }
 
     startBtn.onclick = () => {
         let firstStudent = 0;
@@ -1870,6 +1876,105 @@ function updateDashStats(data) {
     document.getElementById('dash-player-count').innerText = activePlayers;
     document.getElementById('dash-total-correct').innerText = totalCorrect;
     document.getElementById('dash-avg-success').innerText = totalAttempted === 0 ? '0%' : Math.round((totalCorrect / totalAttempted) * 100) + '%';
+
+    // Update visualization panel if game is playing
+    if (data.status === 'playing' && filteredPlayers.length > 0) {
+        updateDashVisualizations(data, filteredPlayers);
+    }
+}
+
+function updateDashVisualizations(data, players) {
+    // 1. Live Game Status
+    const gameEndTime = data.gameEndTime || 0;
+    const serverTime = getServerTime();
+    const remainingMs = Math.max(0, gameEndTime - serverTime);
+    const remainingMin = Math.floor(remainingMs / 60000);
+    const remainingSec = Math.floor((remainingMs % 60000) / 1000);
+    document.getElementById('dash-viz-time-left').innerText = `${remainingMin}:${remainingSec.toString().padStart(2, '0')}`;
+
+    const currentPlayer = players[data.currentPlayerIndex];
+    document.getElementById('dash-viz-current-player').innerText = currentPlayer ? `${currentPlayer.emoji || '👤'} ${currentPlayer.name}` : '---';
+
+    const totalMoves = players.reduce((sum, p) => sum + (p.correct || 0) + (p.wrong || 0), 0);
+    document.getElementById('dash-viz-total-moves').innerText = totalMoves;
+
+    if (data.turnStartTime) {
+        const turnElapsed = Math.floor((serverTime - data.turnStartTime) / 1000);
+        const turnRemaining = Math.max(0, 30 - turnElapsed);
+        document.getElementById('dash-viz-turn-time').innerText = `${turnRemaining}s`;
+    }
+
+    // 2. Money Distribution Chart
+    const maxMoney = Math.max(...players.map(p => p.money || 0), 1);
+    const moneyChart = document.getElementById('dash-viz-money-chart');
+    moneyChart.innerHTML = players.map(p => {
+        const percentage = ((p.money || 0) / maxMoney) * 100;
+        return `
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="min-width:120px; font-weight:700; font-size:0.85rem; color:#475569;">${p.emoji || '👤'} ${p.name}</div>
+                <div style="flex:1; background:#f1f5f9; height:30px; border-radius:10px; overflow:hidden; position:relative;">
+                    <div style="width:${percentage}%; height:100%; background:linear-gradient(90deg, #3b82f6, #8b5cf6); transition:width 0.5s ease; display:flex; align-items:center; justify-content:flex-end; padding:0 10px;">
+                        <span style="color:white; font-weight:900; font-size:0.75rem;">${p.money}д</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // 3. Property Ownership
+    const gameBoard = data.gameBoard || [];
+    const propertyCount = {};
+    players.forEach(p => { propertyCount[p.id] = 0; });
+    gameBoard.forEach(cell => {
+        if (cell.owner !== null && propertyCount[cell.owner] !== undefined) {
+            propertyCount[cell.owner]++;
+        }
+    });
+
+    const propertiesDiv = document.getElementById('dash-viz-properties');
+    propertiesDiv.innerHTML = players.map(p => {
+        const count = propertyCount[p.id] || 0;
+        return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#f8fafc; border-radius:8px;">
+                <span style="font-weight:700; color:#475569;">${p.emoji || '👤'} ${p.name}</span>
+                <span style="background:#3b82f6; color:white; padding:5px 12px; border-radius:12px; font-weight:900; font-size:0.85rem;">${count} 🏠</span>
+            </div>
+        `;
+    }).join('');
+
+    // 4. Question Difficulty Breakdown
+    const diffStats = { easy: { correct: 0, wrong: 0 }, medium: { correct: 0, wrong: 0 }, hard: { correct: 0, wrong: 0 } };
+    players.forEach(p => {
+        if (p.difficultyStats) {
+            Object.keys(p.difficultyStats).forEach(level => {
+                const stats = p.difficultyStats[level];
+                if (diffStats[level]) {
+                    diffStats[level].correct += (stats.correct || 0);
+                    diffStats[level].wrong += (stats.wrong || 0);
+                }
+            });
+        }
+    });
+
+    const difficultyDiv = document.getElementById('dash-viz-difficulty');
+    const diffLabels = { easy: 'Лесно', medium: 'Средно', hard: 'Тешко' };
+    const diffColors = { easy: '#10b981', medium: '#fbbf24', hard: '#ef4444' };
+    difficultyDiv.innerHTML = Object.keys(diffStats).map(level => {
+        const total = diffStats[level].correct + diffStats[level].wrong;
+        const successRate = total === 0 ? 0 : Math.round((diffStats[level].correct / total) * 100);
+        return `
+            <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span style="font-weight:700; color:#475569; font-size:0.85rem;">${diffLabels[level]}</span>
+                    <span style="font-weight:800; color:${diffColors[level]};">${successRate}%</span>
+                </div>
+                <div style="background:#f1f5f9; height:10px; border-radius:10px; overflow:hidden;">
+                    <div style="width:${successRate}%; height:100%; background:${diffColors[level]}; transition:width 0.3s ease;"></div>
+                </div>
+                <div style="font-size:0.7rem; color:#64748b; margin-top:3px;">${diffStats[level].correct} точни / ${diffStats[level].wrong} грешни</div>
+            </div>
+        `;
+    }).join('');
 }
 
 function downloadRoomReport() {
