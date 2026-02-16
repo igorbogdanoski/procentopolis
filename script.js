@@ -69,6 +69,46 @@ db.ref('.info/connected').on('value', (snap) => {
     }
 });
 
+// Loading overlay management
+let currentLoader = null;
+
+function showLoader(message, subtext = '') {
+    hideLoader();
+    const overlay = document.createElement('div');
+    overlay.className = 'loading-overlay';
+    overlay.innerHTML = `
+        <div class="loading-spinner"></div>
+        <div class="loading-text">${message}</div>
+        ${subtext ? `<div class="loading-subtext">${subtext}</div>` : ''}
+    `;
+    document.body.appendChild(overlay);
+    currentLoader = overlay;
+    return overlay;
+}
+
+function hideLoader() {
+    if (currentLoader) {
+        currentLoader.remove();
+        currentLoader = null;
+    }
+}
+
+function setButtonLoading(buttonId, isLoading) {
+    const btn = document.getElementById(buttonId);
+    if (!btn) return;
+    if (isLoading) {
+        btn.classList.add('loading');
+        btn.disabled = true;
+        btn.dataset.originalText = btn.innerText;
+    } else {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        if (btn.dataset.originalText) {
+            btn.innerText = btn.dataset.originalText;
+        }
+    }
+}
+
 // --- TIME SYNC ---
 let serverOffset = 0;
 db.ref(".info/serverTimeOffset").on("value", (snap) => {
