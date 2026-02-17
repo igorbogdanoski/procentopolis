@@ -162,6 +162,37 @@ body {
     overflow-y: auto;
 }
 
+/* Dashboard Stats Row - compact horizontal */
+.dash-stats-row {
+    display: flex; gap: 12px; margin-bottom: 16px;
+}
+.dash-stat-card {
+    flex: 1; display: flex; align-items: center; gap: 10px;
+    background: white; padding: 12px 16px; border-radius: 12px;
+    border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.dash-stat-icon { font-size: 1.4rem; }
+.dash-stat-label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; font-weight: 700; }
+.dash-stat-value { font-size: 1.5rem; font-weight: 900; color: #1e293b; line-height: 1.2; }
+
+/* Dashboard Tab Navigation */
+.dash-tabs {
+    display: flex; gap: 4px; margin-bottom: 16px;
+    background: #e2e8f0; padding: 4px; border-radius: 12px;
+}
+.dash-tab {
+    flex: 1; padding: 10px 16px; border: none; background: transparent;
+    border-radius: 10px; font-weight: 700; font-size: 0.8rem;
+    color: #64748b; cursor: pointer; transition: all 0.2s ease;
+}
+.dash-tab:hover { background: rgba(255,255,255,0.5); color: #334155; }
+.dash-tab.active {
+    background: white; color: #1e293b;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.dash-tab-panel { animation: fadeIn 0.2s ease-out; }
+.dash-tab-panel.active { display: block; }
+
 /* Tablet optimization (TabM8 HD and similar 1280x800 devices) */
 @media (max-width: 1366px) and (max-height: 900px) {
     /* Scale down everything slightly for tablets */

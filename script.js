@@ -1630,6 +1630,18 @@ function closeTeacherDash() {
     }
 }
 
+function switchDashTab(tabName) {
+    // Hide all panels
+    document.querySelectorAll('.dash-tab-panel').forEach(p => { p.style.display = 'none'; p.classList.remove('active'); });
+    // Deactivate all tabs
+    document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+    // Show selected panel and activate tab
+    const panel = document.getElementById('dash-panel-' + tabName);
+    const tab = document.getElementById('dash-tab-' + tabName);
+    if (panel) { panel.style.display = 'block'; panel.classList.add('active'); }
+    if (tab) tab.classList.add('active');
+}
+
 function openTeacherDash() {
     const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
     const list = document.getElementById('dash-rooms-list');
@@ -1861,7 +1873,6 @@ function updateDashStats(data) {
     const statusText = document.getElementById('dash-room-status');
     const startBtn = document.getElementById('dash-start-btn');
     const downloadBtn = document.getElementById('dash-download-btn');
-    const vizPanel = document.getElementById('dash-viz-panel');
 
     statusText.innerText = data.status === 'playing' ? '🟢 Активна игра' : '🟡 Во исчекување на ученици';
     startBtn.style.display = (data.status === 'waiting') ? 'block' : 'none';
@@ -1869,11 +1880,6 @@ function updateDashStats(data) {
     // Store data globally for report generation
     window.lastDashData = data;
     downloadBtn.style.display = (players.length > 0) ? 'block' : 'none';
-
-    // Show visualization panel whenever a room is selected
-    if (vizPanel) {
-        vizPanel.style.display = 'block';
-    }
 
     startBtn.onclick = () => {
         let firstStudent = 0;
@@ -1932,31 +1938,31 @@ function updateDashStats(data) {
             `<span style="margin-left:8px; padding:3px 8px; background:#fbbf24; color:#78350f; border-radius:12px; font-size:0.65rem; font-weight:900;">🔥 ${p.streak} ПО РЕД</span>` : '';
 
         tr.innerHTML = `
-            <td style="padding:20px;">
-                <div style="font-weight:700; color:#1e293b; font-size:1rem;">${p.emoji || '👤'} ${escapeHtml(p.name)}${streakBadge}</div>
-                <div style="font-size:0.75rem; color:#64748b;">${escapeHtml(p.odd)}</div>
+            <td style="padding:12px 14px;">
+                <div style="font-weight:700; color:#1e293b; font-size:0.9rem;">${p.emoji || '👤'} ${escapeHtml(p.name)}${streakBadge}</div>
+                <div style="font-size:0.7rem; color:#64748b;">${escapeHtml(p.odd)}</div>
             </td>
-            <td style="padding:20px;">
-                <div style="font-weight:800; color:#2563eb; font-size:1.1rem;">${p.money}д</div>
-                <div style="font-size:0.7rem; color:#64748b; margin-top:3px;">
+            <td style="padding:12px 14px;">
+                <div style="font-weight:800; color:#2563eb; font-size:1rem;">${p.money}д</div>
+                <div style="font-size:0.65rem; color:#64748b; margin-top:2px;">
                     ${p.money >= 1500 ? '💰 Богат' : p.money < 500 ? '⚠️ Криза' : '📊 Стабилен'}
                 </div>
             </td>
-            <td style="padding:20px;">
-                <div style="margin-bottom:8px;">
-                    <span style="color:#10b981; font-weight:bold; font-size:1.1rem;">${p.correct || 0}</span> /
-                    <span style="color:#ef4444; font-weight:bold; font-size:1.1rem;">${p.wrong || 0}</span>
+            <td style="padding:12px 14px;">
+                <div>
+                    <span style="color:#10b981; font-weight:bold; font-size:1rem;">${p.correct || 0}</span> /
+                    <span style="color:#ef4444; font-weight:bold; font-size:1rem;">${p.wrong || 0}</span>
                 </div>
-                <div style="background:#f1f5f9; height:8px; border-radius:10px; overflow:hidden; margin-top:5px;">
+                <div style="background:#f1f5f9; height:6px; border-radius:10px; overflow:hidden; margin-top:4px;">
                     <div style="width:${successRate}%; height:100%; background:${performanceColor}; transition:width 0.3s ease;"></div>
                 </div>
-                <div style="font-size:0.7rem; color:#64748b; margin-top:5px;">${performanceIcon} ${successRate}% успешност</div>
+                <div style="font-size:0.65rem; color:#64748b; margin-top:3px;">${performanceIcon} ${successRate}%</div>
             </td>
-            <td style="padding:20px; font-size:0.8rem; color:#475569; max-width:180px;">
+            <td style="padding:12px 14px; font-size:0.75rem; color:#475569; max-width:160px;">
                 ${p.lastActivity || '---'}
             </td>
-            <td style="padding:20px;">
-                <span style="padding:8px 16px; border-radius:20px; font-size:0.75rem; font-weight:800; background:${p.isThinking?'#fef3c7':'#dcfce7'}; color:${p.isThinking?'#92400e':'#166534'}; display:inline-block;">
+            <td style="padding:12px 14px;">
+                <span style="padding:5px 12px; border-radius:16px; font-size:0.7rem; font-weight:800; background:${p.isThinking?'#fef3c7':'#dcfce7'}; color:${p.isThinking?'#92400e':'#166534'}; display:inline-block;">
                     ${p.isThinking ? '🤔 РАЗМИСЛУВА' : '✅ ПОДГОТВЕН'}
                 </span>
             </td>
