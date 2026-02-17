@@ -90,8 +90,15 @@ db.ref('.info/connected').on('value', (snap) => {
     isOnline = snap.val() === true;
     if (!isOnline && wasOnline) {
         showWarning('⚠️ Нема интернет конекција. Се обидувам да се поврзам...');
+        // Disable action buttons when offline
+        document.querySelectorAll('#roll-btn, #shop-btn, #trade-btn, #buy-prop, #pay-rent').forEach(btn => {
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+        });
     } else if (isOnline && !wasOnline) {
         showSuccess('✅ Конекцијата е вратена!');
+        document.querySelectorAll('#roll-btn, #shop-btn, #trade-btn').forEach(btn => {
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+        });
     }
 });
 
@@ -741,7 +748,8 @@ async function joinRoom() {
         let rawRoom = document.getElementById('room-id-input').value.trim().toUpperCase();
         roomId = rawRoom || "ROOM" + Math.floor(1000 + Math.random() * 9000);
     }
-    
+
+    showLoader('Се поврзувам...', 'Влегувам во соба ' + roomId);
     document.getElementById('auth-section').style.display = 'none';
     document.getElementById('lobby-section').style.display = 'block';
     document.getElementById('current-room-display').innerText = roomId;
@@ -833,6 +841,7 @@ async function joinRoom() {
                 role: currentRole
             }));
 
+            hideLoader();
             roomRef.on('value', handleRoomUpdate);
             listenForTradeOffers();
         });
@@ -910,7 +919,12 @@ function handleRoomUpdate(snapshot) {
         const displayTime = turnRemainingTime;
 
         const timerEl = document.getElementById('turn-timer');
-        if(timerEl) timerEl.innerText = `Потег: ${displayTime}s`;
+        if(timerEl) {
+            timerEl.innerText = `Потег: ${displayTime}s`;
+            if (displayTime <= 5) { timerEl.style.color = '#ef4444'; timerEl.style.fontWeight = '900'; timerEl.style.animation = 'pulse 0.5s ease-in-out infinite'; }
+            else if (displayTime <= 10) { timerEl.style.color = '#f59e0b'; timerEl.style.fontWeight = 'bold'; timerEl.style.animation = ''; }
+            else { timerEl.style.color = '#3498db'; timerEl.style.fontWeight = 'bold'; timerEl.style.animation = ''; }
+        }
 
         // BUGFIX: Only auto-skip if elapsed >= 30 AND < 35 to prevent race condition
         // This prevents new player from auto-skipping when they see old turnStartTime
@@ -1136,7 +1150,7 @@ function initMultiplayerGame() {
 
     const statsPanel = document.getElementById('stats-panel-multi');
     statsPanel.innerHTML = '';
-    players.forEach(p => {
+    players.filter(p => p).forEach(p => {
         const div = document.createElement('div');
         div.id = `stat-${p.id}`;
         div.className = 'player-stat';
@@ -1166,7 +1180,7 @@ function syncGameState() {
 }
 
 function updateTokenPositionsMulti() {
-    players.forEach(p => {
+    players.filter(p => p).forEach(p => {
         const t = document.getElementById(`token-${p.id}`);
         if(!t) return;
         
@@ -1453,6 +1467,7 @@ async function showLandingCardMulti(p, c){
                         db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ owner: myPlayerId });
                         updateMoneyMulti(myPlayerId, -finalPrice);
                         db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
+                        AudioController.play('success');
 
                         // PHASE 2: Check if this is first property
                         const myProperties = gameBoard.filter(prop => prop.owner === myPlayerId);
@@ -1505,6 +1520,7 @@ async function showLandingCardMulti(p, c){
                         const cost = Math.floor(c.price * 0.4);
                         db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ buildings: c.buildings + 1, rentPercent: c.rentPercent + 15 });
                         updateMoneyMulti(myPlayerId, -cost);
+                        AudioController.play('success');
                     }
                     resolve();
                 };
@@ -1983,9 +1999,10 @@ function updateDashVisualizations(data, players) {
     }
 
     // 2. Money Distribution Chart
-    const maxMoney = Math.max(...players.map(p => p.money || 0), 1);
+    const validPlayers = players.filter(p => p && p.role !== 'teacher');
+    const maxMoney = Math.max(...validPlayers.map(p => p.money || 0), 1);
     const moneyChart = document.getElementById('dash-viz-money-chart');
-    moneyChart.innerHTML = players.map(p => {
+    moneyChart.innerHTML = validPlayers.map(p => {
         const percentage = ((p.money || 0) / maxMoney) * 100;
         return `
             <div style="display:flex; align-items:center; gap:10px;">
@@ -2002,7 +2019,7 @@ function updateDashVisualizations(data, players) {
     // 3. Property Ownership
     const gameBoard = data.gameBoard || [];
     const propertyCount = {};
-    players.forEach(p => { propertyCount[p.id] = 0; });
+    validPlayers.forEach(p => { propertyCount[p.id] = 0; });
     gameBoard.forEach(cell => {
         if (cell.owner !== null && propertyCount[cell.owner] !== undefined) {
             propertyCount[cell.owner]++;
@@ -2010,7 +2027,7 @@ function updateDashVisualizations(data, players) {
     });
 
     const propertiesDiv = document.getElementById('dash-viz-properties');
-    propertiesDiv.innerHTML = players.map(p => {
+    propertiesDiv.innerHTML = validPlayers.map(p => {
         const count = propertyCount[p.id] || 0;
         return `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#f8fafc; border-radius:8px;">
@@ -2022,7 +2039,7 @@ function updateDashVisualizations(data, players) {
 
     // 4. Question Difficulty Breakdown
     const diffStats = { easy: { correct: 0, wrong: 0 }, medium: { correct: 0, wrong: 0 }, hard: { correct: 0, wrong: 0 } };
-    players.forEach(p => {
+    validPlayers.forEach(p => {
         if (p.difficultyStats) {
             Object.keys(p.difficultyStats).forEach(level => {
                 const stats = p.difficultyStats[level];
@@ -2159,9 +2176,10 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
                     p.powerups[chosen] = true;
                     updates.powerups = p.powerups;
 
-                    const emojiMap = { lawyer: '⚖️', shield: '🛡️', nitro: '🚀' };
-                    log(`🔥 БРАВО! 3 по ред точно! Доби награда: ${emojiMap[chosen]}`);
-                    showFloatingTextMulti(`+${emojiMap[chosen]}`, myPlayerId);
+                    const emojiMap = { lawyer: '⚖️ Адвокат', shield: '🛡️ Штит', nitro: '🚀 Нитро' };
+                    log(`🔥 БРАВО! ${p.streak} по ред точно! Доби награда: ${emojiMap[chosen]}`);
+                    showSuccess(`🔥 ${p.streak} точни по ред! Награда: ${emojiMap[chosen]}`);
+                    showFloatingTextMulti(`+${emojiMap[chosen].split(' ')[0]}`, myPlayerId);
                 }
             } else {
                 studentWrong++;
@@ -2196,9 +2214,11 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
             });
         } else {
             ic.style.display='flex';
-            document.getElementById('manual-answer-input').value='';
-            document.getElementById('submit-answer-btn').onclick=()=>{
-                const val = document.getElementById('manual-answer-input').value.trim();
+            const manualInput = document.getElementById('manual-answer-input');
+            manualInput.value='';
+            manualInput.focus();
+            const submitAnswer = ()=>{
+                const val = manualInput.value.trim();
                 const isCorrect = val === ans;
                 if(isCorrect){ AudioController.play('success'); triggerConfetti(); }
                 else { AudioController.play('failure'); }
@@ -2207,6 +2227,8 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
                 sendLiveUpdate(q, val, isCorrect);
                 setTimeout(()=>{ finalize(isCorrect); }, 2000);
             };
+            document.getElementById('submit-answer-btn').onclick = submitAnswer;
+            manualInput.onkeypress = (e) => { if (e.key === 'Enter') submitAnswer(); };
         }
     });
 }
@@ -2756,6 +2778,7 @@ function showIncomingTrade(offer) {
     `;
 
     document.getElementById('trade-incoming-overlay').style.display = 'flex';
+    AudioController.play('money');
 }
 
 async function acceptTrade() {
@@ -2805,6 +2828,7 @@ async function acceptTrade() {
     await db.ref(`rooms/${roomId}`).update(updates);
 
     document.getElementById('trade-incoming-overlay').style.display = 'none';
+    AudioController.play('success');
     showSuccess("✅ Тргувањето е завршено!");
     log(`🔄 Тргување: ${offeredProp.name} ↔ ${wantedProp.name}`);
 }
