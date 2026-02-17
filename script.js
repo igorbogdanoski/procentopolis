@@ -1702,14 +1702,12 @@ function showCreateRoomInterface() {
     }
     activeDashRoomId = null;
 
-    // Ensure containers are in correct state (show single, hide grid)
-    const single = document.getElementById('dash-single-room-container');
-    const grid = document.getElementById('dash-grid-container');
-    single.style.display = 'block';
-    grid.style.display = 'none';
+    // Hide all other views, show create container
+    document.getElementById('dash-single-room-container').style.display = 'none';
+    document.getElementById('dash-grid-container').style.display = 'none';
     document.getElementById('dash-back-to-list').style.display = 'none';
 
-    // Update UI to show create interface
+    // Update UI
     document.getElementById('dash-active-room-title').innerText = 'КРЕИРАЈ НОВА СОБА';
     document.getElementById('dash-start-btn').style.display = 'none';
     document.getElementById('dash-download-btn').style.display = 'none';
@@ -1720,10 +1718,11 @@ function showCreateRoomInterface() {
         el.style.borderColor = 'rgba(255,255,255,0.1)';
     });
 
-    const container = single;
     // Get next room number for preview
     const nextRoomNum = (parseInt(localStorage.getItem('percentopolis_room_counter') || '100') + 1).toString();
 
+    const container = document.getElementById('dash-create-room-container');
+    container.style.display = 'block';
     container.innerHTML = `
         <div style="max-width:750px; margin:0 auto; padding:25px; background:white; border-radius:15px; box-shadow:0 4px 15px rgba(0,0,0,0.08);">
             <h2 style="margin:0 0 8px 0; color:#1e293b; font-size:1.6rem;">✨ Креирај нова соба</h2>
@@ -1753,10 +1752,22 @@ function showCreateRoomInterface() {
     `;
 }
 
+// Restore tab view when switching from create-room back to a room
+function restoreDashTabs() {
+    document.getElementById('dash-create-room-container').style.display = 'none';
+    document.getElementById('dash-single-room-container').style.display = 'block';
+}
+
 function switchDashRoom(rid) {
+    // Detach old listener BEFORE changing activeDashRoomId
+    if (dashRoomListener && activeDashRoomId) {
+        db.ref(`rooms/${activeDashRoomId}`).off('value', dashRoomListener);
+        dashRoomListener = null;
+    }
+
     activeDashRoomId = rid;
     toggleGridView(false); // Ensure we show single room view when switching from sidebar
-    
+
     // UI update for sidebar
     document.querySelectorAll('.dash-room-item').forEach(el => {
         const isSelected = el.innerText.includes(rid);
@@ -1765,10 +1776,9 @@ function switchDashRoom(rid) {
     });
 
     document.getElementById('dash-active-room-title').innerText = `СОБА: ${rid}`;
-    
-    if (dashRoomListener) {
-        db.ref(`rooms/${activeDashRoomId}`).off('value', dashRoomListener);
-    }
+
+    // Restore tab structure if it was replaced by create room interface
+    restoreDashTabs();
 
     dashRoomListener = db.ref(`rooms/${rid}`).on('value', snapshot => {
         const data = snapshot.val();
@@ -1781,12 +1791,14 @@ function switchDashRoom(rid) {
 function toggleGridView(showGrid) {
     const single = document.getElementById('dash-single-room-container');
     const grid = document.getElementById('dash-grid-container');
+    const create = document.getElementById('dash-create-room-container');
     const backBtn = document.getElementById('dash-back-to-list');
     const title = document.getElementById('dash-active-room-title');
 
     if (showGrid) {
         single.style.display = 'none';
         grid.style.display = 'grid';
+        create.style.display = 'none';
         backBtn.style.display = 'block';
         title.innerText = "ПРЕГЛЕД НА СИТЕ СОБИ";
         renderDashGrid();
@@ -1799,6 +1811,7 @@ function toggleGridView(showGrid) {
 
         single.style.display = 'block';
         grid.style.display = 'none';
+        create.style.display = 'none';
         backBtn.style.display = 'none';
         if (activeDashRoomId) title.innerText = `СОБА: ${activeDashRoomId}`;
     }
