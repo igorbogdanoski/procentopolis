@@ -121,6 +121,27 @@
 <div id="game-wrapper" class="blur-filter">
     <div id="game-board-container">
         <div id="board"></div>
+        <!-- CENTER OF BOARD - Dice, Roll, Timer -->
+        <div id="board-center">
+            <div id="board-center-timer">
+                <span id="class-timer">40:00</span>
+                <span id="turn-timer" style="font-weight:bold; color:#3498db;">Потег: 30s</span>
+            </div>
+            <div id="dice-container">
+                <div class="dice" id="dice-visual">
+                    <div class="dice-face f1">1</div><div class="dice-face f2">2</div><div class="dice-face f3">3</div><div class="dice-face f4">4</div><div class="dice-face f5">5</div><div class="dice-face f6">6</div>
+                </div>
+            </div>
+            <button id="roll-btn">🎲 ФРЛИ</button>
+            <button id="shop-btn" onclick="openShop()">🛒 ПРОДАВНИЦА</button>
+            <div id="board-center-emojis">
+                <button onclick="sendEmoji('😊')">😊</button>
+                <button onclick="sendEmoji('😎')">😎</button>
+                <button onclick="sendEmoji('🔥')">🔥</button>
+                <button onclick="sendEmoji('👏')">👏</button>
+                <button onclick="sendEmoji('🎉')">🎉</button>
+            </div>
+        </div>
         <div id="token-0" class="token">P1</div>
         <div id="token-1" class="token">P2</div>
         <div id="token-2" class="token">P3</div>
@@ -129,35 +150,17 @@
         <div id="token-5" class="token">P6</div>
     </div>
     <div id="controls-container">
-        <div id="teacher-dash-btn-fixed" style="display:none; margin-bottom:10px;">
-            <button onclick="openTeacherDash()" style="width:100%; padding:15px; background:#8b5cf6; color:white; border:none; border-radius:12px; font-weight:900; cursor:pointer; box-shadow:0 6px 20px rgba(139, 92, 246, 0.4); border:3px solid rgba(255,255,255,0.3); font-size:1rem; transition:all 0.2s;">📊 ОТВОРИ КОНТРОЛЕН ПАНЕЛ</button>
+        <div id="teacher-dash-btn-fixed" style="display:none; margin-bottom:5px;">
+            <button onclick="openTeacherDash()" style="width:100%; padding:10px; background:#8b5cf6; color:white; border:none; border-radius:10px; font-weight:900; cursor:pointer; box-shadow:0 4px 12px rgba(139, 92, 246, 0.3); font-size:0.85rem;">📊 КОНТРОЛЕН ПАНЕЛ</button>
         </div>
         <div class="header-info">
-            <div><h1 style="font-size:1.1rem; margin:0;">ПроцентОполис</h1><span id="player-display-name" style="font-size:0.8rem; font-weight:bold; color:#555;">Ученик</span></div>
-            <div style="display:flex; flex-direction:column; align-items:flex-end;">
-                <div id="class-timer">40:00</div>
-                <div id="turn-timer" style="font-size: 0.8rem; font-weight: bold; color: #3498db; margin-top: 5px;">Потег: 30s</div>
-            </div>
-        </div>
-        <div id="interaction-panel" style="display:flex; justify-content: space-around; padding: 5px; background: #f0f0f0; border-radius: 8px; margin-bottom: 10px;">
-            <button onclick="sendEmoji('😊')" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">😊</button>
-            <button onclick="sendEmoji('😎')" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">😎</button>
-            <button onclick="sendEmoji('🔥')" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">🔥</button>
-            <button onclick="sendEmoji('👏')" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">👏</button>
-            <button onclick="sendEmoji('🎉')" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">🎉</button>
+            <div><h1 style="font-size:1rem; margin:0;">ПроцентОполис</h1><span id="player-display-name" style="font-size:0.75rem; font-weight:bold; color:#555;">Ученик</span></div>
         </div>
         <div class="stats-panel" id="stats-panel-multi">
             <!-- Players stats will be injected here -->
         </div>
         <div id="game-log"></div>
-        <div id="dice-container">
-            <div class="dice" id="dice-visual">
-                <div class="dice-face f1">1</div><div class="dice-face f2">2</div><div class="dice-face f3">3</div><div class="dice-face f4">4</div><div class="dice-face f5">5</div><div class="dice-face f6">6</div>
-            </div>
-        </div>
-        <button id="roll-btn">🎲 ФРЛИ</button>
-        <button id="shop-btn" onclick="openShop()">🛒 ПРОДАВНИЦА</button>
-        <button id="end-game-btn" onclick="triggerGameOver('Рачен крај')" style="margin-top:5px; font-size:0.8rem; background:transparent; border:1px solid #ccc; color:#888;">🏁 ИЗВЕШТАЈ</button>
+        <button id="end-game-btn" onclick="triggerGameOver('Рачен крај')" style="margin-top:3px; font-size:0.7rem; background:transparent; border:1px solid #ccc; color:#888; padding:4px; border-radius:6px; width:100%; cursor:pointer;">🏁 ИЗВЕШТАЈ</button>
     </div>
 </div>
 
