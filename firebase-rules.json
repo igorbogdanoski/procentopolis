@@ -7,17 +7,10 @@
       "$roomId": {
         ".read": true,
 
-        ".write": "newData.exists() && (
-          !data.exists() ||
-          data.child('teacherName').exists()
-        )",
+        ".write": "newData.exists() && (!data.exists() || data.child('teacherName').exists())",
 
         "status": {
-          ".write": "newData.isString() && (
-            newData.val() === 'waiting' ||
-            newData.val() === 'playing' ||
-            newData.val() === 'finished'
-          )"
+          ".write": "newData.isString() && (newData.val() === 'waiting' || newData.val() === 'playing' || newData.val() === 'finished')"
         },
 
         "players": {
@@ -25,26 +18,19 @@
             ".write": "newData.exists()",
 
             "name": {
-              ".validate": "newData.isString() &&
-                            newData.val().length >= 3 &&
-                            newData.val().length <= 30"
+              ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 30"
             },
 
             "money": {
-              ".validate": "newData.isNumber() &&
-                            newData.val() >= -5000 &&
-                            newData.val() <= 1000000"
+              ".validate": "newData.isNumber() && newData.val() >= -5000 && newData.val() <= 1000000"
             },
 
             "pos": {
-              ".validate": "newData.isNumber() &&
-                            newData.val() >= 0 &&
-                            newData.val() <= 19"
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 19"
             },
 
             "role": {
-              ".validate": "newData.val() === 'student' ||
-                            newData.val() === 'teacher'"
+              ".validate": "newData.val() === 'student' || newData.val() === 'teacher'"
             }
           }
         },
@@ -54,24 +40,42 @@
             ".write": true,
 
             "owner": {
-              ".validate": "newData.val() === null ||
-                            (newData.isNumber() &&
-                             newData.val() >= 0 &&
-                             newData.val() <= 5)"
+              ".validate": "newData.val() === null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 5)"
             },
 
             "buildings": {
-              ".validate": "newData.isNumber() &&
-                            newData.val() >= 0 &&
-                            newData.val() <= 5"
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5"
+            }
+          }
+        },
+
+        "tradeOffers": {
+          "$offerId": {
+            ".write": true,
+            ".validate": "newData.hasChildren(['from', 'to', 'propertyOffered', 'propertyWanted', 'status'])",
+            "from": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5"
+            },
+            "to": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5"
+            },
+            "propertyOffered": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 19"
+            },
+            "propertyWanted": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 19"
+            },
+            "moneyOffered": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000"
+            },
+            "status": {
+              ".validate": "newData.isString() && (newData.val() === 'pending' || newData.val() === 'accepted' || newData.val() === 'rejected')"
             }
           }
         },
 
         "currentPlayerIndex": {
-          ".validate": "newData.isNumber() &&
-                        newData.val() >= 0 &&
-                        newData.val() < 6"
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 6"
         },
 
         "turnStartTime": {
@@ -83,8 +87,7 @@
         },
 
         "remainingTime": {
-          ".validate": "newData.isNumber() &&
-                        newData.val() >= 0"
+          ".validate": "newData.isNumber() && newData.val() >= 0"
         }
       }
     }

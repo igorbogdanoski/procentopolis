@@ -57,6 +57,32 @@ function createToast(message, type) {
     return toast;
 }
 
+// --- SECURITY: HTML Escaping ---
+function escapeHtml(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+// --- CUSTOM CONFIRM MODAL (replaces native confirm()) ---
+function showConfirmModal(message) {
+    return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:20000;display:flex;justify-content:center;align-items:center;';
+        overlay.innerHTML = `
+            <div style="background:white;border-radius:20px;padding:30px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                <p style="font-size:1rem;font-weight:700;color:#1e293b;margin:0 0 20px 0;line-height:1.5;">${escapeHtml(message)}</p>
+                <div style="display:flex;gap:10px;">
+                    <button id="confirm-no" style="flex:1;padding:12px;border:2px solid #e2e8f0;border-radius:12px;background:white;font-weight:800;cursor:pointer;color:#475569;font-size:0.95rem;">НЕ</button>
+                    <button id="confirm-yes" style="flex:1;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;font-weight:800;cursor:pointer;font-size:0.95rem;">ДА</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.querySelector('#confirm-yes').onclick = () => { overlay.remove(); resolve(true); };
+        overlay.querySelector('#confirm-no').onclick = () => { overlay.remove(); resolve(false); };
+    });
+}
+
 // Connection monitoring
 let isOnline = true;
 db.ref('.info/connected').on('value', (snap) => {
@@ -283,9 +309,9 @@ function nextTutorialStep() {
 }
 
 function skipTutorial() {
-    if (confirm('Сигурен си дека сакаш да го прескокнеш упатството?')) {
-        completeTutorial();
-    }
+    showConfirmModal('Сигурен си дека сакаш да го прескокнеш упатството?').then(yes => {
+        if (yes) completeTutorial();
+    });
 }
 
 function completeTutorial() {
@@ -701,13 +727,18 @@ function fetchAvailableRooms() {
 }
 
 async function joinRoom() {
-    studentName = document.getElementById('player-name-input').value.trim();
-    studentOdd = (currentRole === 'teacher') ? "Наставник" : document.getElementById('player-odd-input').value;
-    
-    let rawRoom = document.getElementById('room-id-input').value.trim().toUpperCase();
-    if (currentRole === 'teacher' && !rawRoom) {
-        roomId = "ROOM" + Math.floor(1000 + Math.random() * 9000);
+    // SECURITY: Validate and sanitize all inputs
+    const nameValidation = validatePlayerName(document.getElementById('player-name-input').value);
+    if (!nameValidation.valid) { showError(nameValidation.error); return; }
+    studentName = nameValidation.sanitized;
+    studentOdd = (currentRole === 'teacher') ? "Наставник" : sanitizeInput(document.getElementById('player-odd-input').value);
+
+    if (currentRole === 'student') {
+        const roomValidation = validateRoomCode(document.getElementById('room-id-input').value);
+        if (!roomValidation.valid) { showError(roomValidation.error); return; }
+        roomId = roomValidation.sanitized;
     } else {
+        let rawRoom = document.getElementById('room-id-input').value.trim().toUpperCase();
         roomId = rawRoom || "ROOM" + Math.floor(1000 + Math.random() * 9000);
     }
     
@@ -771,8 +802,8 @@ async function joinRoom() {
                     studentWrong = pData.wrong || 0;
                 } else {
                     if (currentPlayers.length >= 6) {
-                        alert("Собата е полна!");
-                        location.reload();
+                        showError("Собата е полна!");
+                        setTimeout(() => location.reload(), 2000);
                         return;
                     }
                     myPlayerId = currentPlayers.length;
@@ -959,7 +990,7 @@ function updateLobbyUI() {
         if (!p) return;
         const li = document.createElement('li');
         li.style.cssText = "background:white; padding:8px 12px; border-radius:10px; border:1px solid #e2e8f0; font-size:0.85rem; display:flex; align-items:center; gap:8px;";
-        li.innerHTML = `<span style="font-size:1.2rem;">${p.emoji || '👤'}</span> <span style="font-weight:700; color:#1e293b;">${p.name}</span>`;
+        li.innerHTML = `<span style="font-size:1.2rem;">${p.emoji || '👤'}</span> <span style="font-weight:700; color:#1e293b;">${escapeHtml(p.name)}</span>`;
         ul.appendChild(li);
     });
     
@@ -984,27 +1015,26 @@ async function createMultipleRooms() {
     const count = parseInt(document.getElementById('multi-room-count').value) || 1;
     const name = document.getElementById('player-name-input').value.trim() || "Наставник";
     const diffLevel = document.getElementById('room-difficulty-select').value;
-    
+
     const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
-    
+
     // If there are many old rooms, ask to clear them
     if (myRooms.length > 0) {
-        if (confirm("Имате веќе креирано соби. Дали сакате прво да ги ИЗБРИШЕТЕ старите за да почнете со нови (ROOM 1, ROOM 2...)?")) {
+        const clearOld = await showConfirmModal("Имате веќе креирано соби. Дали сакате прво да ги ИЗБРИШЕТЕ старите?");
+        if (clearOld) {
             myRooms.length = 0;
             localStorage.setItem('percentopolis_teacher_rooms', "[]");
         }
     }
 
-    alert(`Креирам ${count} нови соби... Почекајте.`);
-    
+    showSuccess(`⏳ Креирам ${count} нови соби...`);
+
     for (let i = 1; i <= count; i++) {
-        // Simpler room codes (just numbers)
         const newRoomId = (100 + i).toString();
-        
+
         if (!myRooms.includes(newRoomId)) {
             myRooms.push(newRoomId);
-            
-            // Initialize room in Firebase
+
             await db.ref('rooms/' + newRoomId).set({
                 status: 'waiting',
                 players: [],
@@ -1021,15 +1051,16 @@ async function createMultipleRooms() {
             });
         }
     }
-    
+
     localStorage.setItem('percentopolis_teacher_rooms', JSON.stringify(myRooms));
     showTeacherRoomList();
     if (document.getElementById('teacher-modal').style.display === 'flex') openTeacherDash();
-    alert("Собите се успешно креирани!");
+    showSuccess("✅ Собите се успешно креирани!");
 }
 
-function clearAllMyRooms() {
-    if (!confirm("Дали сте сигурни дека сакате да ги избришете СИТЕ ваши соби од листата? (Податоците во Firebase ќе останат, но нема да ги гледате во вашиот панел)")) return;
+async function clearAllMyRooms() {
+    const yes = await showConfirmModal("Дали сте сигурни дека сакате да ги избришете СИТЕ ваши соби од листата?");
+    if (!yes) return;
     localStorage.setItem('percentopolis_teacher_rooms', "[]");
     activeDashRoomId = null;
     if (dashRoomListener) {
@@ -1037,14 +1068,15 @@ function clearAllMyRooms() {
         dashRoomListener = null;
     }
     openTeacherDash();
-    alert("Листата е исчистена.");
+    showSuccess("✅ Листата е исчистена.");
 }
 
 async function startAllMyRooms() {
     const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
     if (myRooms.length === 0) return;
     
-    if (!confirm(`Дали сте сигурни дека сакате да ги стартувате СИТЕ ${myRooms.length} соби одеднаш?`)) return;
+    const yes = await showConfirmModal(`Дали сте сигурни дека сакате да ги стартувате СИТЕ ${myRooms.length} соби одеднаш?`);
+    if (!yes) return;
 
     for (const rid of myRooms) {
         const roomRef = db.ref('rooms/' + rid);
@@ -1068,13 +1100,13 @@ async function startAllMyRooms() {
             }
         }
     }
-    alert("Сите соби со играчи се стартувани!");
+    showSuccess("✅ Сите соби со играчи се стартувани!");
 }
 
 function requestStartGame() {
     if (!isCreator) return;
     if (players.filter(p => p && p.role === 'student').length === 0) {
-        alert("Потребен е барем еден ученик за да започне играта!");
+        showError("Потребен е барем еден ученик за да започне играта!");
         return;
     }
     
@@ -1108,7 +1140,7 @@ function initMultiplayerGame() {
         const div = document.createElement('div');
         div.id = `stat-${p.id}`;
         div.className = 'player-stat';
-        div.innerHTML = `<span>${p.name}</span><span id="score-${p.id}">${p.money}д</span><div id="powerups-${p.id}" class="active-powerups"></div>`;
+        div.innerHTML = `<span>${escapeHtml(p.name)}</span><span id="score-${p.id}">${p.money}д</span><div id="powerups-${p.id}" class="active-powerups"></div>`;
         statsPanel.appendChild(div);
         
         const t = document.getElementById(`token-${p.id}`);
@@ -1431,7 +1463,7 @@ async function showLandingCardMulti(p, c){
                 };
                 document.getElementById('pass-prop').onclick = () => rc();
             } else if(c.owner !== myPlayerId){
-                const ownerName = (players[c.owner] && players[c.owner].name) ? players[c.owner].name : "Противник";
+                const ownerName = (players[c.owner] && players[c.owner].name) ? escapeHtml(players[c.owner].name) : "Противник";
                 o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Сопственик: ${ownerName}</p><h2>Кирија: ${rent}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">ПЛАТИ</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">ШТИТ (🛡️)</button>':''}</div></div>`;
                 document.getElementById('pay-rent').onclick = async () => {
                     const t = getUniqueTask(c.difficulty);
@@ -1568,14 +1600,12 @@ function closeTeacherDash() {
     document.body.style.overflow = 'auto';
     document.body.style.pointerEvents = 'auto';
 
-    // Clear any backdrop filters
-    const allElements = document.querySelectorAll('*');
-    allElements.forEach(el => {
-        if (el.style.backdropFilter || el.style.webkitBackdropFilter) {
-            el.style.backdropFilter = 'none';
-            el.style.webkitBackdropFilter = 'none';
-        }
-    });
+    // Clear backdrop filters on known elements (targeted, not global)
+    const boardCenter = document.getElementById('board-center');
+    if (boardCenter) {
+        boardCenter.style.backdropFilter = '';
+        boardCenter.style.webkitBackdropFilter = '';
+    }
 
     // Ensure the reopen button is visible
     const reopenBtn = document.getElementById('teacher-dash-btn-fixed');
@@ -1887,8 +1917,8 @@ function updateDashStats(data) {
 
         tr.innerHTML = `
             <td style="padding:20px;">
-                <div style="font-weight:700; color:#1e293b; font-size:1rem;">${p.emoji || '👤'} ${p.name}${streakBadge}</div>
-                <div style="font-size:0.75rem; color:#64748b;">${p.odd}</div>
+                <div style="font-weight:700; color:#1e293b; font-size:1rem;">${p.emoji || '👤'} ${escapeHtml(p.name)}${streakBadge}</div>
+                <div style="font-size:0.75rem; color:#64748b;">${escapeHtml(p.odd)}</div>
             </td>
             <td style="padding:20px;">
                 <div style="font-weight:800; color:#2563eb; font-size:1.1rem;">${p.money}д</div>
@@ -1959,7 +1989,7 @@ function updateDashVisualizations(data, players) {
         const percentage = ((p.money || 0) / maxMoney) * 100;
         return `
             <div style="display:flex; align-items:center; gap:10px;">
-                <div style="min-width:120px; font-weight:700; font-size:0.85rem; color:#475569;">${p.emoji || '👤'} ${p.name}</div>
+                <div style="min-width:120px; font-weight:700; font-size:0.85rem; color:#475569;">${p.emoji || '👤'} ${escapeHtml(p.name)}</div>
                 <div style="flex:1; background:#f1f5f9; height:30px; border-radius:10px; overflow:hidden; position:relative;">
                     <div style="width:${percentage}%; height:100%; background:linear-gradient(90deg, #3b82f6, #8b5cf6); transition:width 0.5s ease; display:flex; align-items:center; justify-content:flex-end; padding:0 10px;">
                         <span style="color:white; font-weight:900; font-size:0.75rem;">${p.money}д</span>
@@ -1984,7 +2014,7 @@ function updateDashVisualizations(data, players) {
         const count = propertyCount[p.id] || 0;
         return `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#f8fafc; border-radius:8px;">
-                <span style="font-weight:700; color:#475569;">${p.emoji || '👤'} ${p.name}</span>
+                <span style="font-weight:700; color:#475569;">${p.emoji || '👤'} ${escapeHtml(p.name)}</span>
                 <span style="background:#3b82f6; color:white; padding:5px 12px; border-radius:12px; font-weight:900; font-size:0.85rem;">${count} 🏠</span>
             </div>
         `;
@@ -2051,7 +2081,7 @@ function downloadRoomReport() {
 function buyItem(type,cost) {
     if(myPlayerId === -1) return;
     const p=players[myPlayerId];
-    if(p.money<cost) { alert("Немаш доволно пари!"); return; }
+    if(p.money<cost) { showError("Немаш доволно пари!"); return; }
     p.powerups[type]=true;
     updateMoneyMulti(myPlayerId, -cost);
     db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
@@ -2562,7 +2592,7 @@ function renderTargetPlayers() {
         const pColor = getComputedStyle(document.documentElement).getPropertyValue(`--p${pid}-color`).trim();
         return `<div class="trade-player-chip ${tradeState.targetPlayerId === pid ? 'selected' : ''}"
             style="border-color: ${tradeState.targetPlayerId === pid ? pColor : '#e2e8f0'}; ${tradeState.targetPlayerId === pid ? 'background:' + pColor + '22' : ''}"
-            onclick="selectTradePlayer(${pid})">${p.emoji || '👤'} ${p.name}</div>`;
+            onclick="selectTradePlayer(${pid})">${p.emoji || '👤'} ${escapeHtml(p.name)}</div>`;
     }).join('');
 
     // Show selected player's properties
@@ -2594,7 +2624,7 @@ function selectTheirProp(idx) {
 function renderTradeSummary() {
     const myProp = gameBoard[tradeState.myPropertyIndex];
     const theirProp = gameBoard[tradeState.theirPropertyIndex];
-    const targetName = players[tradeState.targetPlayerId]?.name || 'Играч';
+    const targetName = escapeHtml(players[tradeState.targetPlayerId]?.name || 'Играч');
 
     document.getElementById('trade-summary').innerHTML = `
         <div style="display:flex; align-items:center; justify-content:center; gap:16px;">
@@ -2660,10 +2690,18 @@ async function sendTradeOffer() {
 function listenForTradeOffers() {
     if (!roomId || myPlayerId === null) return;
 
+    // SECURITY: Cleanup previous listeners to prevent duplicates on reconnect
+    db.ref(`rooms/${roomId}/tradeOffers`).off('child_added');
+    db.ref(`rooms/${roomId}/tradeOffers`).off('child_changed');
+
+    const connectTime = Date.now();
+
     db.ref(`rooms/${roomId}/tradeOffers`).on('child_added', snap => {
         const offer = snap.val();
         if (!offer || offer.status !== 'pending') return;
         if (offer.to !== myPlayerId) return;
+        // SECURITY: Skip old offers (before this session started) to prevent replay
+        if (offer.timestamp && offer.timestamp < connectTime - 60000) return;
 
         tradeState.pendingOfferId = snap.key;
         showIncomingTrade(offer);
@@ -2695,7 +2733,7 @@ function showIncomingTrade(offer) {
 
     document.getElementById('trade-incoming-details').innerHTML = `
         <p style="font-size:0.9rem; color:#475569; margin-bottom:14px;">
-            <strong>${fromPlayer.name}</strong> сака да тргува со тебе!
+            <strong>${escapeHtml(fromPlayer.name)}</strong> сака да тргува со тебе!
         </p>
         <div style="display:flex; align-items:center; justify-content:center; gap:16px;">
             <div style="text-align:center;">
