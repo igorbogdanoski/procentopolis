@@ -803,6 +803,7 @@ async function joinRoom() {
             }));
 
             roomRef.on('value', handleRoomUpdate);
+            listenForTradeOffers();
         });
     });
 }
@@ -2475,4 +2476,306 @@ async function createMultipleRoomsFromDash() {
 function clearSave() {
     localStorage.removeItem('percentopolis_save');
     location.reload();
+}
+
+// ===== TRADE SYSTEM =====
+let tradeState = {
+    step: 1,
+    myPropertyIndex: null,
+    targetPlayerId: null,
+    theirPropertyIndex: null,
+    moneyAmount: 0,
+    pendingOfferId: null
+};
+
+function openTradeModal() {
+    if (currentRole === 'teacher') { showError("Наставникот не може да тргува."); return; }
+    if (currentPlayerIndex !== myPlayerId) { showError("Може да тргуваш само кога си на потег."); return; }
+
+    const myProps = gameBoard.filter(c => c.owner === myPlayerId && c.type === 'property');
+    if (myProps.length === 0) { showError("Немаш имоти за тргување!"); return; }
+
+    // Check if any other player owns properties
+    const otherOwners = gameBoard.filter(c => c.owner !== null && c.owner !== myPlayerId && c.type === 'property');
+    if (otherOwners.length === 0) { showError("Ниеден друг играч нема имот за тргување."); return; }
+
+    tradeState = { step: 1, myPropertyIndex: null, targetPlayerId: null, theirPropertyIndex: null, moneyAmount: 0, pendingOfferId: null };
+    showTradeStep(1);
+    document.getElementById('trade-overlay').style.display = 'flex';
+}
+
+function closeTradeModal() {
+    document.getElementById('trade-overlay').style.display = 'none';
+}
+
+function showTradeStep(step) {
+    tradeState.step = step;
+    document.getElementById('trade-page-1').style.display = step === 1 ? 'block' : 'none';
+    document.getElementById('trade-page-2').style.display = step === 2 ? 'block' : 'none';
+    document.getElementById('trade-page-3').style.display = step === 3 ? 'block' : 'none';
+
+    // Update step indicators
+    for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById(`trade-step-${i}`);
+        el.classList.remove('active', 'done');
+        if (i === step) el.classList.add('active');
+        else if (i < step) el.classList.add('done');
+    }
+
+    // Nav buttons
+    document.getElementById('trade-back-btn').style.display = step > 1 ? 'inline-block' : 'none';
+    document.getElementById('trade-next-btn').style.display = step < 3 ? 'inline-block' : 'none';
+    document.getElementById('trade-send-btn').style.display = step === 3 ? 'block' : 'none';
+
+    if (step === 1) renderMyProperties();
+    if (step === 2) renderTargetPlayers();
+    if (step === 3) renderTradeSummary();
+}
+
+function renderMyProperties() {
+    const grid = document.getElementById('trade-my-props');
+    const myProps = gameBoard.filter(c => c.owner === myPlayerId && c.type === 'property');
+    grid.innerHTML = myProps.map(p => `
+        <div class="trade-prop-card ${tradeState.myPropertyIndex === p.index ? 'selected' : ''}" onclick="selectMyProp(${p.index})">
+            <div class="prop-color-bar" style="background:${p.color}"></div>
+            <div class="prop-name">${p.name}</div>
+            <div class="prop-price">${p.price}д</div>
+        </div>
+    `).join('');
+}
+
+function selectMyProp(idx) {
+    tradeState.myPropertyIndex = idx;
+    renderMyProperties();
+}
+
+function renderTargetPlayers() {
+    const playersDiv = document.getElementById('trade-players-list');
+    const propsDiv = document.getElementById('trade-their-props');
+
+    // Find players who own properties (excluding me)
+    const ownerIds = [...new Set(gameBoard.filter(c => c.owner !== null && c.owner !== myPlayerId && c.type === 'property').map(c => c.owner))];
+
+    playersDiv.innerHTML = ownerIds.map(pid => {
+        const p = players[pid];
+        if (!p) return '';
+        const pColor = getComputedStyle(document.documentElement).getPropertyValue(`--p${pid}-color`).trim();
+        return `<div class="trade-player-chip ${tradeState.targetPlayerId === pid ? 'selected' : ''}"
+            style="border-color: ${tradeState.targetPlayerId === pid ? pColor : '#e2e8f0'}; ${tradeState.targetPlayerId === pid ? 'background:' + pColor + '22' : ''}"
+            onclick="selectTradePlayer(${pid})">${p.emoji || '👤'} ${p.name}</div>`;
+    }).join('');
+
+    // Show selected player's properties
+    if (tradeState.targetPlayerId !== null) {
+        const theirProps = gameBoard.filter(c => c.owner === tradeState.targetPlayerId && c.type === 'property');
+        propsDiv.innerHTML = theirProps.map(p => `
+            <div class="trade-prop-card ${tradeState.theirPropertyIndex === p.index ? 'selected' : ''}" onclick="selectTheirProp(${p.index})">
+                <div class="prop-color-bar" style="background:${p.color}"></div>
+                <div class="prop-name">${p.name}</div>
+                <div class="prop-price">${p.price}д</div>
+            </div>
+        `).join('');
+    } else {
+        propsDiv.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#94a3b8; font-size:0.85rem;">Избери играч горе</p>';
+    }
+}
+
+function selectTradePlayer(pid) {
+    tradeState.targetPlayerId = pid;
+    tradeState.theirPropertyIndex = null;
+    renderTargetPlayers();
+}
+
+function selectTheirProp(idx) {
+    tradeState.theirPropertyIndex = idx;
+    renderTargetPlayers();
+}
+
+function renderTradeSummary() {
+    const myProp = gameBoard[tradeState.myPropertyIndex];
+    const theirProp = gameBoard[tradeState.theirPropertyIndex];
+    const targetName = players[tradeState.targetPlayerId]?.name || 'Играч';
+
+    document.getElementById('trade-summary').innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:center; gap:16px;">
+            <div style="text-align:center;">
+                <div style="font-size:0.7rem; color:#94a3b8;">ТИ НУДИШ</div>
+                <div style="padding:8px; background:${myProp.color}22; border-radius:8px; border:2px solid ${myProp.color}; margin-top:4px;">
+                    <div style="font-weight:700; font-size:0.8rem;">${myProp.name}</div>
+                    <div style="font-size:0.7rem; color:#64748b;">${myProp.price}д</div>
+                </div>
+            </div>
+            <div style="font-size:1.5rem;">🔄</div>
+            <div style="text-align:center;">
+                <div style="font-size:0.7rem; color:#94a3b8;">БАРАШ ОД ${targetName.toUpperCase()}</div>
+                <div style="padding:8px; background:${theirProp.color}22; border-radius:8px; border:2px solid ${theirProp.color}; margin-top:4px;">
+                    <div style="font-weight:700; font-size:0.8rem;">${theirProp.name}</div>
+                    <div style="font-size:0.7rem; color:#64748b;">${theirProp.price}д</div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.getElementById('trade-money-amount').value = 0;
+}
+
+function tradeStepNext() {
+    if (tradeState.step === 1) {
+        if (tradeState.myPropertyIndex === null) { showError("Избери имот за понуда!"); return; }
+        showTradeStep(2);
+    } else if (tradeState.step === 2) {
+        if (tradeState.targetPlayerId === null) { showError("Избери играч!"); return; }
+        if (tradeState.theirPropertyIndex === null) { showError("Избери имот од играчот!"); return; }
+        showTradeStep(3);
+    }
+}
+
+function tradeStepBack() {
+    if (tradeState.step > 1) showTradeStep(tradeState.step - 1);
+}
+
+async function sendTradeOffer() {
+    const money = parseInt(document.getElementById('trade-money-amount').value) || 0;
+    const myMoney = players[myPlayerId]?.money || 0;
+
+    if (money > myMoney) { showError(`Немаш доволно пари! Имаш ${myMoney}д.`); return; }
+
+    const offerId = Date.now().toString();
+    const offer = {
+        from: myPlayerId,
+        to: tradeState.targetPlayerId,
+        propertyOffered: tradeState.myPropertyIndex,
+        propertyWanted: tradeState.theirPropertyIndex,
+        moneyOffered: money,
+        status: 'pending',
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).set(offer);
+    closeTradeModal();
+    showSuccess("📨 Понудата е испратена! Чекаме одговор...");
+    log(`🔄 Испрати понуда за тргување до ${players[tradeState.targetPlayerId]?.name || 'играч'}.`);
+}
+
+// Firebase listener for incoming trade offers
+function listenForTradeOffers() {
+    if (!roomId || myPlayerId === null) return;
+
+    db.ref(`rooms/${roomId}/tradeOffers`).on('child_added', snap => {
+        const offer = snap.val();
+        if (!offer || offer.status !== 'pending') return;
+        if (offer.to !== myPlayerId) return;
+
+        tradeState.pendingOfferId = snap.key;
+        showIncomingTrade(offer);
+    });
+
+    db.ref(`rooms/${roomId}/tradeOffers`).on('child_changed', snap => {
+        const offer = snap.val();
+        if (!offer) return;
+
+        // If I sent the offer and it was accepted/rejected, notify me
+        if (offer.from === myPlayerId && offer.status === 'accepted') {
+            showSuccess("✅ Тргувањето е прифатено!");
+            log("✅ Тргувањето беше прифатено!");
+        } else if (offer.from === myPlayerId && offer.status === 'rejected') {
+            showError("❌ Тргувањето е одбиено.");
+            log("❌ Понудата за тргување беше одбиена.");
+        }
+    });
+}
+
+function showIncomingTrade(offer) {
+    const fromPlayer = players[offer.from];
+    const offeredProp = gameBoard[offer.propertyOffered];
+    const wantedProp = gameBoard[offer.propertyWanted];
+
+    if (!fromPlayer || !offeredProp || !wantedProp) return;
+
+    const moneyText = offer.moneyOffered > 0 ? `<div style="margin-top:8px; font-weight:700; color:#f59e0b;">+ ${offer.moneyOffered}д</div>` : '';
+
+    document.getElementById('trade-incoming-details').innerHTML = `
+        <p style="font-size:0.9rem; color:#475569; margin-bottom:14px;">
+            <strong>${fromPlayer.name}</strong> сака да тргува со тебе!
+        </p>
+        <div style="display:flex; align-items:center; justify-content:center; gap:16px;">
+            <div style="text-align:center;">
+                <div style="font-size:0.7rem; color:#94a3b8;">ТИ НУДИ</div>
+                <div style="padding:8px; background:${offeredProp.color}22; border-radius:8px; border:2px solid ${offeredProp.color}; margin-top:4px;">
+                    <div style="font-weight:700; font-size:0.8rem;">${offeredProp.name}</div>
+                    <div style="font-size:0.7rem; color:#64748b;">${offeredProp.price}д</div>
+                </div>
+                ${moneyText}
+            </div>
+            <div style="font-size:1.5rem;">🔄</div>
+            <div style="text-align:center;">
+                <div style="font-size:0.7rem; color:#94a3b8;">БАРА ОД ТЕБЕ</div>
+                <div style="padding:8px; background:${wantedProp.color}22; border-radius:8px; border:2px solid ${wantedProp.color}; margin-top:4px;">
+                    <div style="font-weight:700; font-size:0.8rem;">${wantedProp.name}</div>
+                    <div style="font-size:0.7rem; color:#64748b;">${wantedProp.price}д</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('trade-incoming-overlay').style.display = 'flex';
+}
+
+async function acceptTrade() {
+    const offerId = tradeState.pendingOfferId;
+    if (!offerId) return;
+
+    const snap = await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).once('value');
+    const offer = snap.val();
+    if (!offer || offer.status !== 'pending') {
+        showError("Понудата повеќе не е валидна.");
+        document.getElementById('trade-incoming-overlay').style.display = 'none';
+        return;
+    }
+
+    // Verify ownership is still valid
+    const offeredProp = gameBoard[offer.propertyOffered];
+    const wantedProp = gameBoard[offer.propertyWanted];
+
+    if (!offeredProp || offeredProp.owner !== offer.from) {
+        showError("Понудувачот повеќе не го поседува тој имот.");
+        await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
+        document.getElementById('trade-incoming-overlay').style.display = 'none';
+        return;
+    }
+    if (!wantedProp || wantedProp.owner !== offer.to) {
+        showError("Веќе не го поседуваш тој имот.");
+        await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
+        document.getElementById('trade-incoming-overlay').style.display = 'none';
+        return;
+    }
+
+    // Execute trade - swap properties
+    const updates = {};
+    updates[`gameBoard/${offer.propertyOffered}/owner`] = offer.to;
+    updates[`gameBoard/${offer.propertyWanted}/owner`] = offer.from;
+
+    // Money transfer
+    if (offer.moneyOffered > 0) {
+        const fromMoney = players[offer.from]?.money || 0;
+        const toMoney = players[offer.to]?.money || 0;
+        updates[`players/${offer.from}/money`] = fromMoney - offer.moneyOffered;
+        updates[`players/${offer.to}/money`] = toMoney + offer.moneyOffered;
+    }
+
+    updates[`tradeOffers/${offerId}/status`] = 'accepted';
+
+    await db.ref(`rooms/${roomId}`).update(updates);
+
+    document.getElementById('trade-incoming-overlay').style.display = 'none';
+    showSuccess("✅ Тргувањето е завршено!");
+    log(`🔄 Тргување: ${offeredProp.name} ↔ ${wantedProp.name}`);
+}
+
+async function rejectTrade() {
+    const offerId = tradeState.pendingOfferId;
+    if (!offerId) return;
+
+    await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
+    document.getElementById('trade-incoming-overlay').style.display = 'none';
+    log("❌ Ја одби понудата за тргување.");
 }
