@@ -1823,9 +1823,9 @@ function updateDashStats(data) {
     window.lastDashData = data;
     downloadBtn.style.display = (players.length > 0) ? 'block' : 'none';
 
-    // Show visualization panel only when game is playing
+    // Show visualization panel whenever a room is selected
     if (vizPanel) {
-        vizPanel.style.display = (data.status === 'playing' && players.length > 0) ? 'block' : 'none';
+        vizPanel.style.display = 'block';
     }
 
     startBtn.onclick = () => {
@@ -1921,8 +1921,8 @@ function updateDashStats(data) {
     document.getElementById('dash-total-correct').innerText = totalCorrect;
     document.getElementById('dash-avg-success').innerText = totalAttempted === 0 ? '0%' : Math.round((totalCorrect / totalAttempted) * 100) + '%';
 
-    // Update visualization panel if game is playing
-    if (data.status === 'playing' && filteredPlayers.length > 0) {
+    // Update visualization panel for any room with data
+    if (filteredPlayers.length > 0) {
         updateDashVisualizations(data, filteredPlayers);
     }
 }
@@ -1934,18 +1934,21 @@ function updateDashVisualizations(data, players) {
     const remainingMs = Math.max(0, gameEndTime - serverTime);
     const remainingMin = Math.floor(remainingMs / 60000);
     const remainingSec = Math.floor((remainingMs % 60000) / 1000);
-    document.getElementById('dash-viz-time-left').innerText = `${remainingMin}:${remainingSec.toString().padStart(2, '0')}`;
+    document.getElementById('dash-viz-time-left').innerText = data.status === 'playing' ? `${remainingMin}:${remainingSec.toString().padStart(2, '0')}` : 'Чекање';
 
-    const currentPlayer = players[data.currentPlayerIndex];
+    const allPlayers = data.players || [];
+    const currentPlayer = allPlayers[data.currentPlayerIndex];
     document.getElementById('dash-viz-current-player').innerText = currentPlayer ? `${currentPlayer.emoji || '👤'} ${currentPlayer.name}` : '---';
 
     const totalMoves = players.reduce((sum, p) => sum + (p.correct || 0) + (p.wrong || 0), 0);
     document.getElementById('dash-viz-total-moves').innerText = totalMoves;
 
-    if (data.turnStartTime) {
+    if (data.turnStartTime && data.status === 'playing') {
         const turnElapsed = Math.floor((serverTime - data.turnStartTime) / 1000);
         const turnRemaining = Math.max(0, 30 - turnElapsed);
         document.getElementById('dash-viz-turn-time').innerText = `${turnRemaining}s`;
+    } else {
+        document.getElementById('dash-viz-turn-time').innerText = '--';
     }
 
     // 2. Money Distribution Chart
