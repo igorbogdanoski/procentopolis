@@ -842,6 +842,7 @@ async function joinRoom() {
             }));
 
             hideLoader();
+            roomRef.off('value', handleRoomUpdate); // Prevent duplicate listeners
             roomRef.on('value', handleRoomUpdate);
             listenForTradeOffers();
         });
@@ -1220,9 +1221,10 @@ async function playTurnMulti(){
     if(myPlayerId === -1 || isRolling || currentPlayerIndex !== myPlayerId) return;
     isRolling = true;
     document.getElementById('roll-btn').disabled = true;
-    
+
     const p = players[myPlayerId];
-    
+    if (!p) { isRolling = false; return; }
+
     if (p.jailTurns > 0) {
         log(`⏳ ${p.name} е на одмор/затвор. Пропушта потег (Уште ${p.jailTurns}).`);
         db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ jailTurns: p.jailTurns - 1 });
@@ -1269,8 +1271,10 @@ async function playTurnMulti(){
     }
 
     const c = gameBoard[p.pos];
-    await showLandingCardMulti(p, c);
-    
+    if (c) {
+        await showLandingCardMulti(p, c);
+    }
+
     endTurnMulti();
 }
 
@@ -1278,6 +1282,7 @@ async function updateMoneyMulti(pid, amt){
     if(pid === -1) return;
     if(amt === 0) return;
     const p = players[pid];
+    if (!p) return;
     let newMoney = p.money + amt;
     
     if (newMoney < 0 && pid === myPlayerId) {
@@ -1388,6 +1393,7 @@ function showFloatingTextMulti(amount, pid) {
 }
 
 async function showLandingCardMulti(p, c){
+    if (!p || !c) return;
     return new Promise(resolve => {
         const o = document.getElementById('card-overlay');
         o.style.display = 'flex';
@@ -1535,8 +1541,9 @@ async function showLandingCardMulti(p, c){
 
 function endTurnMulti(){
     isRolling = false;
+    if (players.length === 0) return;
     let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
-    
+
     // Skip null/undefined players, teachers, and eliminated players in turn rotation
     let safety = 0;
     while((!players[nextPlayerIndex] || players[nextPlayerIndex].role === 'teacher' || players[nextPlayerIndex].isEliminated) && safety < 10){
@@ -1555,6 +1562,7 @@ function endTurnMulti(){
 
 function updateUI(){
     players.forEach(p => {
+        if (!p) return;
         const statEl = document.getElementById(`stat-${p.id}`);
         if(statEl){
             // Hide teacher from stats or show differently
@@ -2117,6 +2125,7 @@ function downloadRoomReport() {
 function buyItem(type,cost) {
     if(myPlayerId === -1) return;
     const p=players[myPlayerId];
+    if(!p) return;
     if(p.money<cost) { showError("Немаш доволно пари!"); return; }
     p.powerups[type]=true;
     updateMoneyMulti(myPlayerId, -cost);
@@ -2271,9 +2280,10 @@ function closeModal(){
 function log(msg){const l=document.getElementById('game-log'); if(!l) return; const n=document.createElement('div'); n.innerText='> '+msg; l.prepend(n);}
 function updateVisualOwnership(idx,pid){const e=document.getElementById(`cell-${idx}`); if(e){e.classList.remove('owned-p0','owned-p1','owned-p2','owned-p3','owned-p4','owned-p5'); e.classList.add(`owned-p${pid}`);}}
 
-function triggerGameOver(r){ 
-    clearInterval(timerInterval); 
+function triggerGameOver(r){
+    clearInterval(timerInterval);
     clearInterval(localTurnTicker);
+    if (window.mainGameTicker) clearInterval(window.mainGameTicker);
     document.getElementById('game-over-overlay').style.display='flex'; 
     
     if (myPlayerId === -1) {
@@ -2286,9 +2296,10 @@ function triggerGameOver(r){
     }
 
     const p = players[myPlayerId];
+    if (!p) { document.getElementById('report-text').innerText = 'Грешка: Нема податоци за играчот.'; return; }
     let finalMoney = p.money;
     let loanNote = "";
-    
+
     // Repay loan if active
     if (p.hasLoan && finalMoney > 0) {
         finalMoney -= 1500;
@@ -2411,7 +2422,7 @@ function sendLiveUpdate(question, answer, isCorrect) {
     if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE") return; 
     const payload = {
         player: studentName + " (" + studentOdd + ")",
-        score: players[myPlayerId].money,
+        score: (players[myPlayerId] && players[myPlayerId].money) || 0,
         correct: studentCorrect,
         wrong: studentWrong,
         last_question: question,
@@ -2804,7 +2815,13 @@ async function acceptTrade() {
     const offerId = tradeState.pendingOfferId;
     if (!offerId) return;
 
-    const snap = await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).once('value');
+    let snap;
+    try {
+        snap = await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).once('value');
+    } catch(e) {
+        showError('Грешка при поврзување. Обиди се повторно.');
+        return;
+    }
     const offer = snap.val();
     if (!offer || offer.status !== 'pending') {
         showError("Понудата повеќе не е валидна.");
