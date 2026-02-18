@@ -486,6 +486,7 @@ let roomId = null;
 let isCreator = false;
 let timerInterval, turnTimerInterval, localTurnTicker;
 let gameOverTriggered = false;
+let knownGameVersion = 1;
 let canvas, ctx, isDrawing = false, lastX = 0, lastY = 0;
 let penColor = '#000000';
 let penWidth = 3;
@@ -825,6 +826,7 @@ function createRoomData(diffLevel, teacherName, duration) {
     const dur = duration || GAME_DURATION;
     return {
         status: 'waiting',
+        gameVersion: 1,
         players: [],
         currentPlayerIndex: 0,
         remainingTime: dur,
@@ -1103,6 +1105,8 @@ async function joinRoom() {
             const diffLevel = document.getElementById('room-difficulty-select')?.value || 'standard';
             roomRef.set(createRoomData(diffLevel, studentName));
         }
+        // Sync known game version so we don't false-trigger a reset on first load
+        knownGameVersion = snapshot.val()?.gameVersion || 1;
         
         const playersRef = roomRef.child('players');
         playersRef.once('value', pSnap => {
@@ -1202,6 +1206,38 @@ function showTeacherRoomList() {
 function handleRoomUpdate(snapshot) {
     const data = snapshot.val();
     if (!data) return;
+
+    // Detect teacher "New Game" reset: gameVersion incremented while we were in a finished game
+    const incomingVersion = data.gameVersion || 1;
+    if (incomingVersion > knownGameVersion && gameOverTriggered) {
+        knownGameVersion = incomingVersion;
+        // Soft-reset all local state
+        gameOverTriggered = false;
+        studentCorrect = 0; studentWrong = 0;
+        questionHistory = []; usedQuestionIds = [];
+        isRolling = false;
+        remainingTime = data.gameDuration || GAME_DURATION;
+        players = data.players || [];
+        gameBoard = data.gameBoard || [];
+        // Stop all timers
+        clearInterval(timerInterval); clearInterval(localTurnTicker);
+        if (window.mainGameTicker) { clearInterval(window.mainGameTicker); window.mainGameTicker = null; }
+        if (_questionTimerInterval) { clearInterval(_questionTimerInterval); _questionTimerInterval = null; }
+        window.lastTurnStartTime = null;
+        // Hide game-over and question modal, restore lobby
+        document.getElementById('game-over-overlay').style.display = 'none';
+        document.getElementById('question-modal').style.display = 'none';
+        document.getElementById('game-wrapper').classList.add('blur-filter');
+        document.getElementById('login-overlay').style.display = 'flex';
+        document.getElementById('auth-section').style.display = 'none';
+        document.getElementById('lobby-section').style.display = 'block';
+        renderBoard();
+        updateLobbyUI();
+        showSuccess('🔄 Наставникот започна нова игра! Чекај го стартот...');
+        // Fall through so the rest of handleRoomUpdate syncs the waiting state normally
+    } else if (incomingVersion > knownGameVersion) {
+        knownGameVersion = incomingVersion;
+    }
 
     // If the room is already ended, handle gracefully instead of triggering instant game over
     if (data.status === 'ended' && !gameOverTriggered) {
@@ -2268,6 +2304,8 @@ function updateDashStats(data) {
 
     statusText.innerText = data.status === 'playing' ? '🟢 Активна игра' : '🟡 Во исчекување на ученици';
     startBtn.style.display = (data.status === 'waiting') ? 'block' : 'none';
+    const newGameBtn = document.getElementById('dash-newgame-btn');
+    if (newGameBtn) newGameBtn.style.display = (data.status === 'ended') ? 'block' : 'none';
 
     // Store data globally for report generation
     window.lastDashData = data;
@@ -2374,6 +2412,83 @@ function updateDashStats(data) {
     if (filteredPlayers.length > 0) {
         updateDashVisualizations(data, filteredPlayers);
     }
+
+    // Populate end-of-game report tab when game is over
+    if (data.status === 'ended') {
+        renderEndOfGameReport(data);
+    }
+}
+
+function renderEndOfGameReport(data) {
+    const container = document.getElementById('dash-report-content');
+    if (!container) return;
+    const allPlayers = (data.players || []).filter(p => p && p.role !== 'teacher');
+    if (allPlayers.length === 0) {
+        container.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:40px;">Нема податоци.</p>';
+        return;
+    }
+
+    // Per-student table
+    let tableRows = allPlayers.map(p => {
+        const c = p.correct || 0, w = p.wrong || 0, total = c + w;
+        const pct = total === 0 ? 0 : Math.round((c / total) * 100);
+        const bg = pct >= 70 ? '#d1fae5' : pct >= 40 ? '#fef3c7' : '#fee2e2';
+        const tc = pct >= 70 ? '#065f46' : pct >= 40 ? '#92400e' : '#991b1b';
+        const props = (data.gameBoard || []).filter(cel => cel && cel.owner === p.id).map(cel => cel.name).join(', ') || '—';
+        return `<tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:10px 14px;font-weight:700;">${p.emoji || '👤'} ${escapeHtml(p.name)}</td>
+            <td style="padding:10px 14px;color:#10b981;font-weight:bold;text-align:center;">${c}</td>
+            <td style="padding:10px 14px;color:#ef4444;font-weight:bold;text-align:center;">${w}</td>
+            <td style="padding:10px 14px;text-align:center;"><span style="background:${bg};color:${tc};padding:3px 10px;border-radius:12px;font-weight:800;font-size:0.85rem;">${pct}%</span></td>
+            <td style="padding:10px 14px;color:#374151;font-size:0.8rem;">${c + w > 0 ? escapeHtml(props) : '—'}</td>
+        </tr>`;
+    }).join('');
+
+    // Most-failed questions aggregation
+    const failMap = {};
+    allPlayers.forEach(p => {
+        (p.questionHistory || []).forEach(h => {
+            if (!h.isCorrect) {
+                if (!failMap[h.q]) failMap[h.q] = { q: h.q, correctAns: h.correctAns, count: 0 };
+                failMap[h.q].count++;
+            }
+        });
+    });
+    const failList = Object.values(failMap).sort((a, b) => b.count - a.count).slice(0, 10);
+    const failHtml = failList.length === 0
+        ? '<p style="color:#94a3b8;text-align:center;padding:20px;">Нема погрешни одговори! 🎉</p>'
+        : failList.map(f => `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:6px;background:#fef2f2;border-radius:8px;border-left:3px solid #ef4444;">
+                <span style="font-size:0.85rem;color:#374151;flex:1;">${escapeHtml(f.q)}</span>
+                <span style="color:#6b7280;font-size:0.8rem;white-space:nowrap;">→ ${escapeHtml(f.correctAns)}</span>
+                <span style="background:#ef4444;color:white;padding:2px 9px;border-radius:10px;font-size:0.75rem;font-weight:800;flex-shrink:0;">${f.count}x</span>
+            </div>`).join('');
+
+    container.innerHTML = `
+        <div style="background:white;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border:1px solid #e2e8f0;overflow:hidden;margin-bottom:18px;">
+            <div style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+                <h3 style="margin:0;font-size:0.95rem;color:#1e293b;font-weight:700;">📊 Резултати по ученик</h3>
+            </div>
+            <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead style="background:#f1f5f9;">
+                    <tr>
+                        <th style="padding:8px 14px;color:#475569;font-weight:700;font-size:0.72rem;text-align:left;">УЧЕНИК</th>
+                        <th style="padding:8px 14px;color:#10b981;font-weight:700;font-size:0.72rem;text-align:center;">ТОЧНИ</th>
+                        <th style="padding:8px 14px;color:#ef4444;font-weight:700;font-size:0.72rem;text-align:center;">ГРЕШНИ</th>
+                        <th style="padding:8px 14px;color:#475569;font-weight:700;font-size:0.72rem;text-align:center;">УСПЕХ</th>
+                        <th style="padding:8px 14px;color:#475569;font-weight:700;font-size:0.72rem;text-align:left;">ИМОТИ</th>
+                    </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+            </table>
+            </div>
+        </div>
+        <div style="background:white;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border:1px solid #e2e8f0;overflow:hidden;">
+            <div style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+                <h3 style="margin:0;font-size:0.95rem;color:#1e293b;font-weight:700;">❌ Најчесто погрешни прашања</h3>
+            </div>
+            <div style="padding:14px;">${failHtml}</div>
+        </div>`;
 }
 
 function updateDashVisualizations(data, players) {
@@ -2499,6 +2614,45 @@ function downloadRoomReport() {
     document.body.removeChild(link);
 }
 
+async function resetRoomForNewGame() {
+    if (!activeDashRoomId) return;
+    if (!confirm('Дали сте сигурни? Ова ќе ги ресетира сите резултати и ќе започне нова рунда во истата соба.')) return;
+
+    const snap = await db.ref(`rooms/${activeDashRoomId}`).once('value');
+    const existingData = snap.val();
+    if (!existingData) { showError('Собата не постои.'); return; }
+
+    const currentVersion = existingData.gameVersion || 1;
+    const dur = existingData.gameDuration || GAME_DURATION;
+
+    // Reset player stats, keep identity fields
+    const resetPlayers = (existingData.players || []).map(p => {
+        if (!p || p.role === 'teacher') return p;
+        return {
+            ...p,
+            money: START_MONEY, pos: 0, correct: 0, wrong: 0,
+            streak: 0, hasLoan: false, isEliminated: false, jailTurns: 0,
+            powerups: { lawyer: false, shield: false, nitro: false, bribe: false },
+            questionHistory: [], lastActivity: null, isThinking: false
+        };
+    });
+
+    await db.ref(`rooms/${activeDashRoomId}`).update({
+        status: 'waiting',
+        players: resetPlayers,
+        currentPlayerIndex: 0,
+        turnStartTime: 0,
+        gameEndTime: getServerTime() + (dur * 1000),
+        remainingTime: dur,
+        auction: null,
+        endReason: null,
+        gameBoard: createInitialGameBoard(),
+        gameVersion: currentVersion + 1
+    });
+
+    showSuccess('🔄 Нова рунда! Учениците ќе добијат известување.');
+}
+
 function buyItem(type,cost) {
     if(myPlayerId === -1) return;
     const p=players[myPlayerId];
@@ -2611,6 +2765,10 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
         _questionTimerInterval = setInterval(() => {
             timeLeft--;
             updateTimerBar();
+            // Auto-show hint at 15s if student hasn't answered yet
+            if (timeLeft === 15 && hint && fa.innerHTML.trim() === '') {
+                fa.innerHTML = `<div style="background:#fff3cd;padding:10px 12px;border-radius:10px;border:1px solid #fbbf24;font-size:0.88rem;animation:fadeIn 0.4s ease;">💡 <strong>НАМЕК:</strong> ${hint}</div>`;
+            }
             if (timeLeft <= 0) {
                 clearInterval(_questionTimerInterval);
                 _questionTimerInterval = null;
@@ -2740,6 +2898,10 @@ function triggerGameOver(r){
     gameOverTriggered = true;
     // Mark room as ended in Firebase so late-joiners don't enter a dead game
     if (roomId) db.ref(`rooms/${roomId}`).update({ status: 'ended', endReason: r });
+    // Save student question history for teacher report
+    if (myPlayerId !== null && myPlayerId >= 0 && questionHistory.length > 0) {
+        db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ questionHistory });
+    }
     clearInterval(timerInterval);
     clearInterval(localTurnTicker);
     if (window.mainGameTicker) clearInterval(window.mainGameTicker);

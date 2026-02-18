@@ -203,6 +203,7 @@
                     <button id="dash-download-btn" style="display:none; background:#34495e; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="downloadRoomReport()">📥 ИЗВЕШТАЈ</button>
                     <button id="dash-grid-view-btn" onclick="toggleGridView(true)" style="background:#8b5cf6; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;">📱 СИТЕ СОБИ</button>
                     <button id="dash-start-btn" style="display:none; background:#10b981; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;">СТАРТУВАЈ</button>
+                    <button id="dash-newgame-btn" style="display:none; background:#f59e0b; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="resetRoomForNewGame()">🔄 НОВА ИГРА</button>
                     <button onclick="closeTeacherDash()" style="background:#f1f5f9; border:none; border-radius:8px; padding:8px 14px; color:#475569; font-weight:bold; cursor:pointer; font-size:0.8rem;">ЗАТВОРИ</button>
                 </div>
             </div>
@@ -248,6 +249,7 @@
                         <button class="dash-tab active" onclick="switchDashTab('players')" id="dash-tab-players">👥 Ученици</button>
                         <button class="dash-tab" onclick="switchDashTab('live')" id="dash-tab-live">🎮 Live Статус</button>
                         <button class="dash-tab" onclick="switchDashTab('analytics')" id="dash-tab-analytics">📊 Аналитика</button>
+                        <button class="dash-tab" onclick="switchDashTab('report')" id="dash-tab-report">📋 Извештај</button>
                     </div>
 
                     <!-- TAB 1: Players Table -->
@@ -337,6 +339,15 @@
                                     <!-- Difficulty stats will be injected here -->
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: End-of-Game Report -->
+                    <div id="dash-panel-report" class="dash-tab-panel" style="display:none;">
+                        <div id="dash-report-content" style="padding:4px 0;">
+                            <p style="color:#94a3b8;text-align:center;padding:40px 20px;">
+                                📋 Извештајот е достапен откако играта ќе заврши.
+                            </p>
                         </div>
                     </div>
                 </div>
