@@ -1978,7 +1978,8 @@ function updateDashStats(data) {
 
         const tr = document.createElement('tr');
         tr.style.borderBottom = '1px solid #f1f5f9';
-        const successRate = ((p.correct || 0) + (p.wrong || 0)) === 0 ? 0 : Math.round((p.correct / (p.correct + p.wrong)) * 100);
+        const _c = p.correct || 0, _w = p.wrong || 0;
+        const successRate = (_c + _w) === 0 ? 0 : Math.round((_c / (_c + _w)) * 100);
 
         // PHASE 2: Enhanced Analytics - Performance color coding
         let performanceColor = '#ef4444'; // Red (struggling)
