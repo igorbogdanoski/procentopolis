@@ -2767,7 +2767,7 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
             updateTimerBar();
             // Auto-show hint at 15s if student hasn't answered yet
             if (timeLeft === 15 && hint && fa.innerHTML.trim() === '') {
-                fa.innerHTML = `<div style="background:#fff3cd;padding:10px 12px;border-radius:10px;border:1px solid #fbbf24;font-size:0.88rem;animation:fadeIn 0.4s ease;">💡 <strong>НАМЕК:</strong> ${hint}</div>`;
+                fa.innerHTML = `<div style="background:#fff3cd;padding:10px 12px;border-radius:10px;border:1px solid #fbbf24;font-size:0.88rem;animation:fadeIn 0.4s ease;">💡 <strong>НАМЕК:</strong> ${escapeHtml(hint)}</div>`;
             }
             if (timeLeft <= 0) {
                 clearInterval(_questionTimerInterval);
@@ -2789,6 +2789,7 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
             _questionTimerInterval = null;
             questionHistory.push({ q: q.length > 70 ? q.slice(0, 70) + '…' : q, correctAns: ans, isCorrect: res });
             const p = players[myPlayerId];
+            if (!p) { resolve(res); return; } // Player removed mid-question (e.g. elimination)
             const updates = { isThinking: false };
             if (res) {
                 studentCorrect++;
@@ -2877,7 +2878,7 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
 function drawVisualHint(){
     if(!currentTaskData || !currentTaskData.hint) return;
     const fa=document.getElementById('feedback-area');
-    fa.innerHTML = `<div style="background:#fff3cd; padding:10px; border-radius:10px; border:1px solid #ffeeba; font-size:0.9rem; margin-bottom:10px;">${currentTaskData.hint}</div>`;
+    fa.innerHTML = `<div style="background:#fff3cd; padding:10px; border-radius:10px; border:1px solid #ffeeba; font-size:0.9rem; margin-bottom:10px;">${escapeHtml(currentTaskData.hint)}</div>`;
 }
 
 // BUGFIX: Prevent accidental closing of question modal during gameplay
