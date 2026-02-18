@@ -478,7 +478,7 @@ function triggerCelebration(type, data = {}) {
 }
 
 // --- VARIABLES ---
-let studentName = "", studentOdd = "", studentCorrect = 0, studentWrong = 0;
+let studentName = "", studentOdd = "", studentCorrect = 0, studentWrong = 0, myTurnCount = 0;
 let questionHistory = []; // { q, correctAns, isCorrect } — populated during game for end report
 let usedQuestionIds = [], remainingTime = GAME_DURATION, players = [], currentPlayerIndex = 0, gameBoard = [], isRolling = false;
 let myPlayerId = null;
@@ -1288,7 +1288,7 @@ function handleRoomUpdate(snapshot) {
         knownGameVersion = incomingVersion;
         // Soft-reset all local state
         gameOverTriggered = false;
-        studentCorrect = 0; studentWrong = 0;
+        studentCorrect = 0; studentWrong = 0; myTurnCount = 0;
         questionHistory = []; usedQuestionIds = [];
         isRolling = false;
         // Re-activate this player's slot (НОВА ИГРА marks played-out students as eliminated)
@@ -1676,6 +1676,7 @@ function updateBoardVisuals() {
 async function playTurnMulti(){
     if(myPlayerId === -1 || isRolling || currentPlayerIndex !== myPlayerId) return;
     isRolling = true;
+    myTurnCount++;
     document.getElementById('roll-btn').disabled = true;
 
     const p = players[myPlayerId];
@@ -1880,9 +1881,11 @@ async function showLandingCardMulti(p, c){
                     if(btc) btc.style.display = 'block';
                     if(btc) btc.onclick = async (e) => {
                         e.stopPropagation();
-                        const auctionWon = await offerAuctionChoice("ШАНСА", 1);
+                        // Scale CHANCE difficulty: turns 1-3 → D1, turns 4-6 → D2, turns 7+ → D3
+                        const chanceDiff = myTurnCount <= 3 ? 1 : myTurnCount <= 6 ? 2 : 3;
+                        const auctionWon = await offerAuctionChoice("ШАНСА", chanceDiff);
                         if (!auctionWon) {
-                            const t = getUniqueTask(1);
+                            const t = getUniqueTask(chanceDiff);
                             const ok = await askQuestion("ШАНСА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
                             if(ok) updateMoneyMulti(myPlayerId, isPos ? amt : 0);
                             else if(!isPos) updateMoneyMulti(myPlayerId, amt);
