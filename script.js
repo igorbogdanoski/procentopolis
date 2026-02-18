@@ -1133,6 +1133,10 @@ async function joinRoom() {
                 if (existingPid !== -1) {
                     myPlayerId = existingPid;
                     const pData = currentPlayers[existingPid];
+                    // Re-activate if marked eliminated by НОВА ИГРА reset
+                    if (pData.isEliminated) {
+                        db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ isEliminated: false });
+                    }
                     studentCorrect = pData.correct || 0;
                     studentWrong = pData.wrong || 0;
                 } else {
@@ -1216,6 +1220,10 @@ function handleRoomUpdate(snapshot) {
         studentCorrect = 0; studentWrong = 0;
         questionHistory = []; usedQuestionIds = [];
         isRolling = false;
+        // Re-activate this player's slot (НОВА ИГРА marks played-out students as eliminated)
+        if (currentRole === 'student' && myPlayerId >= 0) {
+            db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ isEliminated: false });
+        }
         remainingTime = data.gameDuration || GAME_DURATION;
         players = data.players || [];
         gameBoard = data.gameBoard || [];
@@ -2304,7 +2312,9 @@ function updateDashStats(data) {
     const startBtn = document.getElementById('dash-start-btn');
     const downloadBtn = document.getElementById('dash-download-btn');
 
-    statusText.innerText = data.status === 'playing' ? '🟢 Активна игра' : '🟡 Во исчекување на ученици';
+    statusText.innerText = data.status === 'playing' ? '🟢 Активна игра'
+        : data.status === 'ended'  ? '🔴 Играта е завршена — кликни НОВА ИГРА'
+        : '🟡 Во исчекување на ученици';
     startBtn.style.display = (data.status === 'waiting') ? 'block' : 'none';
     const newGameBtn = document.getElementById('dash-newgame-btn');
     if (newGameBtn) newGameBtn.style.display = (data.status === 'ended') ? 'block' : 'none';
@@ -2317,7 +2327,7 @@ function updateDashStats(data) {
 
     startBtn.onclick = () => {
         let firstStudent = 0;
-        while(players[firstStudent] && players[firstStudent].role !== 'student' && firstStudent < players.length) {
+        while(players[firstStudent] && (players[firstStudent].role !== 'student' || players[firstStudent].isEliminated) && firstStudent < players.length) {
             firstStudent++;
         }
         db.ref(`rooms/${activeDashRoomId}`).update({ 
@@ -2641,7 +2651,7 @@ async function resetRoomForNewGame() {
         return {
             ...p,
             money: START_MONEY, pos: 0, correct: 0, wrong: 0,
-            streak: 0, hasLoan: false, isEliminated: false, jailTurns: 0,
+            streak: 0, hasLoan: false, isEliminated: (p.correct || 0) + (p.wrong || 0) > 0, jailTurns: 0,
             powerups: { lawyer: false, shield: false, nitro: false, bribe: false },
             questionHistory: [], lastActivity: null, isThinking: false
         };
