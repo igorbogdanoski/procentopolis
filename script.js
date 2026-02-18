@@ -1806,8 +1806,19 @@ function switchDashRoom(rid) {
         dashRoomListener = null;
     }
 
+    // Clean up any active grid listeners
+    Object.keys(gridListeners).forEach(gRid => {
+        db.ref(`rooms/${gRid}`).off('value', gridListeners[gRid]);
+    });
+    gridListeners = {};
+
     activeDashRoomId = rid;
-    toggleGridView(false); // Ensure we show single room view when switching from sidebar
+
+    // Explicitly set all container states - do not rely on toggleGridView
+    document.getElementById('dash-grid-container').style.display = 'none';
+    document.getElementById('dash-create-room-container').style.display = 'none';
+    document.getElementById('dash-single-room-container').style.display = 'block';
+    document.getElementById('dash-back-to-list').style.display = 'none';
 
     // UI update for sidebar
     document.querySelectorAll('.dash-room-item').forEach(el => {
@@ -1817,9 +1828,6 @@ function switchDashRoom(rid) {
     });
 
     document.getElementById('dash-active-room-title').innerText = `СОБА: ${rid}`;
-
-    // Restore tab structure if it was replaced by create room interface
-    restoreDashTabs();
 
     dashRoomListener = db.ref(`rooms/${rid}`).on('value', snapshot => {
         const data = snapshot.val();
@@ -1888,7 +1896,7 @@ function renderDashGrid() {
                     <div id="grid-success-${rid}" style="font-size:1.2rem; font-weight:bold;">0%</div>
                 </div>
             </div>
-            <button style="width:100%; margin-top:15px; padding:10px; background:#f1f5f9; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">ДЕТАЛИ ➡️</button>
+            <button onclick="event.stopPropagation(); switchDashRoom('${rid}')" style="width:100%; margin-top:15px; padding:10px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">ДЕТАЛИ ➡️</button>
         `;
         card.onclick = () => switchDashRoom(rid);
         container.appendChild(card);
@@ -2501,6 +2509,7 @@ async function createSingleRoom() {
             turnStartTime: getServerTime(),
             difficultyMode: difficulty,
             teacherName: teacherName,
+            teacherUid: currentUserUid,
             createdAt: getServerTime(),
             gameBoard: boardConfig.map((c, i) => {
                 let diff = (i < 5) ? 1 : (i < 15) ? 2 : 3;
@@ -2518,11 +2527,9 @@ async function createSingleRoom() {
 
         showSuccess(`✅ Собата ${roomName} е креирана!`);
 
-        // Refresh dashboard
-        setTimeout(() => {
-            openTeacherDash();
-            switchDashRoom(roomName);
-        }, 1000);
+        // Refresh sidebar and switch to new room
+        openTeacherDash();
+        switchDashRoom(roomName);
 
     } catch (error) {
         console.error('Error creating room:', error);
@@ -2561,6 +2568,7 @@ async function createMultipleRoomsFromDash() {
                 turnStartTime: getServerTime(),
                 difficultyMode: difficulty,
                 teacherName: teacherName,
+                teacherUid: currentUserUid,
                 createdAt: getServerTime(),
                 gameBoard: boardConfig.map((c, idx) => {
                     let diff = (idx < 5) ? 1 : (idx < 15) ? 2 : 3;
@@ -2579,13 +2587,11 @@ async function createMultipleRoomsFromDash() {
     localStorage.setItem('percentopolis_teacher_rooms', JSON.stringify(myRooms));
     showSuccess(`✅ Успешно креирани ${createdRooms.length} соби!`);
 
-    // Refresh dashboard
-    setTimeout(() => {
-        openTeacherDash();
-        if (createdRooms.length > 0) {
-            switchDashRoom(createdRooms[0]);
-        }
-    }, 1500);
+    // Refresh sidebar and switch to first created room
+    openTeacherDash();
+    if (createdRooms.length > 0) {
+        switchDashRoom(createdRooms[0]);
+    }
 }
 
 function clearSave() {
