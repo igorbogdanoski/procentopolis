@@ -30,6 +30,7 @@ let currentUserUid = null;
 // Sign in anonymously on page load
 auth.signInAnonymously().catch(err => {
     console.error('Firebase Auth error:', err);
+    showError('Грешка при автентикација (' + err.code + '). Обновете ја страницата.');
 });
 
 auth.onAuthStateChanged(user => {
@@ -807,10 +808,17 @@ function stopFetchingRooms() {
 }
 
 async function joinRoom() {
-    // SECURITY: Require authentication
+    // SECURITY: Require authentication — wait up to 5s for anonymous auth to complete
     if (!currentUserUid) {
-        showError('Се поврзувам... Обидете се повторно.');
-        return;
+        let waited = 0;
+        while (!currentUserUid && waited < 5000) {
+            await new Promise(r => setTimeout(r, 200));
+            waited += 200;
+        }
+        if (!currentUserUid) {
+            showError('Грешка при поврзување. Обновете ја страницата.');
+            return;
+        }
     }
     // SECURITY: Validate and sanitize all inputs
     const nameValidation = validatePlayerName(document.getElementById('player-name-input').value);
