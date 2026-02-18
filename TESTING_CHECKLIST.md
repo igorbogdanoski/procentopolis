@@ -15,7 +15,7 @@
 ### 1.1 Login & Dashboard Access
 - [ ] Open https://procentopolis.vercel.app/
 - [ ] Select "НАСТАВНИК" role
-- [ ] Try empty name → Should show error
+- [ ] Try empty name → Should show error nema poraka gre[ka ne se vleguva]
 - [ ] Try name with <2 chars → Should show error
 - [ ] Enter valid name (e.g., "Марија")
 - [ ] Click "📊 ОТВОРИ КОНТРОЛЕН ПАНЕЛ"
