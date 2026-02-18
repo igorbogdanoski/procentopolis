@@ -475,6 +475,7 @@ let myPlayerId = null;
 let roomId = null;
 let isCreator = false;
 let timerInterval, turnTimerInterval, localTurnTicker;
+let gameOverTriggered = false;
 let canvas, ctx, isDrawing = false, lastX = 0, lastY = 0;
 let penColor = '#000000';
 let penWidth = 3;
@@ -724,11 +725,18 @@ function setRole(role) {
     checkLoginValid();
 }
 
+let _roomsListListener = null;
+
 function fetchAvailableRooms() {
     const list = document.getElementById('available-rooms-list');
     list.innerHTML = '<p style="font-size:0.7rem; color:#94a3b8;">Се вчитуваат активни соби...</p>';
-    
-    db.ref('rooms').once('value', snapshot => {
+
+    // Detach previous listener if any
+    if (_roomsListListener) {
+        db.ref('rooms').off('value', _roomsListListener);
+    }
+
+    _roomsListListener = db.ref('rooms').on('value', snapshot => {
         const rooms = snapshot.val();
         list.innerHTML = '';
         if (!rooms) {
@@ -758,6 +766,13 @@ function fetchAvailableRooms() {
     });
 }
 
+function stopFetchingRooms() {
+    if (_roomsListListener) {
+        db.ref('rooms').off('value', _roomsListListener);
+        _roomsListListener = null;
+    }
+}
+
 async function joinRoom() {
     // SECURITY: Require authentication
     if (!currentUserUid) {
@@ -779,6 +794,7 @@ async function joinRoom() {
         roomId = rawRoom || "ROOM" + Math.floor(1000 + Math.random() * 9000);
     }
 
+    stopFetchingRooms(); // stop live room list listener once player joins
     showLoader('Се поврзувам...', 'Влегувам во соба ' + roomId);
     document.getElementById('auth-section').style.display = 'none';
     document.getElementById('lobby-section').style.display = 'block';
@@ -1301,7 +1317,7 @@ async function playTurnMulti(){
 
     if(passedStart){
         const b = Math.floor(p.money * 0.15);
-        const t = getUniqueTask(0);
+        const t = getUniqueTask(1);
         const ok = await askQuestion("СТАРТ БОНУС", `За ${b}д (15%), реши:\n${t.question}`, t.correct_answer, t.options, true, t.explanation);
         if(ok) updateMoneyMulti(myPlayerId, b);
     }
@@ -1985,18 +2001,24 @@ function updateDashStats(data) {
         const tr = document.createElement('tr');
         tr.style.borderBottom = '1px solid #f1f5f9';
         const _c = p.correct || 0, _w = p.wrong || 0;
-        const successRate = (_c + _w) === 0 ? 0 : Math.round((_c / (_c + _w)) * 100);
+        const successRate = (_c + _w) === 0 ? null : Math.round((_c / (_c + _w)) * 100);
+        const successDisplay = successRate === null ? '—' : `${successRate}%`;
 
         // PHASE 2: Enhanced Analytics - Performance color coding
-        let performanceColor = '#ef4444'; // Red (struggling)
-        let performanceIcon = '⚠️';
+        let performanceColor = '#94a3b8'; // Grey (no attempts yet)
+        let performanceIcon = '—';
 
-        if (successRate >= 75) {
+        if (successRate === null) {
+            // no attempts — grey, no icon
+        } else if (successRate >= 75) {
             performanceColor = '#10b981'; // Green (excellent)
             performanceIcon = '⭐';
         } else if (successRate >= 50) {
             performanceColor = '#fbbf24'; // Yellow (good)
             performanceIcon = '👍';
+        } else {
+            performanceColor = '#ef4444'; // Red (struggling)
+            performanceIcon = '⚠️';
         }
 
         // PHASE 2: Streak badge
@@ -2020,9 +2042,9 @@ function updateDashStats(data) {
                     <span style="color:#ef4444; font-weight:bold; font-size:1rem;">${p.wrong || 0}</span>
                 </div>
                 <div style="background:#f1f5f9; height:6px; border-radius:10px; overflow:hidden; margin-top:4px;">
-                    <div style="width:${successRate}%; height:100%; background:${performanceColor}; transition:width 0.3s ease;"></div>
+                    <div style="width:${successRate ?? 0}%; height:100%; background:${performanceColor}; transition:width 0.3s ease;"></div>
                 </div>
-                <div style="font-size:0.65rem; color:#64748b; margin-top:3px;">${performanceIcon} ${successRate}%</div>
+                <div style="font-size:0.65rem; color:#64748b; margin-top:3px;">${performanceIcon} ${successDisplay}</div>
             </td>
             <td style="padding:12px 14px; font-size:0.75rem; color:#475569; max-width:160px;">
                 ${p.lastActivity || '---'}
@@ -2149,11 +2171,13 @@ function downloadRoomReport() {
     if (!data || !data.players) return;
     
     const rid = activeDashRoomId || "room";
+    const csvEscape = v => `"${String(v).replace(/"/g, '""')}"`;
     let csv = "Ученик,Одделение,Богатство,Точни,Грешни,Успех %\n";
-    
+
     data.players.filter(p => p && p.role !== 'teacher').forEach(p => {
-        const success = ((p.correct || 0) + (p.wrong || 0)) === 0 ? 0 : Math.round((p.correct / (p.correct + p.wrong)) * 100);
-        csv += `"${p.name}","${p.odd}","${p.money}д","${p.correct || 0}","${p.wrong || 0}","${success}%"\n`;
+        const _c = p.correct || 0, _w = p.wrong || 0;
+        const success = (_c + _w) === 0 ? '—' : `${Math.round((_c / (_c + _w)) * 100)}%`;
+        csv += [csvEscape(p.name), csvEscape(p.odd), csvEscape(p.money + 'д'), csvEscape(_c), csvEscape(_w), csvEscape(success)].join(',') + '\n';
     });
     
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
@@ -2325,6 +2349,8 @@ function log(msg){const l=document.getElementById('game-log'); if(!l) return; co
 function updateVisualOwnership(idx,pid){const e=document.getElementById(`cell-${idx}`); if(e){e.classList.remove('owned-p0','owned-p1','owned-p2','owned-p3','owned-p4','owned-p5'); e.classList.add(`owned-p${pid}`);}}
 
 function triggerGameOver(r){
+    if (gameOverTriggered) return;
+    gameOverTriggered = true;
     clearInterval(timerInterval);
     clearInterval(localTurnTicker);
     if (window.mainGameTicker) clearInterval(window.mainGameTicker);
@@ -2484,12 +2510,14 @@ function sendLiveUpdate(question, answer, _isCorrect) {
     }).catch(err => console.log("Sync error", err));
 }
 
-// Helper function to get next room number (101, 102, 103...)
+// Generate a random 6-character alphanumeric room code (e.g. "K7M2XQ")
 function getNextRoomNumber() {
-    let counter = parseInt(localStorage.getItem('percentopolis_room_counter') || '100');
-    counter++;
-    localStorage.setItem('percentopolis_room_counter', counter.toString());
-    return counter.toString();
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no O/0/I/1 (ambiguous)
+    let code;
+    do {
+        code = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    } while (JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || '[]').includes(code));
+    return code;
 }
 
 async function createSingleRoom() {
@@ -2762,7 +2790,8 @@ function tradeStepBack() {
 }
 
 async function sendTradeOffer() {
-    const money = parseInt(document.getElementById('trade-money-amount').value) || 0;
+    const money = Math.max(0, parseInt(document.getElementById('trade-money-amount').value) || 0);
+    document.getElementById('trade-money-amount').value = money; // clamp negative input
     const myMoney = players[myPlayerId]?.money || 0;
 
     if (money > myMoney) { showError(`Немаш доволно пари! Имаш ${myMoney}д.`); return; }
@@ -2897,9 +2926,15 @@ async function acceptTrade() {
     updates[`gameBoard/${offer.propertyOffered}/owner`] = offer.to;
     updates[`gameBoard/${offer.propertyWanted}/owner`] = offer.from;
 
-    // Money transfer
+    // Money transfer - verify sender still has enough funds
     if (offer.moneyOffered > 0) {
         const fromMoney = players[offer.from]?.money || 0;
+        if (fromMoney < offer.moneyOffered) {
+            showError("Понудувачот повеќе нема доволно пари за оваа размена.");
+            await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
+            document.getElementById('trade-incoming-overlay').style.display = 'none';
+            return;
+        }
         const toMoney = players[offer.to]?.money || 0;
         updates[`players/${offer.from}/money`] = fromMoney - offer.moneyOffered;
         updates[`players/${offer.to}/money`] = toMoney + offer.moneyOffered;
