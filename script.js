@@ -732,8 +732,8 @@ markupParams.forEach(([X, Y], i) => {
 
 function buildContextualQuestion(eventType, ctx) {
     const buildOpts = (correct, wrongs) => {
-        const all = [correct, ...wrongs.filter(w => w !== correct && parseFloat(w) > 0)];
-        return shuffleArray([...new Set(all)]).slice(0, 4);
+        const others = [...new Set(wrongs.filter(w => w !== correct && parseFloat(w) > 0))].slice(0, 3);
+        return shuffleArray([correct, ...others]);
     };
 
     if (eventType === 'bonus') {
@@ -2481,19 +2481,32 @@ function buyItem(type,cost) {
 }
 
 function getUniqueTask(diff){
-    let finalDiff = diff || 1;
+    let baseDiff = diff || 1;
 
     // Shift difficulty based on room mode
-    // We need to check if we have the difficultyMode globally or fetch it
-    // For simplicity, we'll use a global roomDifficulty variable updated in handleRoomUpdate
     if (window.roomDifficultyMode === 'easy') {
-        finalDiff = Math.max(1, finalDiff - 1);
+        baseDiff = Math.max(1, baseDiff - 1);
     } else if (window.roomDifficultyMode === 'hard') {
-        finalDiff = Math.min(3, finalDiff + 1);
+        baseDiff = Math.min(3, baseDiff + 1);
     }
 
+    // Weighted mixed-difficulty pool so all levels see all question types:
+    // D1 slot → 65% D1, 25% D2, 10% D3
+    // D2 slot → 10% D1, 60% D2, 30% D3
+    // D3 slot → 0%  D1, 20% D2, 80% D3
+    const r = Math.random();
+    let finalDiff;
+    if (baseDiff === 1)      finalDiff = r < 0.65 ? 1 : r < 0.90 ? 2 : 3;
+    else if (baseDiff === 2) finalDiff = r < 0.10 ? 1 : r < 0.70 ? 2 : 3;
+    else                     finalDiff = r < 0.20 ? 2 : 3;
+
     let filtered = allTasks.filter(t => t.difficulty === finalDiff && !usedQuestionIds.includes(t.id));
-    if(filtered.length === 0){ usedQuestionIds = []; filtered = allTasks.filter(t => t.difficulty === finalDiff); }
+    if(filtered.length === 0){
+        // Only reset used IDs for the picked difficulty to avoid repeating other difficulties early
+        const idsToReset = allTasks.filter(t => t.difficulty === finalDiff).map(t => t.id);
+        usedQuestionIds = usedQuestionIds.filter(id => !idsToReset.includes(id));
+        filtered = allTasks.filter(t => t.difficulty === finalDiff);
+    }
     const t = filtered[Math.floor(Math.random()*filtered.length)];
     usedQuestionIds.push(t.id);
     return t;
