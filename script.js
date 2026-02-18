@@ -479,6 +479,7 @@ function triggerCelebration(type, data = {}) {
 
 // --- VARIABLES ---
 let studentName = "", studentOdd = "", studentCorrect = 0, studentWrong = 0;
+let questionHistory = []; // { q, correctAns, isCorrect } — populated during game for end report
 let usedQuestionIds = [], remainingTime = GAME_DURATION, players = [], currentPlayerIndex = 0, gameBoard = [], isRolling = false;
 let myPlayerId = null;
 let roomId = null;
@@ -1201,7 +1202,18 @@ function showTeacherRoomList() {
 function handleRoomUpdate(snapshot) {
     const data = snapshot.val();
     if (!data) return;
-    
+
+    // If the room is already ended, handle gracefully instead of triggering instant game over
+    if (data.status === 'ended' && !gameOverTriggered) {
+        const inLobby = document.getElementById('login-overlay').style.display !== 'none';
+        if (inLobby) {
+            showError('⛔ Оваа соба е веќе завршена. Внесете нов код за да се придружите на нова соба.');
+            return;
+        }
+        triggerGameOver(data.endReason || 'Играта е завршена.');
+        return;
+    }
+
     window.roomDifficultyMode = data.difficultyMode || 'standard';
     window.roomGameDuration = data.gameDuration || GAME_DURATION;
     players = data.players || [];
@@ -1465,6 +1477,7 @@ function requestStartGame() {
 }
 
 function initMultiplayerGame() {
+    questionHistory = [];
     AudioController.init();
     document.getElementById('player-display-name').innerText = (currentRole === 'teacher' ? 'Наставник: ' : 'Играч: ') + studentName;
     document.getElementById('login-overlay').style.display = 'none';
@@ -2616,6 +2629,7 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
         const finalize = (res) => {
             clearInterval(_questionTimerInterval);
             _questionTimerInterval = null;
+            questionHistory.push({ q: q.length > 70 ? q.slice(0, 70) + '…' : q, correctAns: ans, isCorrect: res });
             const p = players[myPlayerId];
             const updates = { isThinking: false };
             if (res) {
@@ -2724,6 +2738,8 @@ function updateVisualOwnership(idx,pid){const e=document.getElementById(`cell-${
 function triggerGameOver(r){
     if (gameOverTriggered) return;
     gameOverTriggered = true;
+    // Mark room as ended in Firebase so late-joiners don't enter a dead game
+    if (roomId) db.ref(`rooms/${roomId}`).update({ status: 'ended', endReason: r });
     clearInterval(timerInterval);
     clearInterval(localTurnTicker);
     if (window.mainGameTicker) clearInterval(window.mainGameTicker);
@@ -2754,9 +2770,37 @@ function triggerGameOver(r){
         loanNote = "\n(Вратен кредит: -1500д)";
     }
     
-    let rep=`Играч: ${studentName}\nПричина: ${r}\nПари: ${finalMoney}д${loanNote}\nТочни: ${studentCorrect}, Грешни: ${studentWrong}`; 
-    document.getElementById('report-text').innerText=rep; 
-    new QRCode(document.getElementById("qrcode"),{text:rep,width:128,height:128}); 
+    const successRate = (studentCorrect + studentWrong) > 0
+        ? Math.round(studentCorrect / (studentCorrect + studentWrong) * 100) : 0;
+    const myProps = gameBoard.filter(c => c && c.owner === myPlayerId);
+    const propNames = myProps.map(c => c.name).join(', ') || '—';
+    const successColor = successRate >= 70 ? '#16a34a' : successRate >= 40 ? '#d97706' : '#dc2626';
+    const loanDisplay = p.hasLoan ? ` <span style="font-size:0.75rem;color:#dc2626;">(кредит -1500д)</span>` : '';
+
+    let historyHtml = '';
+    if (questionHistory.length > 0) {
+        historyHtml = `<div style="margin-top:12px;border-top:1px solid #e2e8f0;padding-top:10px;">
+            <div style="font-weight:700;margin-bottom:6px;color:#374151;font-size:0.82rem;">📋 Одговорени прашања:</div>
+            ${questionHistory.map(h => `<div style="display:flex;align-items:flex-start;gap:5px;margin-bottom:4px;padding:4px 7px;background:${h.isCorrect?'#f0fdf4':'#fef2f2'};border-radius:6px;border-left:3px solid ${h.isCorrect?'#16a34a':'#dc2626'};font-size:0.78rem;">
+                <span style="flex-shrink:0;">${h.isCorrect ? '✅' : '❌'}</span>
+                <span style="color:#374151;flex:1;">${escapeHtml(h.q)}</span>
+                ${!h.isCorrect ? `<span style="color:#dc2626;font-weight:700;white-space:nowrap;margin-left:4px;">→ ${escapeHtml(h.correctAns)}</span>` : ''}
+            </div>`).join('')}
+        </div>`;
+    }
+
+    const qrText = `Играч: ${studentName}\nПричина: ${r}\nПари: ${finalMoney}д\nТочни: ${studentCorrect}, Грешни: ${studentWrong} (${successRate}%)`;
+    document.getElementById('report-text').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 18px;font-size:0.88rem;margin-bottom:4px;">
+            <div><span style="color:#64748b;">Играч:</span> <strong>${escapeHtml(studentName)}</strong></div>
+            <div><span style="color:#64748b;">Причина:</span> ${escapeHtml(r)}</div>
+            <div><span style="color:#64748b;">Пари:</span> <strong>${finalMoney}д</strong>${loanDisplay}</div>
+            <div><span style="color:#64748b;">Успех:</span> <strong style="color:${successColor};">${successRate}%</strong></div>
+            <div><span style="color:#64748b;">Точни:</span> <strong style="color:#16a34a;">${studentCorrect}</strong> &nbsp; <span style="color:#64748b;">Грешни:</span> <strong style="color:#dc2626;">${studentWrong}</strong></div>
+            <div><span style="color:#64748b;">Имоти:</span> <span style="font-size:0.8rem;">${escapeHtml(propNames)}</span></div>
+        </div>
+        ${historyHtml}`;
+    new QRCode(document.getElementById("qrcode"),{text:qrText,width:128,height:128});
 }
 
 let _canvasEventsAttached = false;
