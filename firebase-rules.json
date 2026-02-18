@@ -6,43 +6,36 @@
     "rooms": {
       "$roomId": {
         ".read": true,
-
-        ".write": "newData.exists() && (!data.exists() || data.child('teacherName').exists())",
-
-        "status": {
-          ".write": "newData.isString() && (newData.val() === 'waiting' || newData.val() === 'playing' || newData.val() === 'finished')"
-        },
+        ".write": "auth !== null",
 
         "players": {
           "$playerId": {
-            ".write": "newData.exists()",
+            ".write": "auth !== null && (!data.exists() || data.child('uid').val() === auth.uid || root.child('rooms/' + $roomId + '/teacherUid').val() === auth.uid)",
 
             "name": {
               ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 30"
             },
-
             "money": {
               ".validate": "newData.isNumber() && newData.val() >= -5000 && newData.val() <= 1000000"
             },
-
             "pos": {
               ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 19"
             },
-
             "role": {
               ".validate": "newData.val() === 'student' || newData.val() === 'teacher'"
+            },
+            "uid": {
+              ".validate": "newData.isString() && newData.val() === auth.uid"
             }
           }
         },
 
         "gameBoard": {
           "$cellIndex": {
-            ".write": true,
-
+            ".write": "auth !== null",
             "owner": {
               ".validate": "newData.val() === null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 5)"
             },
-
             "buildings": {
               ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5"
             }
@@ -51,7 +44,7 @@
 
         "tradeOffers": {
           "$offerId": {
-            ".write": true,
+            ".write": "auth !== null",
             ".validate": "newData.hasChildren(['from', 'to', 'propertyOffered', 'propertyWanted', 'status'])",
             "from": {
               ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5"
@@ -77,15 +70,12 @@
         "currentPlayerIndex": {
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 6"
         },
-
         "turnStartTime": {
           ".validate": "newData.isNumber()"
         },
-
         "gameEndTime": {
           ".validate": "newData.isNumber()"
         },
-
         "remainingTime": {
           ".validate": "newData.isNumber() && newData.val() >= 0"
         }

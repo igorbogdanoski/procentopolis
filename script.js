@@ -16,6 +16,20 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+const auth = firebase.auth();
+let currentUserUid = null;
+
+// Sign in anonymously on page load
+auth.signInAnonymously().catch(err => {
+    console.error('Firebase Auth error:', err);
+});
+
+auth.onAuthStateChanged(user => {
+    if (user) {
+        currentUserUid = user.uid;
+        console.log('Authenticated anonymously:', user.uid);
+    }
+});
 
 // --- ERROR HANDLING & NOTIFICATIONS ---
 function showError(message) {
@@ -734,6 +748,11 @@ function fetchAvailableRooms() {
 }
 
 async function joinRoom() {
+    // SECURITY: Require authentication
+    if (!currentUserUid) {
+        showError('Се поврзувам... Обидете се повторно.');
+        return;
+    }
     // SECURITY: Validate and sanitize all inputs
     const nameValidation = validatePlayerName(document.getElementById('player-name-input').value);
     if (!nameValidation.valid) { showError(nameValidation.error); return; }
@@ -773,6 +792,7 @@ async function joinRoom() {
                 gameEndTime: getServerTime() + (40 * 60 * 1000),
                 turnStartTime: getServerTime(),
                 difficultyMode: diffLevel,
+                teacherUid: currentUserUid,
                 gameBoard: boardConfig.map((c, i) => {
                     let diff = (i < 5) ? 1 : (i < 15) ? 2 : 3;
                     if (hardProperties.includes(i)) diff = 3;
@@ -787,7 +807,7 @@ async function joinRoom() {
             
             if (currentRole === 'teacher') {
                 myPlayerId = -1; // Teacher is a spectator
-                roomRef.update({ teacherName: studentName });
+                roomRef.update({ teacherName: studentName, teacherUid: currentUserUid });
                 
                 // Track created rooms for teacher
                 let myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
@@ -800,7 +820,7 @@ async function joinRoom() {
                 // Check for existing session (reconnection)
                 let existingPid = -1;
                 currentPlayers.forEach((p, idx) => {
-                    if (p && p.name === studentName) existingPid = idx;
+                    if (p && p.uid === currentUserUid) existingPid = idx;
                 });
 
                 if (existingPid !== -1) {
@@ -817,6 +837,7 @@ async function joinRoom() {
                     myPlayerId = currentPlayers.length;
                     const newPlayer = {
                         id: myPlayerId,
+                        uid: currentUserUid,
                         name: studentName,
                         odd: studentOdd,
                         role: 'student',
@@ -838,7 +859,8 @@ async function joinRoom() {
                 name: studentName,
                 roomId: roomId,
                 playerId: myPlayerId,
-                role: currentRole
+                role: currentRole,
+                uid: currentUserUid
             }));
 
             hideLoader();
