@@ -735,70 +735,72 @@ function buildContextualQuestion(eventType, ctx) {
         const others = [...new Set(wrongs.filter(w => w !== correct && parseFloat(w) > 0))].slice(0, 3);
         return shuffleArray([correct, ...others]);
     };
+    // Use floor to match game's Math.floor() calculations (avoids fractional answer mismatches)
+    const fl = n => String(Math.floor(n));
 
     if (eventType === 'bonus') {
         const Y = ctx.money, X = 15;
-        const ans = fmt((Y * X) / 100);
+        const ans = fl(Y * X / 100);
         return {
             question: `Имаш ${Y}д. Добиваш ${X}% бонус. Колку денари добиваш?`,
             correct_answer: ans,
-            options: buildOpts(ans, [fmt(Y+X), fmt((Y*X)/10), fmt(Y*X/1000), fmt(Y/X)]),
+            options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X), String(Math.floor(Y*X/100)+1)]),
             explanation: `${X}% од ${Y} = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 Подели ${Y} со 100, па помножи со ${X}.`
         };
     }
     if (eventType === 'tax') {
         const Y = ctx.money, X = 10;
-        const ans = fmt((Y * X) / 100);
+        const ans = fl(Y * X / 100);
         return {
             question: `Имаш ${Y}д. Данокот е ${X}% од твоите пари. Колку плаќаш данок?`,
             correct_answer: ans,
-            options: buildOpts(ans, [fmt(Y+X), fmt(Y-parseFloat(ans)), fmt((Y*X)/10), fmt(Y/10)]),
+            options: buildOpts(ans, [fl(Y+X), fl(Y-parseFloat(ans)), fl((Y*X)/10), fl(Y/X)]),
             explanation: `${X}% данок од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 10% од број добиваш со делење на 10.`
         };
     }
     if (eventType === 'buy') {
         const Y = ctx.price, X = ctx.rentPercent, name = ctx.name;
-        const ans = fmt((Y * X) / 100);
+        const ans = fl(Y * X / 100);
         return {
             question: `Имотот „${name}" чини ${Y}д. Кириjата е ${X}% од цената. Колку е кириjата?`,
             correct_answer: ans,
-            options: buildOpts(ans, [fmt(Y+X), fmt((Y*X)/10), fmt(Y/X*10), fmt(parseFloat(ans)*2)]),
+            options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X*10), fl(parseFloat(ans)*2)]),
             explanation: `${X}% кирија од цена ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 ${X}% = ${X}÷100. Помножи го тоа со цената ${Y}д.`
         };
     }
     if (eventType === 'rent') {
         const Y = ctx.price, X = ctx.rentPercent, name = ctx.name;
-        const ans = fmt((Y * X) / 100);
-        const dbl = fmt(parseFloat(ans) * 2);
+        const ans = fl(Y * X / 100);
+        const dbl = fl(parseFloat(ans) * 2);
         return {
             question: `„${name}" чини ${Y}д, кирија ${X}%. Точен одговор → ${ans}д. Погрешен → ${dbl}д. Колку е ${X}% од ${Y}?`,
             correct_answer: ans,
-            options: buildOpts(ans, [dbl, fmt((Y*X)/10), fmt(Y+X), fmt(Y/X)]),
+            options: buildOpts(ans, [dbl, fl((Y*X)/10), fl(Y+X), fl(Y/X)]),
             explanation: `${X}% од ${Y} = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 Кириjата = цена × (процент ÷ 100).`
         };
     }
     if (eventType === 'build') {
         const Y = ctx.price, X = 40;
-        const ans = fmt((Y * X) / 100);
+        const ans = fl(Y * X / 100);
         return {
             question: `Градбата чини ${X}% од цената на имотот (${Y}д). Колку плаќаш за градба?`,
             correct_answer: ans,
-            options: buildOpts(ans, [fmt(Y+X), fmt((Y*X)/10), fmt(parseFloat(ans)+Y), fmt(Y/X*10)]),
+            options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(parseFloat(ans)+Y), fl(Y/X*10)]),
             explanation: `${X}% од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 40% = 2/5 од бројот. Подели со 5 па помножи со 2.`
         };
     }
     if (eventType === 'loan') {
         const Y = 1500, X = [6, 8, 12][Math.floor(Math.random()*3)];
-        const ans = fmt((Y * X) / 100);
+        const ans = fl(Y * X / 100);
         return {
             question: `Зел/а си кредит од ${Y}д. Банката наплаќа ${X}% годишна камата. Колку камата плаќаш за 1 година?`,
             correct_answer: ans,
-            options: buildOpts(ans, [fmt(Y+X), fmt((Y*X)/10), fmt(Y/X*10), fmt(parseFloat(ans)*2)]),
+            options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X*10), fl(parseFloat(ans)*2)]),
             explanation: `${X}% камата од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 Камата = главница × (каматна стапка ÷ 100).`
         };
@@ -1095,7 +1097,7 @@ async function joinRoom() {
     roomRef.once('value', snapshot => {
         if (!snapshot.exists()) {
             isCreator = true;
-            const diffLevel = document.getElementById('room-difficulty-select').value;
+            const diffLevel = document.getElementById('room-difficulty-select')?.value || 'standard';
             roomRef.set(createRoomData(diffLevel, studentName));
         }
         
@@ -1763,7 +1765,7 @@ async function showLandingCardMulti(p, c){
                 o.style.display = 'none';
                 const auctionWon = await offerAuctionChoice("ДАНOЧНА ИНСПЕКЦИЈА", 2);
                 if (!auctionWon) {
-                    const t = buildContextualQuestion('tax', { money: players[myPlayerId].money });
+                    const t = buildContextualQuestion('tax', { money: p.money });
                     const ok = await askQuestion("ДАНOЧНА ИНСПЕКЦИЈА", `Реши точно за да не платиш ${tax}д данок!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint);
                     if(!ok) {
                         updateMoneyMulti(myPlayerId, -tax);
