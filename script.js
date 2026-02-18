@@ -743,7 +743,7 @@ function buildContextualQuestion(eventType, ctx) {
         const ans = fl(Y * X / 100);
         return {
             question: `Имаш ${Y}д. Добиваш ${X}% бонус. Колку денари добиваш?`,
-            correct_answer: ans,
+            correct_answer: ans, difficulty: 1,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X), String(Math.floor(Y*X/100)+1)]),
             explanation: `${X}% од ${Y} = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 Подели ${Y} со 100, па помножи со ${X}.`
@@ -754,7 +754,7 @@ function buildContextualQuestion(eventType, ctx) {
         const ans = fl(Y * X / 100);
         return {
             question: `Имаш ${Y}д. Данокот е ${X}% од твоите пари. Колку плаќаш данок?`,
-            correct_answer: ans,
+            correct_answer: ans, difficulty: 1,
             options: buildOpts(ans, [fl(Y+X), fl(Y-parseFloat(ans)), fl((Y*X)/10), fl(Y/X)]),
             explanation: `${X}% данок од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 10% од број добиваш со делење на 10.`
@@ -765,7 +765,7 @@ function buildContextualQuestion(eventType, ctx) {
         const ans = fl(Y * X / 100);
         return {
             question: `Имотот „${name}" чини ${Y}д. Кириjата е ${X}% од цената. Колку е кириjата?`,
-            correct_answer: ans,
+            correct_answer: ans, difficulty: ctx.difficulty || 2,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X*10), fl(parseFloat(ans)*2)]),
             explanation: `${X}% кирија од цена ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 ${X}% = ${X}÷100. Помножи го тоа со цената ${Y}д.`
@@ -777,7 +777,7 @@ function buildContextualQuestion(eventType, ctx) {
         const dbl = fl(parseFloat(ans) * 2);
         return {
             question: `„${name}" чини ${Y}д, кирија ${X}%. Точен одговор → ${ans}д. Погрешен → ${dbl}д. Колку е ${X}% од ${Y}?`,
-            correct_answer: ans,
+            correct_answer: ans, difficulty: ctx.difficulty || 2,
             options: buildOpts(ans, [dbl, fl((Y*X)/10), fl(Y+X), fl(Y/X)]),
             explanation: `${X}% од ${Y} = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 Кириjата = цена × (процент ÷ 100).`
@@ -788,7 +788,7 @@ function buildContextualQuestion(eventType, ctx) {
         const ans = fl(Y * X / 100);
         return {
             question: `Градбата чини ${X}% од цената на имотот (${Y}д). Колку плаќаш за градба?`,
-            correct_answer: ans,
+            correct_answer: ans, difficulty: 3,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(parseFloat(ans)+Y), fl(Y/X*10)]),
             explanation: `${X}% од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 40% = 2/5 од бројот. Подели со 5 па помножи со 2.`
@@ -799,7 +799,7 @@ function buildContextualQuestion(eventType, ctx) {
         const ans = fl(Y * X / 100);
         return {
             question: `Зел/а си кредит од ${Y}д. Банката наплаќа ${X}% годишна камата. Колку камата плаќаш за 1 година?`,
-            correct_answer: ans,
+            correct_answer: ans, difficulty: 3,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X*10), fl(parseFloat(ans)*2)]),
             explanation: `${X}% камата од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 Камата = главница × (каматна стапка ÷ 100).`
@@ -820,15 +820,17 @@ function createInitialGameBoard() {
     });
 }
 
-function createRoomData(diffLevel, teacherName) {
+function createRoomData(diffLevel, teacherName, duration) {
+    const dur = duration || GAME_DURATION;
     return {
         status: 'waiting',
         players: [],
         currentPlayerIndex: 0,
-        remainingTime: GAME_DURATION,
-        gameEndTime: getServerTime() + (GAME_DURATION * 1000),
+        remainingTime: dur,
+        gameEndTime: getServerTime() + (dur * 1000),
         turnStartTime: 0,
         difficultyMode: diffLevel,
+        gameDuration: dur,
         teacherName: teacherName,
         teacherUid: currentUserUid,
         createdAt: getServerTime(),
@@ -1201,6 +1203,7 @@ function handleRoomUpdate(snapshot) {
     if (!data) return;
     
     window.roomDifficultyMode = data.difficultyMode || 'standard';
+    window.roomGameDuration = data.gameDuration || GAME_DURATION;
     players = data.players || [];
     gameBoard = data.gameBoard || [];
     currentPlayerIndex = data.currentPlayerIndex || 0;
@@ -1432,7 +1435,7 @@ async function startAllMyRooms() {
                     status: 'playing',
                     currentPlayerIndex: firstStudent, 
                     turnStartTime: firebase.database.ServerValue.TIMESTAMP,
-                    gameEndTime: getServerTime() + (GAME_DURATION * 1000)
+                    gameEndTime: getServerTime() + ((window.roomGameDuration || GAME_DURATION) * 1000)
                 });
             }
         }
@@ -1457,7 +1460,7 @@ function requestStartGame() {
         status: 'playing',
         currentPlayerIndex: firstStudent, 
         turnStartTime: firebase.database.ServerValue.TIMESTAMP,
-        gameEndTime: getServerTime() + (GAME_DURATION * 1000)
+        gameEndTime: getServerTime() + ((window.roomGameDuration || GAME_DURATION) * 1000)
     });
 }
 
@@ -1589,7 +1592,7 @@ async function playTurnMulti(){
         const auctionWon = await offerAuctionChoice("СТАРТ БОНУС", 1);
         if (!auctionWon) {
             const t = buildContextualQuestion('bonus', { money: p.money });
-            const ok = await askQuestion("СТАРТ БОНУС", t.question, t.correct_answer, t.options, true, t.explanation, t.hint);
+            const ok = await askQuestion("СТАРТ БОНУС", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
             if(ok) updateMoneyMulti(myPlayerId, b);
         }
     }
@@ -1614,7 +1617,7 @@ async function updateMoneyMulti(pid, amt){
         if (!p.hasLoan) {
             log("⚠️ КРИЗА! Немаш доволно пари. Банката ти нуди КРЕДИТ.");
             const t = buildContextualQuestion('loan', {});
-            const ok = await askQuestion("🏦 БАНКАРСКИ КРЕДИТ", `Реши ја задачата за 1500д кредит, инаку ГУБИШ!\n\n${t.question}`, t.correct_answer, [], true, t.explanation, t.hint);
+            const ok = await askQuestion("🏦 БАНКАРСКИ КРЕДИТ", `Реши ја задачата за 1500д кредит, инаку ГУБИШ!\n\n${t.question}`, t.correct_answer, [], true, t.explanation, t.hint, t.difficulty);
             
             if (ok) {
                 newMoney += 1500;
@@ -1750,7 +1753,7 @@ async function showLandingCardMulti(p, c){
                         const auctionWon = await offerAuctionChoice("ШАНСА", 1);
                         if (!auctionWon) {
                             const t = getUniqueTask(1);
-                            const ok = await askQuestion("ШАНСА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint);
+                            const ok = await askQuestion("ШАНСА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
                             if(ok) updateMoneyMulti(myPlayerId, isPos ? amt : 0);
                             else if(!isPos) updateMoneyMulti(myPlayerId, amt);
                         }
@@ -1767,7 +1770,7 @@ async function showLandingCardMulti(p, c){
                 const auctionWon = await offerAuctionChoice("ДАНOЧНА ИНСПЕКЦИЈА", 2);
                 if (!auctionWon) {
                     const t = buildContextualQuestion('tax', { money: p.money });
-                    const ok = await askQuestion("ДАНOЧНА ИНСПЕКЦИЈА", `Реши точно за да не платиш ${tax}д данок!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint);
+                    const ok = await askQuestion("ДАНOЧНА ИНСПЕКЦИЈА", `Реши точно за да не платиш ${tax}д данок!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
                     if(!ok) {
                         updateMoneyMulti(myPlayerId, -tax);
                         log(`❌ Не ја реши задачата и плати ${tax}д данок.`);
@@ -1799,8 +1802,8 @@ async function showLandingCardMulti(p, c){
                     const auctionWon = await offerAuctionChoice("КУПУВАЊЕ НА ИМОТ", c.difficulty);
                     if (!auctionWon) {
                         const isHard = c.difficulty === 3;
-                        const t = buildContextualQuestion('buy', { price: c.price, rentPercent: c.rentPercent, name: c.name });
-                        const ok = await askQuestion("КУПУВАЊЕ", t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation, t.hint);
+                        const t = buildContextualQuestion('buy', { price: c.price, rentPercent: c.rentPercent, name: c.name, difficulty: c.difficulty });
+                        const ok = await askQuestion("КУПУВАЊЕ", t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation, t.hint, t.difficulty);
                         if(ok){
                             let finalPrice = c.price;
                             if(p.powerups.bribe){ finalPrice = 1; p.powerups.bribe = false; }
@@ -1820,10 +1823,10 @@ async function showLandingCardMulti(p, c){
                 const ownerName = (players[c.owner] && players[c.owner].name) ? escapeHtml(players[c.owner].name) : "Противник";
                 o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Сопственик: ${ownerName}</p><h2>Кирија: ${rent}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">ПЛАТИ</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">ШТИТ (🛡️)</button>':''}</div></div>`;
                 document.getElementById('pay-rent').onclick = async () => {
-                    const t = buildContextualQuestion('rent', { price: c.price, rentPercent: c.rentPercent, name: c.name, rent });
+                    const t = buildContextualQuestion('rent', { price: c.price, rentPercent: c.rentPercent, name: c.name, rent, difficulty: c.difficulty });
                     // Hide the card overlay immediately
                     o.style.display = 'none';
-                    const ok = await askQuestion("КИРИЈА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint);
+                    const ok = await askQuestion("КИРИЈА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
                     const finalRent = ok ? rent : rent * 2;
                     updateMoneyMulti(myPlayerId, -finalRent);
                     updateMoneyMulti(c.owner, finalRent);
@@ -1854,7 +1857,7 @@ async function showLandingCardMulti(p, c){
                     const t = buildContextualQuestion('build', { price: c.price });
                     // Hide the card overlay immediately
                     o.style.display = 'none';
-                    const ok = await askQuestion("ГРАДЕЊЕ", t.question, t.correct_answer, [], true, t.explanation, t.hint);
+                    const ok = await askQuestion("ГРАДЕЊЕ", t.question, t.correct_answer, [], true, t.explanation, t.hint, t.difficulty);
                     if(ok){
                         const cost = Math.floor(c.price * 0.4);
                         db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ buildings: c.buildings + 1, rentPercent: c.rentPercent + 15 });
@@ -2072,13 +2075,24 @@ function showCreateRoomInterface() {
             <h2 style="margin:0 0 8px 0; color:#1e293b; font-size:1.6rem;">✨ Креирај нова соба</h2>
             <p style="color:#64748b; margin:0 0 20px 0; font-size:0.9rem;">Следната соба ќе биде: <strong style="color:#8b5cf6; font-size:1.1rem;">${nextRoomNum}</strong></p>
 
-            <div style="margin-bottom:20px;">
-                <label style="display:block; font-weight:700; margin-bottom:6px; color:#475569; font-size:0.9rem;">📊 Тежина:</label>
-                <select id="new-room-difficulty" style="width:100%; padding:10px; border:2px solid #e2e8f0; border-radius:8px; font-size:0.95rem;">
-                    <option value="easy">ЛЕСНО</option>
-                    <option value="standard" selected>СТАНДАРДНО</option>
-                    <option value="hard">НАПРЕДНО</option>
-                </select>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
+                <div>
+                    <label style="display:block; font-weight:700; margin-bottom:6px; color:#475569; font-size:0.9rem;">📊 Тежина:</label>
+                    <select id="new-room-difficulty" style="width:100%; padding:10px; border:2px solid #e2e8f0; border-radius:8px; font-size:0.95rem;">
+                        <option value="easy">ЛЕСНО</option>
+                        <option value="standard" selected>СТАНДАРДНО</option>
+                        <option value="hard">НАПРЕДНО</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display:block; font-weight:700; margin-bottom:6px; color:#475569; font-size:0.9rem;">⏱️ Траење на игра:</label>
+                    <select id="new-room-duration" style="width:100%; padding:10px; border:2px solid #e2e8f0; border-radius:8px; font-size:0.95rem;">
+                        <option value="2400">40 мин (стандардно)</option>
+                        <option value="3600">60 мин</option>
+                        <option value="4800">80 мин (блок час)</option>
+                        <option value="5400">90 мин (блок час)</option>
+                    </select>
+                </div>
             </div>
 
             <div style="display:flex; gap:10px; margin-bottom:20px;">
@@ -2255,7 +2269,7 @@ function updateDashStats(data) {
             status: 'playing',
             currentPlayerIndex: firstStudent, 
             turnStartTime: firebase.database.ServerValue.TIMESTAMP,
-            gameEndTime: getServerTime() + (GAME_DURATION * 1000)
+            gameEndTime: getServerTime() + ((window.roomGameDuration || GAME_DURATION) * 1000)
         });
     };
 
@@ -2519,7 +2533,11 @@ function getUniqueTask(diff){
     return t;
 }
 
-function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint){
+// Question time limits per difficulty (seconds)
+const QUESTION_TIMERS = { 1: 45, 2: 60, 3: 90 };
+let _questionTimerInterval = null;
+
+function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
     return new Promise(resolve=>{
         // BUGFIX: Mark question as active to prevent accidental closing
         isQuestionActive = true;
@@ -2529,7 +2547,7 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint){
 
         const m=document.getElementById('question-modal'); m.style.display='flex';
         db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ isThinking: true });
-        
+
         // Fix for whiteboard size on open
         setTimeout(resizeCanvas, 100);
 
@@ -2540,10 +2558,64 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint){
         const fa=document.getElementById('feedback-area'); fa.innerText='';
         currentTaskData = { q, ans, expl, hint };
 
+        // Adaptive question timer
+        if (_questionTimerInterval) clearInterval(_questionTimerInterval);
+        const timerSecs = QUESTION_TIMERS[difficulty] || 60;
+        let timeLeft = timerSecs;
+
+        // Inject or reuse timer bar in modal
+        let timerBar = document.getElementById('q-timer-bar');
+        if (!timerBar) {
+            const wrap = document.createElement('div');
+            wrap.id = 'q-timer-wrap';
+            wrap.style.cssText = 'width:100%;height:6px;background:#e2e8f0;border-radius:3px;margin-bottom:10px;overflow:hidden;';
+            timerBar = document.createElement('div');
+            timerBar.id = 'q-timer-bar';
+            timerBar.style.cssText = 'height:100%;width:100%;background:#3b82f6;transition:width 1s linear,background 0.5s;';
+            wrap.appendChild(timerBar);
+            document.getElementById('question-text').parentNode.insertBefore(wrap, document.getElementById('question-text'));
+        }
+        timerBar.style.width = '100%';
+        timerBar.style.background = '#3b82f6';
+
+        let timerLabel = document.getElementById('q-timer-label');
+        if (!timerLabel) {
+            timerLabel = document.createElement('div');
+            timerLabel.id = 'q-timer-label';
+            timerLabel.style.cssText = 'font-size:0.72rem;color:#64748b;text-align:right;margin-bottom:4px;font-weight:600;';
+            document.getElementById('q-timer-bar').parentNode.before(timerLabel);
+        }
+
+        const updateTimerBar = () => {
+            const pct = (timeLeft / timerSecs) * 100;
+            timerBar.style.width = pct + '%';
+            timerLabel.textContent = `⏱ ${timeLeft}s`;
+            if (timeLeft <= 10) { timerBar.style.background = '#ef4444'; timerLabel.style.color = '#ef4444'; }
+            else if (timeLeft <= 20) { timerBar.style.background = '#f59e0b'; timerLabel.style.color = '#f59e0b'; }
+            else { timerBar.style.background = '#3b82f6'; timerLabel.style.color = '#64748b'; }
+        };
+        updateTimerBar();
+        _questionTimerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerBar();
+            if (timeLeft <= 0) {
+                clearInterval(_questionTimerInterval);
+                _questionTimerInterval = null;
+                // Time up — treat as wrong answer
+                fa.innerHTML = `<div style="color:red;font-weight:bold;font-size:1.1rem;">⏰ ВРЕМЕТО ИСТЕЧЕ! Точниот одговор е <strong>${ans}</strong>.</div>`
+                    + (expl ? `<div style="margin-top:7px;font-size:0.85rem;background:#fef2f2;padding:8px 10px;border-radius:8px;border-left:3px solid #dc2626;color:#374151;">${expl}</div>` : '');
+                AudioController.play('failure');
+                sendLiveUpdate(q, '[ИСТЕЧЕ ВРЕМЕТО]', false);
+                setTimeout(() => finalize(false), 3500);
+            }
+        }, 1000);
+
         // PHASE 2: Track answer time for speed achievement
         answerTimeStart = Date.now();
 
         const finalize = (res) => {
+            clearInterval(_questionTimerInterval);
+            _questionTimerInterval = null;
             const p = players[myPlayerId];
             const updates = { isThinking: false };
             if (res) {
@@ -2593,6 +2665,7 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint){
             opts.forEach(o=>{
                 const b=document.createElement('button'); b.className='option-btn'; b.innerText=o;
                 b.onclick=()=>{
+                    clearInterval(_questionTimerInterval); _questionTimerInterval = null;
                     const isCorrect = o === ans;
                     if(isCorrect){ b.classList.add('correct-answer'); AudioController.play('success'); triggerConfetti(); }
                     else { b.classList.add('wrong-answer'); AudioController.play('failure'); }
@@ -2611,6 +2684,7 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint){
             manualInput.value='';
             manualInput.focus();
             const submitAnswer = ()=>{
+                clearInterval(_questionTimerInterval); _questionTimerInterval = null;
                 const val = manualInput.value.trim();
                 const isCorrect = val === ans;
                 if(isCorrect){ AudioController.play('success'); triggerConfetti(); }
@@ -2827,8 +2901,10 @@ function getNextRoomNumber() {
 
 async function createSingleRoom() {
     const diffSelect = document.getElementById('new-room-difficulty');
+    const durSelect = document.getElementById('new-room-duration');
     const roomName = getNextRoomNumber(); // Auto-generate: 101, 102, 103...
     const difficulty = diffSelect.value;
+    const duration = parseInt(durSelect?.value) || GAME_DURATION;
     const teacherName = localStorage.getItem('percentopolis_teacher_name') || studentName;
 
     try {
@@ -2840,7 +2916,7 @@ async function createSingleRoom() {
             return;
         }
 
-        await roomRef.set(createRoomData(difficulty, teacherName));
+        await roomRef.set(createRoomData(difficulty, teacherName, duration));
 
         // Add to teacher's rooms
         let myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
@@ -2864,8 +2940,10 @@ async function createSingleRoom() {
 async function createMultipleRoomsFromDash() {
     const countInput = document.getElementById('dash-multi-room-count');
     const diffSelect = document.getElementById('new-room-difficulty');
+    const durSelect = document.getElementById('new-room-duration');
     const count = parseInt(countInput.value) || 4;
     const difficulty = diffSelect.value;
+    const duration = parseInt(durSelect?.value) || GAME_DURATION;
     const teacherName = localStorage.getItem('percentopolis_teacher_name') || studentName;
 
     if (count < 1 || count > 10) {
@@ -2883,7 +2961,7 @@ async function createMultipleRoomsFromDash() {
 
         try {
             const roomRef = db.ref(`rooms/${roomName}`);
-            await roomRef.set(createRoomData(difficulty, teacherName));
+            await roomRef.set(createRoomData(difficulty, teacherName, duration));
 
             myRooms.push(roomName);
             createdRooms.push(roomName);
@@ -3406,7 +3484,8 @@ async function handleResolvedAuction(auc) {
             auc.difficulty === 3 ? [] : task.options,
             true,
             task.explanation,
-            task.hint
+            task.hint,
+            task.difficulty
         );
 
         if (ok) {
