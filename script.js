@@ -764,22 +764,74 @@ function buildContextualQuestion(eventType, ctx) {
     }
     if (eventType === 'buy') {
         const Y = ctx.price, X = ctx.rentPercent, name = ctx.name;
-        const ans = fl(Y * X / 100);
+        const rentAmt = Math.floor(Y * X / 100);
+        const diff = ctx.difficulty || 2;
+        if (diff >= 3) {
+            // D3: Find the base — "rent is X% of what price?"
+            const ans = String(Y);
+            return {
+                question: `Кириjата за „${name}" е ${rentAmt}д. Таа кирија е ${X}% од цената. Колку чини имотот?`,
+                correct_answer: ans, difficulty: 3,
+                options: buildOpts(ans, [String(rentAmt + Y), String(Math.floor(Y * 0.5)), String(rentAmt * 3), String(Y + X)]),
+                explanation: `${rentAmt} = ${X}% од ? → Цена = ${rentAmt} ÷ (${X}÷100) = ${rentAmt} × (100÷${X}) = ${ans}д`,
+                hint: `💡 Ако кириjата (${rentAmt}д) е ${X}%, цената = ${rentAmt}÷${X}×100.`
+            };
+        }
+        if (diff === 2) {
+            // D2: Markup — "price + X% commission = total"
+            const total = Y + rentAmt;
+            const ans = String(total);
+            return {
+                question: `Имотот „${name}" чини ${Y}д. Провизијата при купување е ${X}% од цената. Колку платиш ВКУПНО?`,
+                correct_answer: ans, difficulty: 2,
+                options: buildOpts(ans, [String(Y + X), String(rentAmt), String(Y * 2), String(Math.floor(Y * 1.1))]),
+                explanation: `${Y} + ${X}% од ${Y} = ${Y} + ${rentAmt} = ${ans}д`,
+                hint: `💡 Прво пресметај ја провизијата (${X}% од ${Y}), па додај ја на цената.`
+            };
+        }
+        // D1: basic "X% of price"
+        const ans = String(rentAmt);
         return {
             question: `Имотот „${name}" чини ${Y}д. Кириjата е ${X}% од цената. Колку е кириjата?`,
-            correct_answer: ans, difficulty: ctx.difficulty || 2,
-            options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X*10), fl(parseFloat(ans)*2)]),
+            correct_answer: ans, difficulty: 1,
+            options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X*10), fl(rentAmt*2)]),
             explanation: `${X}% кирија од цена ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 ${X}% = ${X}÷100. Помножи го тоа со цената ${Y}д.`
         };
     }
     if (eventType === 'rent') {
         const Y = ctx.price, X = ctx.rentPercent, name = ctx.name;
-        const ans = fl(Y * X / 100);
-        const dbl = fl(parseFloat(ans) * 2);
+        const rentAmt = Math.floor(Y * X / 100);
+        const diff = ctx.difficulty || 2;
+        if (diff >= 3) {
+            // D3: Find the base — "rent is X% of what price?"
+            const ans = String(Y);
+            return {
+                question: `Плаќаш кирија ${rentAmt}д за „${name}". Таа кирија е ${X}% од цената. Колку чини имотот?`,
+                correct_answer: ans, difficulty: 3,
+                options: buildOpts(ans, [String(rentAmt + Y), String(Math.floor(Y * 0.5)), String(rentAmt * 3), String(Y + X)]),
+                explanation: `${rentAmt} = ${X}% од ? → Цена = ${rentAmt} ÷ (${X}÷100) = ${rentAmt} × (100÷${X}) = ${ans}д`,
+                hint: `💡 Ако ${rentAmt}д е ${X}%, целото = ${rentAmt}÷${X}×100.`
+            };
+        }
+        if (diff === 2) {
+            // D2: Percentage increase — "rent goes up by 20% after a building"
+            const increased = Math.floor(rentAmt * 1.2);
+            const ans = String(increased);
+            return {
+                question: `Плаќаш кирија ${rentAmt}д за „${name}". Сопственикот изгради зграда — кириjата расте за 20%. Колку е новата кирија?`,
+                correct_answer: ans, difficulty: 2,
+                options: buildOpts(ans, [String(rentAmt + 20), String(rentAmt * 2), String(Math.floor(rentAmt * 1.5)), String(rentAmt - Math.floor(rentAmt * 0.2))]),
+                explanation: `${rentAmt} + 20% = ${rentAmt} + ${Math.floor(rentAmt * 0.2)} = ${ans}д`,
+                hint: `💡 Зголеми ${rentAmt} за 20%: ${rentAmt} + (20%×${rentAmt}).`
+            };
+        }
+        // D1: standard
+        const ans = String(rentAmt);
+        const dbl = String(rentAmt * 2);
         return {
             question: `„${name}" чини ${Y}д, кирија ${X}%. Точен одговор → ${ans}д. Погрешен → ${dbl}д. Колку е ${X}% од ${Y}?`,
-            correct_answer: ans, difficulty: ctx.difficulty || 2,
+            correct_answer: ans, difficulty: 1,
             options: buildOpts(ans, [dbl, fl((Y*X)/10), fl(Y+X), fl(Y/X)]),
             explanation: `${X}% од ${Y} = (${X}÷100)×${Y} = ${ans}д`,
             hint: `💡 Кириjата = цена × (процент ÷ 100).`
@@ -2697,15 +2749,15 @@ function getUniqueTask(diff){
         baseDiff = Math.min(3, baseDiff + 1);
     }
 
-    // Weighted mixed-difficulty pool so all levels see all question types:
-    // D1 slot → 65% D1, 25% D2, 10% D3
-    // D2 slot → 10% D1, 60% D2, 30% D3
-    // D3 slot → 0%  D1, 20% D2, 80% D3
+    // Minimal mixing: each slot stays at its own difficulty 90% of the time
+    // D1 slot → 90% D1, 10% D2
+    // D2 slot → 85% D2, 10% D1, 5% D3
+    // D3 slot → 90% D3, 10% D2
     const r = Math.random();
     let finalDiff;
-    if (baseDiff === 1)      finalDiff = r < 0.65 ? 1 : r < 0.90 ? 2 : 3;
-    else if (baseDiff === 2) finalDiff = r < 0.10 ? 1 : r < 0.70 ? 2 : 3;
-    else                     finalDiff = r < 0.20 ? 2 : 3;
+    if (baseDiff === 1)      finalDiff = r < 0.90 ? 1 : 2;
+    else if (baseDiff === 2) finalDiff = r < 0.85 ? 2 : r < 0.95 ? 1 : 3;
+    else                     finalDiff = r < 0.90 ? 3 : 2;
 
     let filtered = allTasks.filter(t => t.difficulty === finalDiff && !usedQuestionIds.includes(t.id));
     if(filtered.length === 0){
