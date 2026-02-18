@@ -564,7 +564,7 @@ const boardConfig = [
 // --- AUDIO ---
 const AudioController = {
     ctx: null,
-    init: function() { window.AudioContext = window.AudioContext||window.webkitAudioContext; this.ctx = new AudioContext(); },
+    init: function() { const AC = window.AudioContext || window.webkitAudioContext; if (AC) this.ctx = new AC(); },
     play: function(type) {
         if (!this.ctx) return;
         if (this.ctx.state === 'suspended') this.ctx.resume();
@@ -1983,16 +1983,13 @@ function updateDashStats(data) {
 
         // PHASE 2: Enhanced Analytics - Performance color coding
         let performanceColor = '#ef4444'; // Red (struggling)
-        let performanceLabel = 'Потреба од помош';
         let performanceIcon = '⚠️';
 
         if (successRate >= 75) {
             performanceColor = '#10b981'; // Green (excellent)
-            performanceLabel = 'Одличен';
             performanceIcon = '⭐';
         } else if (successRate >= 50) {
             performanceColor = '#fbbf24'; // Yellow (good)
-            performanceLabel = 'Добар';
             performanceIcon = '👍';
         }
 
@@ -2179,7 +2176,6 @@ function buyItem(type,cost) {
 }
 
 function getUniqueTask(diff){
-    const roomRef = db.ref(`rooms/${roomId}`);
     let finalDiff = diff || 1;
 
     // Shift difficulty based on room mode
@@ -2198,7 +2194,7 @@ function getUniqueTask(diff){
     return t;
 }
 
-function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
+function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint){
     return new Promise(resolve=>{
         // BUGFIX: Mark question as active to prevent accidental closing
         isQuestionActive = true;
@@ -2298,7 +2294,7 @@ function askQuestion(cat, q, ans, opts, isAdaptive, expl, hint){
                 setTimeout(()=>{ finalize(isCorrect); }, 2000);
             };
             document.getElementById('submit-answer-btn').onclick = submitAnswer;
-            manualInput.onkeypress = (e) => { if (e.key === 'Enter') submitAnswer(); };
+            manualInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitAnswer(); });
         }
     });
 }
@@ -2460,7 +2456,7 @@ function rollDiceAnimation(){
     });
 }
 
-function sendLiveUpdate(question, answer, isCorrect) {
+function sendLiveUpdate(question, answer, _isCorrect) {
     if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE") return; 
     const payload = {
         player: studentName + " (" + studentOdd + ")",
