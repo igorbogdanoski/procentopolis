@@ -2308,6 +2308,8 @@ function updateDashStats(data) {
     startBtn.style.display = (data.status === 'waiting') ? 'block' : 'none';
     const newGameBtn = document.getElementById('dash-newgame-btn');
     if (newGameBtn) newGameBtn.style.display = (data.status === 'ended') ? 'block' : 'none';
+    const endGameBtn = document.getElementById('dash-endgame-btn');
+    if (endGameBtn) endGameBtn.style.display = (data.status === 'playing') ? 'block' : 'none';
 
     // Store data globally for report generation
     window.lastDashData = data;
@@ -2614,6 +2616,12 @@ function downloadRoomReport() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+function endGameManually() {
+    if (!activeDashRoomId) return;
+    if (!confirm('Дали сте сигурни дека сакате да ја завршите играта? Сите ученици ќе го видат крајниот извештај.')) return;
+    db.ref(`rooms/${activeDashRoomId}`).update({ status: 'ended', endReason: 'Наставникот ја заврши играта.' });
 }
 
 async function resetRoomForNewGame() {
