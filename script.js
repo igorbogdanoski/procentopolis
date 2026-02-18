@@ -2596,10 +2596,12 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint){
                     const isCorrect = o === ans;
                     if(isCorrect){ b.classList.add('correct-answer'); AudioController.play('success'); triggerConfetti(); }
                     else { b.classList.add('wrong-answer'); AudioController.play('failure'); }
-                    fa.innerText = isCorrect ? "ТОЧНО! ✅" : `ГРЕШКА! ❌ Точниот одговор е ${ans}.`;
-                    fa.style.color = isCorrect ? "green" : "red";
+                    fa.innerHTML = (isCorrect
+                        ? `<div style="color:green;font-weight:bold;font-size:1.1rem;">ТОЧНО! ✅</div>`
+                        : `<div style="color:red;font-weight:bold;font-size:1.1rem;">ГРЕШКА! ❌ Точниот одговор е <strong>${ans}</strong>.</div>`)
+                        + (expl ? `<div style="margin-top:7px;font-size:0.85rem;background:${isCorrect?'#f0fdf4':'#fef2f2'};padding:8px 10px;border-radius:8px;border-left:3px solid ${isCorrect?'#16a34a':'#dc2626'};color:#374151;">${expl}</div>` : '');
                     sendLiveUpdate(q, o, isCorrect);
-                    setTimeout(()=>{ finalize(isCorrect); }, 2000);
+                    setTimeout(()=>{ finalize(isCorrect); }, isCorrect ? 3000 : 4500);
                 };
                 oc.appendChild(b);
             });
@@ -2613,10 +2615,12 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint){
                 const isCorrect = val === ans;
                 if(isCorrect){ AudioController.play('success'); triggerConfetti(); }
                 else { AudioController.play('failure'); }
-                fa.innerText = isCorrect ? "ТОЧНО! ✅" : `ГРЕШКА! ❌ Точниот одговор е ${ans}.`;
-                fa.style.color = isCorrect ? "green" : "red";
+                fa.innerHTML = (isCorrect
+                    ? `<div style="color:green;font-weight:bold;font-size:1.1rem;">ТОЧНО! ✅</div>`
+                    : `<div style="color:red;font-weight:bold;font-size:1.1rem;">ГРЕШКА! ❌ Точниот одговор е <strong>${ans}</strong>.</div>`)
+                    + (expl ? `<div style="margin-top:7px;font-size:0.85rem;background:${isCorrect?'#f0fdf4':'#fef2f2'};padding:8px 10px;border-radius:8px;border-left:3px solid ${isCorrect?'#16a34a':'#dc2626'};color:#374151;">${expl}</div>` : '');
                 sendLiveUpdate(q, val, isCorrect);
-                setTimeout(()=>{ finalize(isCorrect); }, 2000);
+                setTimeout(()=>{ finalize(isCorrect); }, isCorrect ? 3000 : 4500);
             };
             document.getElementById('submit-answer-btn').onclick = submitAnswer;
             manualInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitAnswer(); });
