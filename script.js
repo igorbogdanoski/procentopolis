@@ -497,6 +497,7 @@ let myTokenEmoji = "👤";
 
 // --- DATA ---
 function shuffleArray(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const fmt = n => n % 1 === 0 ? n.toString() : n.toFixed(1);
 const allTasks=[];
 for(let i=0;i<220;i++){
     let diff=(i%3)+1; 
@@ -552,15 +553,258 @@ for(let i=0;i<220;i++){
     let expl=`💡 Постапка: ${rate}% од ${base} се пресметува како (${rate} ÷ 100) × ${base} = ${cs}.`;
     
     allTasks.push({
-        id:100+i, 
-        difficulty:diff, 
-        question:`Пресметај ${rate}% од ${base}.`, 
-        correct_answer:cs, 
-        options:shuffleArray(finalOptions), 
-        raw:{rate,base}, 
-        explanation:expl, 
+        id:100+i,
+        difficulty:diff,
+        question:`Пресметај ${rate}% од ${base}.`,
+        correct_answer:cs,
+        options:shuffleArray(finalOptions),
+        raw:{rate,base},
+        explanation:expl,
         hint:hint
     });
+}
+
+// TYPE 2: INCREASE — "Зголеми Y за X%"  (D1-2, 80 tasks, ids 320-399)
+{
+const increaseParams = [
+    [10,100],[20,200],[25,400],[50,100],[10,200],[20,500],[25,80],[50,200],
+    [10,400],[20,100],[15,200],[5,100],[30,200],[40,100],[20,400],
+    [15,120],[12,250],[18,150],[22,300],[35,140],[8,250],[16,125],[24,175],
+    [11,200],[14,350],[17,120],[13,400],[19,160],[21,150],[23,200],
+    [6,500],[7,300],[9,400],[26,150],[28,200],[32,125],[36,100],[38,150],
+    [42,200],[44,250],[46,120],[48,300],[52,100],[54,200],[56,150],
+    [58,250],[62,100],[64,150],[66,200],[68,120],[72,150],[74,200],
+    [76,100],[78,250],[82,120],[84,150],[86,200],[88,100],[92,150],
+    [94,120],[96,100],[98,200],[33,300],[37,250],[41,200],[43,150],[47,100],
+    [53,200],[57,150],[61,100],[63,250],[67,200],[69,150],[71,100],[73,200],
+    [77,150],[79,100],[83,250],[87,200],[91,150],[93,100],[97,200]
+];
+increaseParams.forEach(([X, Y], i) => {
+    const result = Y + (Y * X) / 100;
+    const ans = fmt(result);
+    const partOnly = fmt((Y * X) / 100);
+    allTasks.push({
+        id: 320 + i,
+        difficulty: i < 15 ? 1 : 2,
+        question: `Зголеми ${Y} за ${X}%.`,
+        correct_answer: ans,
+        options: shuffleArray([ans, fmt(Y+X), fmt((Y*X)/10+Y), partOnly].filter((v,idx,a)=>a.indexOf(v)===idx)).slice(0, 4),
+        raw: { rate: X, base: Y },
+        explanation: `${Y} + ${X}% од ${Y} = ${Y} + ${partOnly} = ${ans}`,
+        hint: `💡 Прво пресметај ${X}% од ${Y}, па додај го на ${Y}.`
+    });
+});
+}
+
+// TYPE 3: DECREASE — "Намали Y за X%"  (D1-2, 80 tasks, ids 400-479)
+{
+const decreaseParams = [
+    [10,100],[20,200],[25,400],[50,100],[10,200],[20,500],[25,80],[50,200],
+    [10,400],[20,100],[15,200],[5,100],[30,200],[40,100],[20,400],
+    [15,120],[12,250],[18,150],[22,300],[35,140],[8,250],[16,125],[24,175],
+    [11,200],[14,350],[17,120],[13,400],[19,160],[21,150],[23,200],
+    [6,500],[7,300],[9,400],[26,150],[28,200],[32,125],[36,100],[38,150],
+    [42,200],[44,250],[46,120],[48,300],[52,100],[54,200],[56,150],
+    [58,250],[62,100],[64,150],[66,200],[68,120],[72,150],[74,200],
+    [76,100],[78,250],[82,120],[84,150],[86,200],[88,100],[92,150],
+    [94,120],[96,100],[98,200],[33,300],[37,250],[41,200],[43,150],[47,100],
+    [53,200],[57,150],[61,100],[63,250],[67,200],[69,150],[71,100],[73,200],
+    [77,150],[79,100],[83,250],[87,200],[91,150],[93,100],[97,200]
+];
+decreaseParams.forEach(([X, Y], i) => {
+    const result = Y - (Y * X) / 100;
+    const ans = fmt(result);
+    const partOnly = fmt((Y * X) / 100);
+    allTasks.push({
+        id: 400 + i,
+        difficulty: i < 15 ? 1 : 2,
+        question: `Намали ${Y} за ${X}%.`,
+        correct_answer: ans,
+        options: shuffleArray([ans, fmt(Y-X), partOnly, fmt(result*2)].filter((v,idx,a)=>a.indexOf(v)===idx)).slice(0, 4),
+        raw: { rate: X, base: Y },
+        explanation: `${Y} - ${X}% од ${Y} = ${Y} - ${partOnly} = ${ans}`,
+        hint: `💡 Прво пресметај ${X}% од ${Y}, па одземи од ${Y}.`
+    });
+});
+}
+
+// TYPE 4: FIND RATE — "Колку % е A од B?"  (D2, 50 tasks, ids 480-529)
+{
+const rateParams = [
+    [10,100],[20,200],[50,100],[25,400],[15,300],[30,150],[40,200],[60,300],
+    [70,700],[80,400],[45,900],[35,700],[12,600],[18,900],[22,550],
+    [8,400],[6,300],[4,200],[14,700],[16,800],[24,600],[28,700],[32,800],
+    [36,900],[38,950],[42,840],[44,880],[46,920],[48,960],[54,900],
+    [56,800],[58,580],[62,620],[64,800],[66,660],[68,680],[72,720],[74,740],
+    [76,760],[78,780],[82,820],[84,840],[86,860],[88,880],[92,920],
+    [94,940],[96,960],[98,980],[5,500],[9,900]
+];
+rateParams.forEach(([A, B], i) => {
+    const result = (A / B) * 100;
+    const ans = fmt(result);
+    allTasks.push({
+        id: 480 + i,
+        difficulty: 2,
+        question: `Колку проценти е ${A} од ${B}?`,
+        correct_answer: ans,
+        options: shuffleArray([ans, fmt(A/B), fmt((B/A)*100), fmt(A*B/100)].filter((v,idx,a)=>a.indexOf(v)===idx)).slice(0, 4),
+        raw: { rate: result, base: B },
+        explanation: `(${A} ÷ ${B}) × 100 = ${ans}%`,
+        hint: `💡 Подели го малиот број со големиот, па помножи со 100.`
+    });
+});
+}
+
+// TYPE 5: FIND BASE — "A е X% од кој број?"  (D2-3, 40 tasks, ids 530-569)
+{
+const baseParams = [
+    [10,100],[20,50],[25,50],[50,50],[30,60],[40,80],[15,30],[5,100],
+    [8,40],[12,60],[16,80],[24,120],[32,160],[36,180],[45,90],
+    [6,120],[7,140],[9,180],[11,110],[13,130],[17,170],[19,190],[21,210],
+    [22,220],[23,230],[26,260],[27,270],[28,280],[29,290],[31,310],
+    [33,330],[34,340],[37,370],[38,380],[39,390],[41,410],[43,430],
+    [44,440],[46,460],[47,470]
+];
+baseParams.forEach(([X, A], i) => {
+    const base = (A * 100) / X;
+    const ans = fmt(base);
+    allTasks.push({
+        id: 530 + i,
+        difficulty: i < 20 ? 2 : 3,
+        question: `${A} е ${X}% од кој број?`,
+        correct_answer: ans,
+        options: shuffleArray([ans, fmt(A*X), fmt(A*X/100), fmt(A/X)].filter((v,idx,a)=>a.indexOf(v)===idx)).slice(0, 4),
+        raw: { rate: X, base: base },
+        explanation: `${A} ÷ (${X}÷100) = ${A} × (100÷${X}) = ${ans}`,
+        hint: `💡 Ако ${A} е ${X}%, целото (100%) е ${A}÷${X}×100.`
+    });
+});
+}
+
+// TYPE 6: INTEREST — "X% камата на Y за 1 год."  (D3, 30 tasks, ids 570-599)
+{
+const interestParams = [
+    [5,200],[8,500],[10,300],[12,400],[6,500],[15,200],[20,300],[4,500],
+    [3,600],[7,400],[9,300],[11,200],[13,400],[14,500],[16,250],
+    [18,300],[2,1000],[25,200],[30,100],[6,800],[8,250],[10,500],
+    [12,250],[5,400],[7,700],[9,500],[11,300],[13,200],[15,400],[20,500]
+];
+interestParams.forEach(([X, Y], i) => {
+    const result = (Y * X) / 100;
+    const ans = fmt(result);
+    allTasks.push({
+        id: 570 + i,
+        difficulty: 3,
+        question: `Банката нуди ${X}% годишна камата. Ако депонираш ${Y}д, колку камата добиваш за 1 година?`,
+        correct_answer: ans,
+        options: shuffleArray([ans, fmt(Y+X), fmt((Y*X)/10), fmt(Y+result)].filter((v,idx,a)=>a.indexOf(v)===idx)).slice(0, 4),
+        raw: { rate: X, base: Y },
+        explanation: `Камата = ${Y} × (${X}÷100) = ${ans}д`,
+        hint: `💡 Камата = главница × каматна стапка ÷ 100.`
+    });
+});
+}
+
+// TYPE 7: MARKUP/TAX — "Цена Y + X% данок"  (D3, 30 tasks, ids 600-629)
+{
+const markupParams = [
+    [10,200],[20,150],[5,400],[15,300],[8,500],[25,200],[18,250],[12,400],
+    [6,300],[14,350],[22,200],[16,125],[24,150],[30,200],[40,100],
+    [9,400],[7,300],[11,200],[13,350],[17,150],[19,200],[21,100],[23,150],
+    [26,200],[28,250],[32,125],[34,150],[36,100],[38,200],[42,100]
+];
+markupParams.forEach(([X, Y], i) => {
+    const taxOnly = (Y * X) / 100;
+    const result = Y + taxOnly;
+    const ans = fmt(result);
+    allTasks.push({
+        id: 600 + i,
+        difficulty: 3,
+        question: `Производ чини ${Y}д. Кон него се додава ${X}% данок. Колку изнесува крајната цена?`,
+        correct_answer: ans,
+        options: shuffleArray([ans, fmt(taxOnly), fmt(Y+X), fmt(taxOnly*2+Y)].filter((v,idx,a)=>a.indexOf(v)===idx)).slice(0, 4),
+        raw: { rate: X, base: Y },
+        explanation: `${Y} + ${X}% од ${Y} = ${Y} + ${fmt(taxOnly)} = ${ans}д`,
+        hint: `💡 Прво пресметај го данокот (${X}% од ${Y}), па додај го на цената.`
+    });
+});
+}
+
+function buildContextualQuestion(eventType, ctx) {
+    const buildOpts = (correct, wrongs) => {
+        const all = [correct, ...wrongs.filter(w => w !== correct && parseFloat(w) > 0)];
+        return shuffleArray([...new Set(all)]).slice(0, 4);
+    };
+
+    if (eventType === 'bonus') {
+        const Y = ctx.money, X = 15;
+        const ans = fmt((Y * X) / 100);
+        return {
+            question: `Имаш ${Y}д. Добиваш ${X}% бонус. Колку денари добиваш?`,
+            correct_answer: ans,
+            options: buildOpts(ans, [fmt(Y+X), fmt((Y*X)/10), fmt(Y*X/1000), fmt(Y/X)]),
+            explanation: `${X}% од ${Y} = (${X}÷100)×${Y} = ${ans}д`,
+            hint: `💡 Подели ${Y} со 100, па помножи со ${X}.`
+        };
+    }
+    if (eventType === 'tax') {
+        const Y = ctx.money, X = 10;
+        const ans = fmt((Y * X) / 100);
+        return {
+            question: `Имаш ${Y}д. Данокот е ${X}% од твоите пари. Колку плаќаш данок?`,
+            correct_answer: ans,
+            options: buildOpts(ans, [fmt(Y+X), fmt(Y-parseFloat(ans)), fmt((Y*X)/10), fmt(Y/10)]),
+            explanation: `${X}% данок од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
+            hint: `💡 10% од број добиваш со делење на 10.`
+        };
+    }
+    if (eventType === 'buy') {
+        const Y = ctx.price, X = ctx.rentPercent, name = ctx.name;
+        const ans = fmt((Y * X) / 100);
+        return {
+            question: `Имотот „${name}" чини ${Y}д. Кириjата е ${X}% од цената. Колку е кириjата?`,
+            correct_answer: ans,
+            options: buildOpts(ans, [fmt(Y+X), fmt((Y*X)/10), fmt(Y/X*10), fmt(parseFloat(ans)*2)]),
+            explanation: `${X}% кирија од цена ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
+            hint: `💡 ${X}% = ${X}÷100. Помножи го тоа со цената ${Y}д.`
+        };
+    }
+    if (eventType === 'rent') {
+        const Y = ctx.price, X = ctx.rentPercent, name = ctx.name;
+        const ans = fmt((Y * X) / 100);
+        const dbl = fmt(parseFloat(ans) * 2);
+        return {
+            question: `„${name}" чини ${Y}д, кирија ${X}%. Точен одговор → ${ans}д. Погрешен → ${dbl}д. Колку е ${X}% од ${Y}?`,
+            correct_answer: ans,
+            options: buildOpts(ans, [dbl, fmt((Y*X)/10), fmt(Y+X), fmt(Y/X)]),
+            explanation: `${X}% од ${Y} = (${X}÷100)×${Y} = ${ans}д`,
+            hint: `💡 Кириjата = цена × (процент ÷ 100).`
+        };
+    }
+    if (eventType === 'build') {
+        const Y = ctx.price, X = 40;
+        const ans = fmt((Y * X) / 100);
+        return {
+            question: `Градбата чини ${X}% од цената на имотот (${Y}д). Колку плаќаш за градба?`,
+            correct_answer: ans,
+            options: buildOpts(ans, [fmt(Y+X), fmt((Y*X)/10), fmt(parseFloat(ans)+Y), fmt(Y/X*10)]),
+            explanation: `${X}% од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
+            hint: `💡 40% = 2/5 од бројот. Подели со 5 па помножи со 2.`
+        };
+    }
+    if (eventType === 'loan') {
+        const Y = 1500, X = [6, 8, 12][Math.floor(Math.random()*3)];
+        const ans = fmt((Y * X) / 100);
+        return {
+            question: `Зел/а си кредит од ${Y}д. Банката наплаќа ${X}% годишна камата. Колку камата плаќаш за 1 година?`,
+            correct_answer: ans,
+            options: buildOpts(ans, [fmt(Y+X), fmt((Y*X)/10), fmt(Y/X*10), fmt(parseFloat(ans)*2)]),
+            explanation: `${X}% камата од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
+            hint: `💡 Камата = главница × (каматна стапка ÷ 100).`
+        };
+    }
+    // Fallback
+    return getUniqueTask(2);
 }
 
 const hardProperties = [4, 9, 14, 19];
@@ -1341,8 +1585,8 @@ async function playTurnMulti(){
         const b = Math.floor(p.money * 0.15);
         const auctionWon = await offerAuctionChoice("СТАРТ БОНУС", 1);
         if (!auctionWon) {
-            const t = getUniqueTask(1);
-            const ok = await askQuestion("СТАРТ БОНУС", `За ${b}д (15%), реши:\n${t.question}`, t.correct_answer, t.options, true, t.explanation);
+            const t = buildContextualQuestion('bonus', { money: p.money });
+            const ok = await askQuestion("СТАРТ БОНУС", t.question, t.correct_answer, t.options, true, t.explanation, t.hint);
             if(ok) updateMoneyMulti(myPlayerId, b);
         }
     }
@@ -1366,8 +1610,8 @@ async function updateMoneyMulti(pid, amt){
         // Step 1: Offer Loan if available
         if (!p.hasLoan) {
             log("⚠️ КРИЗА! Немаш доволно пари. Банката ти нуди КРЕДИТ.");
-            const t = getUniqueTask(3);
-            const ok = await askQuestion("🏦 БАНКАРСКИ КРЕДИТ", `Реши ја задачата за 1500д кредит, инаку ГУБИШ! \n\n ${t.question}`, t.correct_answer, [], true, t.explanation, t.hint);
+            const t = buildContextualQuestion('loan', {});
+            const ok = await askQuestion("🏦 БАНКАРСКИ КРЕДИТ", `Реши ја задачата за 1500д кредит, инаку ГУБИШ!\n\n${t.question}`, t.correct_answer, [], true, t.explanation, t.hint);
             
             if (ok) {
                 newMoney += 1500;
@@ -1519,7 +1763,7 @@ async function showLandingCardMulti(p, c){
                 o.style.display = 'none';
                 const auctionWon = await offerAuctionChoice("ДАНOЧНА ИНСПЕКЦИЈА", 2);
                 if (!auctionWon) {
-                    const t = getUniqueTask(2);
+                    const t = buildContextualQuestion('tax', { money: players[myPlayerId].money });
                     const ok = await askQuestion("ДАНOЧНА ИНСПЕКЦИЈА", `Реши точно за да не платиш ${tax}д данок!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint);
                     if(!ok) {
                         updateMoneyMulti(myPlayerId, -tax);
@@ -1552,7 +1796,7 @@ async function showLandingCardMulti(p, c){
                     const auctionWon = await offerAuctionChoice("КУПУВАЊЕ НА ИМОТ", c.difficulty);
                     if (!auctionWon) {
                         const isHard = c.difficulty === 3;
-                        const t = getUniqueTask(c.difficulty);
+                        const t = buildContextualQuestion('buy', { price: c.price, rentPercent: c.rentPercent, name: c.name });
                         const ok = await askQuestion("КУПУВАЊЕ", t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation, t.hint);
                         if(ok){
                             let finalPrice = c.price;
@@ -1573,10 +1817,10 @@ async function showLandingCardMulti(p, c){
                 const ownerName = (players[c.owner] && players[c.owner].name) ? escapeHtml(players[c.owner].name) : "Противник";
                 o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Сопственик: ${ownerName}</p><h2>Кирија: ${rent}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">ПЛАТИ</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">ШТИТ (🛡️)</button>':''}</div></div>`;
                 document.getElementById('pay-rent').onclick = async () => {
-                    const t = getUniqueTask(c.difficulty);
+                    const t = buildContextualQuestion('rent', { price: c.price, rentPercent: c.rentPercent, name: c.name, rent });
                     // Hide the card overlay immediately
                     o.style.display = 'none';
-                    const ok = await askQuestion("КИРИЈА", `Точен одговор за ${rent}д, инаку ${rent*2}д!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint);
+                    const ok = await askQuestion("КИРИЈА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint);
                     const finalRent = ok ? rent : rent * 2;
                     updateMoneyMulti(myPlayerId, -finalRent);
                     updateMoneyMulti(c.owner, finalRent);
@@ -1604,7 +1848,7 @@ async function showLandingCardMulti(p, c){
                 
                 const bldBtn = document.getElementById('build-btn');
                 if(bldBtn) bldBtn.onclick = async () => {
-                    const t = getUniqueTask(3);
+                    const t = buildContextualQuestion('build', { price: c.price });
                     // Hide the card overlay immediately
                     o.style.display = 'none';
                     const ok = await askQuestion("ГРАДЕЊЕ", t.question, t.correct_answer, [], true, t.explanation, t.hint);
