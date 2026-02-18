@@ -849,14 +849,22 @@ function buildContextualQuestion(eventType, ctx) {
         };
     }
     if (eventType === 'build') {
-        const Y = ctx.price, X = 40;
+        const Y = ctx.price;
+        const X = ctx.pct || 40; // pct pre-selected at call site so button and question match
         const ans = fl(Y * X / 100);
+        const hints = {
+            30: '💡 30% = 3/10. Подели со 10 па помножи со 3.',
+            35: '💡 35% = 10% + 25%. Пресметај ги одделно па собери.',
+            40: '💡 40% = 2/5. Подели со 5 па помножи со 2.',
+            45: '💡 45% = 50% − 5%. Земи половина, па одземи 5%.',
+            50: '💡 50% = половина. Подели со 2.'
+        };
         return {
             question: `Градбата чини ${X}% од цената на имотот (${Y}д). Колку плаќаш за градба?`,
             correct_answer: ans, difficulty: 3,
-            options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(parseFloat(ans)+Y), fl(Y/X*10)]),
+            options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(parseFloat(ans)+Y), fl(Y*(100-X)/100)]),
             explanation: `${X}% од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
-            hint: `💡 40% = 2/5 од бројот. Подели со 5 па помножи со 2.`
+            hint: hints[X] || `💡 Пресметај ${X}% од ${Y}д.`
         };
     }
     if (eventType === 'loan') {
@@ -1963,27 +1971,30 @@ async function showLandingCardMulti(p, c){
                 const groupProps = gameBoard.filter(prop => prop.group === c.group);
                 const ownsAll = groupProps.every(prop => prop.owner === myPlayerId);
                 
+                // Pick build % once — used in button label, question, and actual cost
+                const buildPct = [30, 35, 40, 45, 50][Math.floor(Math.random() * 5)];
+                const buildCost = Math.floor(c.price * buildPct / 100);
+
                 let buildActionHtml = '';
                 if (c.buildings < 3) {
                     if (ownsAll) {
-                        buildActionHtml = `<button class="action-btn btn-build" id="build-btn">ГРАДИ (${Math.floor(c.price*0.4)}д)</button>`;
+                        buildActionHtml = `<button class="action-btn btn-build" id="build-btn">ГРАДИ (${buildCost}д)</button>`;
                     } else {
                         buildActionHtml = `<p style="font-size:0.8rem; color:#e67e22;">⚠️ Потребен е монопол (сите од оваа боја) за градење.</p>`;
                     }
                 }
 
                 o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Твој имот</p></div><div class="card-actions">${buildActionHtml} <button class="action-btn btn-pass" id="pass-prop">ЗАТВОРИ</button></div></div>`;
-                
+
                 const bldBtn = document.getElementById('build-btn');
                 if(bldBtn) bldBtn.onclick = async () => {
-                    const t = buildContextualQuestion('build', { price: c.price });
+                    const t = buildContextualQuestion('build', { price: c.price, pct: buildPct });
                     // Hide the card overlay immediately
                     o.style.display = 'none';
                     const ok = await askQuestion("ГРАДЕЊЕ", t.question, t.correct_answer, [], true, t.explanation, t.hint, t.difficulty);
                     if(ok){
-                        const cost = Math.floor(c.price * 0.4);
                         db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ buildings: c.buildings + 1, rentPercent: c.rentPercent + 15 });
-                        updateMoneyMulti(myPlayerId, -cost);
+                        updateMoneyMulti(myPlayerId, -buildCost);
                         AudioController.play('success');
                     }
                     resolve();
