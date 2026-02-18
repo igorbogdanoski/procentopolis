@@ -753,13 +753,15 @@ function buildContextualQuestion(eventType, ctx) {
     }
     if (eventType === 'tax') {
         const Y = ctx.money, X = 10;
-        const ans = fl(Y * X / 100);
+        const taxAmt = Math.floor(Y * X / 100);
+        const remaining = Y - taxAmt;
+        const ans = String(remaining);
         return {
-            question: `Имаш ${Y}д. Данокот е ${X}% од твоите пари. Колку плаќаш данок?`,
-            correct_answer: ans, difficulty: 1,
-            options: buildOpts(ans, [fl(Y+X), fl(Y-parseFloat(ans)), fl((Y*X)/10), fl(Y/X)]),
-            explanation: `${X}% данок од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
-            hint: `💡 10% од број добиваш со делење на 10.`
+            question: `Имаш ${Y}д. Данокот е ${X}%. Колку ти ОСТАНУВААТ пари по плаќањето?`,
+            correct_answer: ans, difficulty: 2,
+            options: buildOpts(ans, [String(taxAmt), String(Y + taxAmt), fl(Y - X), fl(Y * X / 10)]),
+            explanation: `Данок = ${X}% од ${Y} = ${taxAmt}д. Останува: ${Y} − ${taxAmt} = ${ans}д`,
+            hint: `💡 Прво пресметај 10% (= ${taxAmt}д), па одземи го од ${Y}д.`
         };
     }
     if (eventType === 'buy') {
