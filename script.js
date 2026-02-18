@@ -921,6 +921,7 @@ async function joinRoom() {
             roomRef.off('value', handleRoomUpdate); // Prevent duplicate listeners
             roomRef.on('value', handleRoomUpdate);
             listenForTradeOffers();
+            listenForAuction();
         });
     });
 }
@@ -957,6 +958,14 @@ function handleRoomUpdate(snapshot) {
     players = data.players || [];
     gameBoard = data.gameBoard || [];
     currentPlayerIndex = data.currentPlayerIndex || 0;
+
+    // If auction is active but seller disconnected/eliminated, auto-resolve with no winner
+    if (data.auction && data.auction.status === 'active') {
+        const seller = players[data.auction.sellerId];
+        if (!seller || seller.isEliminated) {
+            db.ref(`rooms/${roomId}/auction`).update({ status: 'resolved', winnerId: -1 });
+        }
+    }
 
     // Update Class Timer UI from gameEndTime (robust sync)
     const classTimerEl = document.getElementById('class-timer');
@@ -1330,9 +1339,12 @@ async function playTurnMulti(){
 
     if(passedStart){
         const b = Math.floor(p.money * 0.15);
-        const t = getUniqueTask(1);
-        const ok = await askQuestion("СТАРТ БОНУС", `За ${b}д (15%), реши:\n${t.question}`, t.correct_answer, t.options, true, t.explanation);
-        if(ok) updateMoneyMulti(myPlayerId, b);
+        const auctionWon = await offerAuctionChoice("СТАРТ БОНУС", 1);
+        if (!auctionWon) {
+            const t = getUniqueTask(1);
+            const ok = await askQuestion("СТАРТ БОНУС", `За ${b}д (15%), реши:\n${t.question}`, t.correct_answer, t.options, true, t.explanation);
+            if(ok) updateMoneyMulti(myPlayerId, b);
+        }
     }
 
     const c = gameBoard[p.pos];
@@ -1488,10 +1500,13 @@ async function showLandingCardMulti(p, c){
                     if(btc) btc.style.display = 'block';
                     if(btc) btc.onclick = async (e) => {
                         e.stopPropagation();
-                        const t = getUniqueTask(1);
-                        const ok = await askQuestion("ШАНСА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint);
-                        if(ok) updateMoneyMulti(myPlayerId, isPos ? amt : 0);
-                        else if(!isPos) updateMoneyMulti(myPlayerId, amt);
+                        const auctionWon = await offerAuctionChoice("ШАНСА", 1);
+                        if (!auctionWon) {
+                            const t = getUniqueTask(1);
+                            const ok = await askQuestion("ШАНСА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint);
+                            if(ok) updateMoneyMulti(myPlayerId, isPos ? amt : 0);
+                            else if(!isPos) updateMoneyMulti(myPlayerId, amt);
+                        }
                         rc();
                     };
                 }, 800);
@@ -1501,14 +1516,17 @@ async function showLandingCardMulti(p, c){
             o.innerHTML = `<div class="card-view"><div class="card-header" style="background:#34495e">ДАНOК</div><div class="card-body"><p>Инспекција! Реши ја задачата за да избегнеш 10% данок.</p><h2>Казна: ${tax}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-tax-task">РЕШИ ЗАДАЧА</button>${p.powerups.lawyer?'<button class="action-btn btn-buy" id="use-lawyer">АДВОКАТ (⚖️)</button>':''}</div></div>`;
             
             document.getElementById('pay-tax-task').onclick = async () => {
-                const t = getUniqueTask(2);
                 o.style.display = 'none';
-                const ok = await askQuestion("ДАНOЧНА ИНСПЕКЦИЈА", `Реши точно за да не платиш ${tax}д данок!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint);
-                if(!ok) {
-                    updateMoneyMulti(myPlayerId, -tax);
-                    log(`❌ Не ја реши задачата и плати ${tax}д данок.`);
-                } else {
-                    log(`✅ Ја реши задачата и го избегна данокот!`);
+                const auctionWon = await offerAuctionChoice("ДАНOЧНА ИНСПЕКЦИЈА", 2);
+                if (!auctionWon) {
+                    const t = getUniqueTask(2);
+                    const ok = await askQuestion("ДАНOЧНА ИНСПЕКЦИЈА", `Реши точно за да не платиш ${tax}д данок!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint);
+                    if(!ok) {
+                        updateMoneyMulti(myPlayerId, -tax);
+                        log(`❌ Не ја реши задачата и плати ${tax}д данок.`);
+                    } else {
+                        log(`✅ Ја реши задачата и го избегна данокот!`);
+                    }
                 }
                 resolve();
             };
@@ -1530,23 +1548,23 @@ async function showLandingCardMulti(p, c){
             if(c.owner == null){ // Matches null and undefined
                 o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><div class="card-row"><span>Цена:</span><span>${c.price}д</span></div><div class="card-row"><span>Кирија:</span><span>${rent}д</span></div></div><div class="card-actions"><button class="action-btn btn-buy" id="buy-prop">КУПИ (РEШИ ЗАДАЧА)</button><button class="action-btn btn-pass" id="pass-prop">ПОМИНУВАЈ</button></div></div>`;
                 document.getElementById('buy-prop').onclick = async () => {
-                    const isHard = c.difficulty === 3;
-                    const t = getUniqueTask(c.difficulty);
-                    // Hide the card overlay immediately to show the question clearly
                     o.style.display = 'none';
-                    const ok = await askQuestion("КУПУВАЊЕ", t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation, t.hint);
-                    if(ok){
-                        let finalPrice = c.price;
-                        if(p.powerups.bribe){ finalPrice = 1; p.powerups.bribe = false; }
-                        db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ owner: myPlayerId });
-                        updateMoneyMulti(myPlayerId, -finalPrice);
-                        db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
-                        AudioController.play('success');
-
-                        // PHASE 2: Check if this is first property
-                        const myProperties = gameBoard.filter(prop => prop.owner === myPlayerId);
-                        const isFirstProperty = myProperties.length === 0; // Will be 1 after update
-                        triggerCelebration('propertyPurchased', { isFirst: isFirstProperty });
+                    const auctionWon = await offerAuctionChoice("КУПУВАЊЕ НА ИМОТ", c.difficulty);
+                    if (!auctionWon) {
+                        const isHard = c.difficulty === 3;
+                        const t = getUniqueTask(c.difficulty);
+                        const ok = await askQuestion("КУПУВАЊЕ", t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation, t.hint);
+                        if(ok){
+                            let finalPrice = c.price;
+                            if(p.powerups.bribe){ finalPrice = 1; p.powerups.bribe = false; }
+                            db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ owner: myPlayerId });
+                            updateMoneyMulti(myPlayerId, -finalPrice);
+                            db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
+                            AudioController.play('success');
+                            const myProperties = gameBoard.filter(prop => prop.owner === myPlayerId);
+                            const isFirstProperty = myProperties.length === 0;
+                            triggerCelebration('propertyPurchased', { isFirst: isFirstProperty });
+                        }
                     }
                     resolve();
                 };
@@ -2367,6 +2385,11 @@ function triggerGameOver(r){
     clearInterval(timerInterval);
     clearInterval(localTurnTicker);
     if (window.mainGameTicker) clearInterval(window.mainGameTicker);
+    // Clean up any active auction
+    stopAuctionTimerUI();
+    closeAuctionOverlay();
+    if (auctionListener) { db.ref(`rooms/${roomId}/auction`).off('value', auctionListener); auctionListener = null; }
+    db.ref(`rooms/${roomId}/auction`).set(null);
     document.getElementById('game-over-overlay').style.display='flex'; 
     
     if (myPlayerId === -1) {
@@ -2938,4 +2961,418 @@ async function rejectTrade() {
     await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
     document.getElementById('trade-incoming-overlay').style.display = 'none';
     log("❌ Ја одби понудата за тргување.");
+}
+
+// ========================================
+// AUCTION SYSTEM (Берза на знаење)
+// ========================================
+
+const AUCTION_REWARDS = { 1: 300, 2: 500, 3: 800 };
+
+let auctionListener = null;
+let auctionTimerInterval = null;
+let auctionResolveCallback = null;
+let currentAuctionData = null;
+let _auctionResolutionFired = false;
+
+// Called from joinRoom() — attaches live listener for auction state changes
+function listenForAuction() {
+    if (auctionListener) {
+        db.ref(`rooms/${roomId}/auction`).off('value', auctionListener);
+    }
+    auctionListener = db.ref(`rooms/${roomId}/auction`).on('value', (snap) => {
+        const auc = snap.val();
+        if (!auc || auc.status === null) {
+            closeAuctionOverlay();
+            return;
+        }
+        currentAuctionData = auc;
+        if (auc.status === 'active') {
+            handleActiveAuction(auc);
+        } else if (auc.status === 'resolved') {
+            handleResolvedAuction(auc);
+        }
+    });
+}
+
+// Shows seller the [ОДГОВОРИ] vs [АУКЦИЈА] choice modal.
+// Returns true if auction ran and a winner answered; false = seller answers normally.
+function offerAuctionChoice(category, difficulty) {
+    // Need at least 2 players (seller + 1 potential bidder)
+    if (!players || players.filter(p => p).length <= 1) return Promise.resolve(false);
+
+    return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.id = 'auction-choice-overlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;' +
+            'background:rgba(0,0,0,0.82);z-index:9800;display:flex;justify-content:center;align-items:center;';
+        const diffLabel = ['', 'Лесно (Ниво 1)', 'Средно (Ниво 2)', 'Тешко (Ниво 3)'][difficulty] || '';
+        const reward = AUCTION_REWARDS[difficulty] || 300;
+        overlay.innerHTML = `
+            <div style="background:white;border-radius:24px;padding:30px 28px;width:420px;
+                        max-width:92vw;text-align:center;box-shadow:0 30px 60px rgba(0,0,0,0.5);
+                        border:3px solid #f59e0b;">
+                <div style="font-size:2rem;margin-bottom:8px;">🎯</div>
+                <h2 style="margin:0 0 6px 0;font-size:1.2rem;color:#1e293b;font-weight:900;">
+                    КАК САКАШ ДА ПРОДОЛЖИШ?
+                </h2>
+                <p style="color:#64748b;font-size:0.83rem;margin:0 0 20px 0;font-weight:600;">
+                    ${escapeHtml(category)} &middot; ${diffLabel}
+                </p>
+                <div style="display:flex;gap:12px;">
+                    <button id="choice-self" style="flex:1;padding:16px 8px;border:2px solid #3b82f6;
+                        border-radius:16px;background:#eff6ff;color:#1d4ed8;font-weight:900;
+                        cursor:pointer;font-size:0.92rem;">
+                        📝 ОДГОВОРИ САМ
+                    </button>
+                    <button id="choice-auction" style="flex:1;padding:16px 8px;border:none;
+                        border-radius:16px;background:linear-gradient(135deg,#f59e0b,#b45309);
+                        color:white;font-weight:900;cursor:pointer;font-size:0.92rem;
+                        box-shadow:0 4px 12px rgba(245,158,11,0.4);">
+                        🔨 АУКЦИЈА
+                    </button>
+                </div>
+                <p style="margin:12px 0 0 0;font-size:0.72rem;color:#94a3b8;">
+                    Аукција: другите лицитираат за да одговорат. Победникот добива до +${reward}д. Ти ги добиваш парите!
+                </p>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        overlay.querySelector('#choice-self').onclick = () => {
+            overlay.remove();
+            resolve(false);
+        };
+        overlay.querySelector('#choice-auction').onclick = async () => {
+            overlay.remove();
+            const task = getUniqueTask(difficulty);
+            currentAuctionData = null;
+            _auctionResolutionFired = false;
+            const result = await startAuction(category, difficulty, task ? task.id : 100);
+            resolve(result !== null);
+        };
+    });
+}
+
+// Seller calls this to write auction to Firebase and waits for resolution.
+function startAuction(category, difficulty, taskId) {
+    return new Promise(async (resolve) => {
+        auctionResolveCallback = resolve;
+        const endTime = getServerTime() + 20000;
+        await db.ref(`rooms/${roomId}/auction`).set({
+            status: 'active',
+            difficulty: difficulty,
+            category: category,
+            sellerId: myPlayerId,
+            currentBid: 0,
+            leaderId: -1,
+            endTime: endTime,
+            taskId: taskId,
+            winnerId: -1,
+            resolved: false
+        });
+        log(`🔨 ${players[myPlayerId] ? players[myPlayerId].name : 'Играч'} ја стави аукција! (${category}, Ниво ${difficulty})`);
+        openAuctionOverlay('seller');
+        startAuctionTimerUI(endTime, 'seller');
+    });
+}
+
+// Drives UI updates for all clients while auction is active
+function handleActiveAuction(auc) {
+    const isSeller = (myPlayerId === auc.sellerId);
+    updateAuctionBidUI(auc);
+
+    const overlay = document.getElementById('auction-overlay');
+    if (!isSeller && overlay && overlay.style.display === 'none') {
+        openAuctionOverlay('bidder');
+        startAuctionTimerUI(auc.endTime, 'bidder');
+    }
+
+    if (!isSeller) {
+        const isLeader = (auc.leaderId === myPlayerId);
+        const myMoney = players[myPlayerId] ? players[myPlayerId].money : 0;
+        const canAfford = myMoney > auc.currentBid + 100;
+        setBidControlsEnabled(!isLeader && canAfford);
+        const statusEl = document.getElementById('auction-my-bid-status');
+        if (statusEl) statusEl.innerText = isLeader ? '✅ Ти водиш!' : '';
+    }
+
+    // Edge case: late client sees already-expired auction
+    if (getServerTime() >= auc.endTime) {
+        resolveAuctionLocally(auc);
+    }
+}
+
+// Handles the final state when auction resolves
+async function handleResolvedAuction(auc) {
+    if (!auc || auc.resolved) return;
+
+    const winnerId = auc.winnerId;
+    const bidAmount = auc.currentBid;
+    const sellerId = auc.sellerId;
+
+    if (winnerId === -1) {
+        // No bids — seller answers themselves
+        closeAuctionOverlay();
+        if (myPlayerId === sellerId && auctionResolveCallback) {
+            auctionResolveCallback(null);
+            auctionResolveCallback = null;
+        }
+        if (myPlayerId === sellerId) {
+            await db.ref(`rooms/${roomId}/auction`).set(null);
+        }
+        return;
+    }
+
+    if (myPlayerId === winnerId) {
+        showAuctionWonPanel(auc);
+        const task = allTasks.find(t => t.id === auc.taskId) || getUniqueTask(auc.difficulty);
+        const reward = AUCTION_REWARDS[auc.difficulty] || 300;
+        await new Promise(r => setTimeout(r, 1800));
+        closeAuctionOverlay();
+
+        const ok = await askQuestion(
+            auc.category,
+            task.question,
+            task.correct_answer,
+            auc.difficulty === 3 ? [] : task.options,
+            true,
+            task.explanation,
+            task.hint
+        );
+
+        if (ok) {
+            await updateMoneyMulti(winnerId, reward);
+            await updateMoneyMulti(winnerId, -bidAmount);
+            await updateMoneyMulti(sellerId, bidAmount);
+            log(`✅ ${players[winnerId] ? players[winnerId].name : 'Победник'} одговори точно! +${reward}д. Продавачот добива ${bidAmount}д.`);
+        } else {
+            const sellerCut = Math.floor(bidAmount * 0.5);
+            await updateMoneyMulti(winnerId, -bidAmount);
+            if (sellerCut > 0) await updateMoneyMulti(sellerId, sellerCut);
+            log(`❌ ${players[winnerId] ? players[winnerId].name : 'Победник'} не одговори. Загуби ${bidAmount}д. Продавачот добива ${sellerCut}д.`);
+        }
+
+        await db.ref(`rooms/${roomId}/auction`).update({ resolved: true });
+        await db.ref(`rooms/${roomId}/auction`).set(null);
+
+    } else if (myPlayerId === sellerId) {
+        const winnerName = players[winnerId] ? players[winnerId].name : 'Победникот';
+        showSuccess(`🔨 ${winnerName} ја доби аукцијата за ${bidAmount}д!`);
+        closeAuctionOverlay();
+        if (auctionResolveCallback) {
+            auctionResolveCallback({ winnerId, bidAmount });
+            auctionResolveCallback = null;
+        }
+        // Safety timeout: force-clear if winner disconnects before resolving
+        setTimeout(async () => {
+            const snap = await db.ref(`rooms/${roomId}/auction`).once('value');
+            if (snap.val() && snap.val().resolved === false) {
+                await db.ref(`rooms/${roomId}/auction`).set(null);
+                log('⏳ Победникот не одговори навреме. Аукцијата е затворена.');
+            }
+        }, 35000);
+    } else {
+        closeAuctionOverlay();
+    }
+}
+
+// Bidder places a bid using Firebase transaction (atomic, no race conditions)
+async function placeBid(type) {
+    if (!currentAuctionData || currentAuctionData.status !== 'active') return;
+    if (getServerTime() >= currentAuctionData.endTime) { showError('Аукцијата заврши!'); return; }
+
+    const p = players[myPlayerId];
+    if (!p) return;
+
+    const current = currentAuctionData.currentBid;
+    let myBid;
+    if (type === 'min')       myBid = current + 100;
+    else if (type === 'mid')  myBid = current + 300;
+    else if (type === 'high') myBid = current + 500;
+    else {
+        const raw = parseInt(document.getElementById('auction-custom-amount').value) || 0;
+        if (raw <= current) { showError(`Внесете сума поголема од ${current}д!`); return; }
+        myBid = Math.ceil(raw / 100) * 100;
+    }
+
+    if (p.money < myBid) { showError(`Немаш доволно пари! Имаш ${p.money}д, потребни се ${myBid}д.`); return; }
+
+    setBidControlsEnabled(false);
+    const aRef = db.ref(`rooms/${roomId}/auction`);
+    try {
+        const result = await aRef.transaction((cur) => {
+            if (!cur || cur.status !== 'active') return;
+            if (myBid <= cur.currentBid) return;
+            if (getServerTime() >= cur.endTime) return;
+            return { ...cur, currentBid: myBid, leaderId: myPlayerId };
+        });
+        if (result.committed) {
+            log(`💰 ${p.name} понуди ${myBid}д на аукцијата.`);
+        } else {
+            showError('Некој понуди повеќе! Пробај пак.');
+            setBidControlsEnabled(true);
+        }
+    } catch (err) {
+        showError('Грешка при лицитирање.');
+        setBidControlsEnabled(true);
+    }
+}
+
+// Seller-only: called when timer hits 0; writes final resolved state
+function resolveAuctionLocally(auc) {
+    if (_auctionResolutionFired) return;
+    if (myPlayerId !== auc.sellerId) return;
+    _auctionResolutionFired = true;
+    stopAuctionTimerUI();
+    db.ref(`rooms/${roomId}/auction`).update({
+        status: 'resolved',
+        winnerId: auc.leaderId
+    }).catch(() => { _auctionResolutionFired = false; });
+}
+
+// Seller cancels auction voluntarily
+async function cancelAuction() {
+    stopAuctionTimerUI();
+    _auctionResolutionFired = true;
+    await db.ref(`rooms/${roomId}/auction`).update({ status: 'resolved', winnerId: -1 });
+}
+
+// Opens auction overlay and populates the correct view (seller or bidder)
+function openAuctionOverlay(role) {
+    const overlay = document.getElementById('auction-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    document.getElementById('auction-seller-view').style.display = (role === 'seller') ? 'block' : 'none';
+    document.getElementById('auction-bidder-view').style.display = (role === 'bidder') ? 'block' : 'none';
+
+    if (currentAuctionData) {
+        const cat = currentAuctionData.category || '';
+        const diff = currentAuctionData.difficulty || 1;
+        const diffLabel = ['', 'Лесно', 'Средно', 'Тешко'][diff] || '';
+        const sellerPlayer = players[currentAuctionData.sellerId];
+        const sellerName = sellerPlayer ? escapeHtml(sellerPlayer.name) : 'Играч';
+
+        const prefixes = role === 'seller' ? [''] : ['bidder-'];
+        prefixes.forEach(prefix => {
+            const cb = document.getElementById(`auction-${prefix}category-badge`);
+            const db2 = document.getElementById(`auction-${prefix}difficulty-badge`);
+            if (cb) cb.textContent = cat;
+            if (db2) db2.textContent = `Ниво ${diff} · ${diffLabel}`;
+        });
+
+        if (role === 'bidder') {
+            const annEl = document.getElementById('auction-seller-announce');
+            if (annEl) annEl.textContent = `${sellerName} ја стави аукцијата! Лицитирај за да го добиеш прашањето.`;
+        }
+
+        // Clear bids list on new auction
+        const listEl = document.getElementById('auction-bids-list');
+        if (listEl) listEl.innerHTML = '';
+        const statusEl = document.getElementById('auction-my-bid-status');
+        if (statusEl) statusEl.innerText = '';
+
+        // Reset won view
+        const wonView = document.getElementById('auction-won-view');
+        const bidControls = document.getElementById('auction-bid-controls');
+        if (wonView) wonView.style.display = 'none';
+        if (bidControls) bidControls.style.display = 'block';
+        setBidControlsEnabled(true);
+    }
+}
+
+function closeAuctionOverlay() {
+    stopAuctionTimerUI();
+    const overlay = document.getElementById('auction-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+// Animates the SVG ring countdown; auto-resolves at 0 for the seller
+function startAuctionTimerUI(endTime, role) {
+    stopAuctionTimerUI();
+    const FULL_DASH = 339.3; // 2π × 54
+    const isSeller = (role === 'seller');
+    const timerEl = document.getElementById(isSeller ? 'auction-timer-display' : 'auction-bidder-timer-display');
+    const ringEl  = document.getElementById(isSeller ? 'auction-ring-progress' : 'auction-bidder-ring-progress');
+
+    auctionTimerInterval = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((endTime - getServerTime()) / 1000));
+        const pct = remaining / 20;
+        if (timerEl) timerEl.innerText = remaining;
+        if (ringEl) {
+            ringEl.style.strokeDashoffset = FULL_DASH * (1 - pct);
+            if (remaining <= 5) ringEl.classList.add('urgent');
+            else ringEl.classList.remove('urgent');
+        }
+        if (remaining === 0) {
+            stopAuctionTimerUI();
+            if (isSeller && currentAuctionData) resolveAuctionLocally(currentAuctionData);
+        }
+    }, 500);
+}
+
+function stopAuctionTimerUI() {
+    if (auctionTimerInterval) { clearInterval(auctionTimerInterval); auctionTimerInterval = null; }
+}
+
+// Syncs bid amount and leader name in both seller and bidder views
+function updateAuctionBidUI(auc) {
+    const bidStr = `${auc.currentBid}д`;
+    const leaderName = (auc.leaderId >= 0 && players[auc.leaderId])
+        ? escapeHtml(players[auc.leaderId].name) : 'Нема понуди';
+
+    [
+        ['auction-current-bid', 'auction-leader-name'],
+        ['auction-bidder-current-bid', 'auction-bidder-leader-name']
+    ].forEach(([bidId, leadId]) => {
+        const bidEl = document.getElementById(bidId);
+        const leadEl = document.getElementById(leadId);
+        if (bidEl) { bidEl.innerText = bidStr; bidEl.classList.add('bump'); setTimeout(() => bidEl.classList.remove('bump'), 300); }
+        if (leadEl) leadEl.innerText = leaderName;
+    });
+
+    // Prepend bid entry in seller list
+    if (auc.leaderId >= 0 && auc.currentBid > 0) {
+        const list = document.getElementById('auction-bids-list');
+        if (list) {
+            const entry = document.createElement('div');
+            entry.className = 'auction-bid-entry';
+            const playerSpan = document.createElement('span');
+            playerSpan.className = 'bid-player';
+            playerSpan.textContent = leaderName;
+            const amtSpan = document.createElement('span');
+            amtSpan.className = 'bid-amount';
+            amtSpan.textContent = bidStr;
+            entry.appendChild(playerSpan);
+            entry.appendChild(amtSpan);
+            list.prepend(entry);
+            while (list.children.length > 8) list.removeChild(list.lastChild);
+        }
+    }
+}
+
+function setBidControlsEnabled(enabled) {
+    document.querySelectorAll('.auction-quick-btn, .auction-custom-btn').forEach(btn => {
+        btn.disabled = !enabled;
+    });
+}
+
+function showAuctionWonPanel(auc) {
+    const controls = document.getElementById('auction-bid-controls');
+    const wonView  = document.getElementById('auction-won-view');
+    if (controls) controls.style.display = 'none';
+    if (wonView) {
+        wonView.style.display = 'block';
+        const reward = AUCTION_REWARDS[auc.difficulty] || 300;
+        const h3 = document.createElement('h3');
+        h3.textContent = '🏆 ТИ ЈА ДОБИ АУКЦИЈАТА!';
+        const p1 = document.createElement('p');
+        p1.textContent = `Платен износ: ${auc.currentBid}д`;
+        const p2 = document.createElement('p');
+        p2.textContent = `Ако одговориш точно: +${reward}д`;
+        const p3 = document.createElement('p');
+        p3.textContent = 'Подготви се за прашањето...';
+        p3.style.cssText = 'opacity:0.7;font-size:0.8rem;margin-top:8px;';
+        wonView.innerHTML = '';
+        wonView.append(h3, p1, p2, p3);
+    }
 }

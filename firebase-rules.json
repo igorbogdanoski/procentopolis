@@ -78,6 +78,21 @@
         },
         "remainingTime": {
           ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+
+        "auction": {
+          ".write": "auth !== null",
+          ".validate": "!newData.exists() || newData.hasChildren(['status','difficulty','category','sellerId','currentBid','leaderId','endTime','taskId','winnerId','resolved'])",
+          "status":     { ".validate": "newData.val() === null || newData.val() === 'active' || newData.val() === 'resolved'" },
+          "difficulty": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 3" },
+          "category":   { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 50" },
+          "sellerId":   { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 7" },
+          "currentBid": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 50000" },
+          "leaderId":   { ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 7" },
+          "endTime":    { ".validate": "newData.isNumber() && newData.val() > 0" },
+          "taskId":     { ".validate": "newData.isNumber() && newData.val() >= 100" },
+          "winnerId":   { ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 7" },
+          "resolved":   { ".validate": "newData.isBoolean()" }
         }
       }
     }

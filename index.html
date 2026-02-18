@@ -466,6 +466,76 @@
     </div>
 </div>
 
+<!-- AUCTION OVERLAY (Берза на знаење) -->
+<div id="auction-overlay" class="modal-overlay" style="display:none; z-index:9700;">
+    <div class="auction-modal">
+        <!-- SELLER VIEW -->
+        <div id="auction-seller-view">
+            <div class="auction-header">
+                <span class="auction-gavel">🔨</span>
+                <h2>АУКЦИЈА НА ПРАШАЊЕ</h2>
+                <p id="auction-header-sub">Чекаме понуди од другите играчи...</p>
+            </div>
+            <div class="auction-meta">
+                <span id="auction-category-badge" class="auction-badge"></span>
+                <span id="auction-difficulty-badge" class="auction-badge auction-badge-diff"></span>
+            </div>
+            <div class="auction-bid-display">
+                <div class="auction-bid-label">ТЕКОВНА ПОНУДА</div>
+                <div id="auction-current-bid" class="auction-bid-amount">0д</div>
+                <div id="auction-leader-name" class="auction-leader">Нема понуди</div>
+            </div>
+            <div class="auction-timer-ring">
+                <svg viewBox="0 0 120 120" class="auction-ring-svg">
+                    <circle cx="60" cy="60" r="54" class="auction-ring-track"/>
+                    <circle cx="60" cy="60" r="54" class="auction-ring-progress" id="auction-ring-progress"/>
+                </svg>
+                <div class="auction-timer-number" id="auction-timer-display">20</div>
+            </div>
+            <div id="auction-bids-list" class="auction-bids-list"></div>
+            <button class="auction-cancel-btn" onclick="cancelAuction()">ОТКАЖИ АУКЦИЈА</button>
+        </div>
+        <!-- BIDDER VIEW -->
+        <div id="auction-bidder-view" style="display:none;">
+            <div class="auction-header">
+                <span class="auction-gavel">🔔</span>
+                <h2>АУКЦИЈА НА ПРАШАЊЕ!</h2>
+                <p id="auction-seller-announce"></p>
+            </div>
+            <div class="auction-meta">
+                <span id="auction-bidder-category-badge" class="auction-badge"></span>
+                <span id="auction-bidder-difficulty-badge" class="auction-badge auction-badge-diff"></span>
+            </div>
+            <div class="auction-bid-display">
+                <div class="auction-bid-label">ТЕКОВНА ПОНУДА</div>
+                <div id="auction-bidder-current-bid" class="auction-bid-amount">0д</div>
+                <div id="auction-bidder-leader-name" class="auction-leader">Нема понуди</div>
+            </div>
+            <div class="auction-timer-ring">
+                <svg viewBox="0 0 120 120" class="auction-ring-svg">
+                    <circle cx="60" cy="60" r="54" class="auction-ring-track"/>
+                    <circle cx="60" cy="60" r="54" class="auction-ring-progress" id="auction-bidder-ring-progress"/>
+                </svg>
+                <div class="auction-timer-number" id="auction-bidder-timer-display">20</div>
+            </div>
+            <div class="auction-bid-controls" id="auction-bid-controls">
+                <p class="auction-min-note">Мин. 100д · Чекор: +100д</p>
+                <div class="auction-quick-bids">
+                    <button class="auction-quick-btn" onclick="placeBid('min')">МИН +100д</button>
+                    <button class="auction-quick-btn" onclick="placeBid('mid')">+300д</button>
+                    <button class="auction-quick-btn" onclick="placeBid('high')">+500д</button>
+                </div>
+                <div class="auction-custom-bid">
+                    <input type="number" id="auction-custom-amount" placeholder="Свој износ..." min="100" step="100">
+                    <button class="auction-custom-btn" onclick="placeBid('custom')">ЛИЦИТИРАЈ</button>
+                </div>
+                <div id="auction-my-bid-status"></div>
+            </div>
+            <div id="auction-won-view" style="display:none;" class="auction-won-panel"></div>
+        </div>
+    </div>
+</div>
+
 <!-- PHASE 2: Onboarding Tutorial -->
 <div id="tutorial-overlay">
     <div class="tutorial-modal">
