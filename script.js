@@ -31,6 +31,17 @@ auth.onAuthStateChanged(user => {
     }
 });
 
+// --- OFFLINE DETECTION ---
+window.addEventListener('offline', () => {
+    showError('⚠️ Нема интернет конекција. Играта е паузирана.');
+    document.querySelectorAll('button').forEach(b => b.disabled = true);
+});
+
+window.addEventListener('online', () => {
+    showSuccess('✅ Конекцијата е вратена!');
+    document.querySelectorAll('button').forEach(b => b.disabled = false);
+});
+
 // --- ERROR HANDLING & NOTIFICATIONS ---
 function showError(message) {
     const toast = createToast(message, 'error');
