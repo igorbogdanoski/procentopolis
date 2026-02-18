@@ -1,4 +1,4 @@
-{
+za {
   "rules": {
     ".read": false,
     ".write": false,
@@ -34,7 +34,7 @@
           "$cellIndex": {
             ".write": "auth !== null",
             "owner": {
-              ".validate": "newData.val() === null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 5)"
+              ".validate": "newData.val() === null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 7)"
             },
             "buildings": {
               ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5"
@@ -47,10 +47,10 @@
             ".write": "auth !== null",
             ".validate": "newData.hasChildren(['from', 'to', 'propertyOffered', 'propertyWanted', 'status'])",
             "from": {
-              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5"
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 7"
             },
             "to": {
-              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5"
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 7"
             },
             "propertyOffered": {
               ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 19"
@@ -68,7 +68,7 @@
         },
 
         "currentPlayerIndex": {
-          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 6"
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 8"
         },
         "turnStartTime": {
           ".validate": "newData.isNumber()"

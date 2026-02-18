@@ -1,6 +1,14 @@
 // --- CONFIGURATION ---
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNkHKbA26KzoP5JkboXUPfj3THuws-OvVSOowWgNce0TUQOZmAV-5UbTz9ZjFzxUhX0Q/exec"; 
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNkHKbA26KzoP5JkboXUPfj3THuws-OvVSOowWgNce0TUQOZmAV-5UbTz9ZjFzxUhX0Q/exec";
 const TOTAL_CELLS = 20;
+const MAX_PLAYERS = 8;          // max concurrent students per room
+const GAME_DURATION = 40 * 60;  // seconds (40 minutes)
+const TURN_LIMIT = 30;          // seconds per turn
+const START_MONEY = 1000;       // starting денари per student
+const STEP_DELAY = 450;         // ms between movement animation steps
+const BASE_PRICE = 150;         // base property price (cell 0)
+const PRICE_STEP = 40;          // price increment per board cell
+const MAX_LOG_ENTRIES = 50;     // max visible game-log entries
 
 // Firebase Placeholder Config (USER MUST UPDATE THIS)
 const firebaseConfig = {
@@ -470,7 +478,7 @@ function triggerCelebration(type, data = {}) {
 
 // --- VARIABLES ---
 let studentName = "", studentOdd = "", studentCorrect = 0, studentWrong = 0;
-let usedQuestionIds = [], remainingTime = 40 * 60, players = [], currentPlayerIndex = 0, gameBoard = [], isRolling = false;
+let usedQuestionIds = [], remainingTime = GAME_DURATION, players = [], currentPlayerIndex = 0, gameBoard = [], isRolling = false;
 let myPlayerId = null;
 let roomId = null;
 let isCreator = false;
@@ -555,6 +563,31 @@ for(let i=0;i<220;i++){
 }
 
 const hardProperties = [4, 9, 14, 19];
+
+// --- FACTORY FUNCTIONS ---
+function createInitialGameBoard() {
+    return boardConfig.map((c, i) => {
+        let diff = (i < 5) ? 1 : (i < 15) ? 2 : 3;
+        if (hardProperties.includes(i)) diff = 3;
+        return { ...c, index: i, owner: null, buildings: 0, price: BASE_PRICE + (i * PRICE_STEP), difficulty: diff, rentPercent: 10 * diff };
+    });
+}
+
+function createRoomData(diffLevel, teacherName) {
+    return {
+        status: 'waiting',
+        players: [],
+        currentPlayerIndex: 0,
+        remainingTime: GAME_DURATION,
+        gameEndTime: getServerTime() + (GAME_DURATION * 1000),
+        turnStartTime: 0,
+        difficultyMode: diffLevel,
+        teacherName: teacherName,
+        teacherUid: currentUserUid,
+        createdAt: getServerTime(),
+        gameBoard: createInitialGameBoard()
+    };
+}
 const boardConfig = [
     {name:"СТАРТ",type:"start",color:"#ecf0f1"}, {name:"Улица Децимала",type:"property",group:"south",color:"#3498db"}, {name:"Парк на Дропки",type:"property",group:"south",color:"#3498db"}, {name:"Плоштад 10%",type:"property",group:"south",color:"#3498db"}, {name:"Булевар Еуклид",type:"property",group:"south",color:"#3498db"},
     {name:"ЗАТВОР / ОДМОР",type:"jail",color:"#7f8c8d"}, {name:"Авенија Алгебра",type:"property",group:"east",color:"#27ae60"}, {name:"Њутн Маало",type:"property",group:"east",color:"#27ae60"}, {name:"Пазар за Проценти",type:"property",group:"east",color:"#27ae60"}, {name:"Кула на Питагора",type:"property",group:"east",color:"#27ae60"},
@@ -811,21 +844,7 @@ async function joinRoom() {
         if (!snapshot.exists()) {
             isCreator = true;
             const diffLevel = document.getElementById('room-difficulty-select').value;
-            roomRef.set({
-                status: 'waiting',
-                players: [],
-                currentPlayerIndex: 0,
-                remainingTime: 40 * 60,
-                gameEndTime: getServerTime() + (40 * 60 * 1000),
-                turnStartTime: getServerTime(),
-                difficultyMode: diffLevel,
-                teacherUid: currentUserUid,
-                gameBoard: boardConfig.map((c, i) => {
-                    let diff = (i < 5) ? 1 : (i < 15) ? 2 : 3;
-                    if (hardProperties.includes(i)) diff = 3;
-                    return { ...c, index: i, owner: null, buildings: 0, price: 150 + (i * 40), difficulty: diff, rentPercent: 10 * diff };
-                })
-            });
+            roomRef.set(createRoomData(diffLevel, studentName));
         }
         
         const playersRef = roomRef.child('players');
@@ -856,7 +875,7 @@ async function joinRoom() {
                     studentCorrect = pData.correct || 0;
                     studentWrong = pData.wrong || 0;
                 } else {
-                    if (currentPlayers.length >= 6) {
+                    if (currentPlayers.length >= MAX_PLAYERS) {
                         showError("Собата е полна!");
                         setTimeout(() => location.reload(), 2000);
                         return;
@@ -868,7 +887,7 @@ async function joinRoom() {
                         name: studentName,
                         odd: studentOdd,
                         role: 'student',
-                        money: 1000,
+                        money: START_MONEY,
                         pos: 0,
                         streak: 0,
                         emoji: myTokenEmoji,
@@ -964,7 +983,7 @@ function handleRoomUpdate(snapshot) {
 
         const elapsed = Math.floor((serverTimeNow - data.turnStartTime) / 1000);
 
-        const turnLimit = 30; // Changed from 45s to 30s for faster gameplay
+        const turnLimit = TURN_LIMIT;
         turnRemainingTime = Math.max(0, turnLimit - elapsed);
         const displayTime = turnRemainingTime;
 
@@ -1099,21 +1118,7 @@ async function createMultipleRooms() {
         if (!myRooms.includes(newRoomId)) {
             myRooms.push(newRoomId);
 
-            await db.ref('rooms/' + newRoomId).set({
-                status: 'waiting',
-                players: [],
-                currentPlayerIndex: 0,
-                gameEndTime: getServerTime() + (40 * 60 * 1000),
-                turnStartTime: 0,
-                difficultyMode: diffLevel,
-                teacherName: name,
-                teacherUid: currentUserUid,
-                gameBoard: boardConfig.map((c, idx) => {
-                    let diff = (idx < 5) ? 1 : (idx < 15) ? 2 : 3;
-                    if (hardProperties.includes(idx)) diff = 3;
-                    return { ...c, index: idx, owner: null, buildings: 0, price: 150 + (idx * 40), difficulty: diff, rentPercent: 10 * diff };
-                })
-            });
+            await db.ref('rooms/' + newRoomId).set(createRoomData(diffLevel, name));
         }
     }
 
@@ -1164,7 +1169,7 @@ async function startAllMyRooms() {
                     status: 'playing',
                     currentPlayerIndex: firstStudent, 
                     turnStartTime: firebase.database.ServerValue.TIMESTAMP,
-                    gameEndTime: getServerTime() + (40 * 60 * 1000)
+                    gameEndTime: getServerTime() + (GAME_DURATION * 1000)
                 });
             }
         }
@@ -1189,7 +1194,7 @@ function requestStartGame() {
         status: 'playing',
         currentPlayerIndex: firstStudent, 
         turnStartTime: firebase.database.ServerValue.TIMESTAMP,
-        gameEndTime: getServerTime() + (40 * 60 * 1000)
+        gameEndTime: getServerTime() + (GAME_DURATION * 1000)
     });
 }
 
@@ -1307,7 +1312,7 @@ async function playTurnMulti(){
         // Animate locally only — single Firebase write at end prevents write storm
         updateTokenPositionsMulti();
         AudioController.play('step');
-        await new Promise(r => setTimeout(r, 450));
+        await new Promise(r => setTimeout(r, STEP_DELAY));
     }
 
     if(token) token.classList.remove('walking');
@@ -1601,7 +1606,7 @@ function endTurnMulti(){
 
     // Skip null/undefined players, teachers, and eliminated players in turn rotation
     let safety = 0;
-    while((!players[nextPlayerIndex] || players[nextPlayerIndex].role === 'teacher' || players[nextPlayerIndex].isEliminated) && safety < 10){
+    while((!players[nextPlayerIndex] || players[nextPlayerIndex].role === 'teacher' || players[nextPlayerIndex].isEliminated) && safety < MAX_PLAYERS + 2){
         nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
         safety++;
     }
@@ -1974,7 +1979,7 @@ function updateDashStats(data) {
             status: 'playing',
             currentPlayerIndex: firstStudent, 
             turnStartTime: firebase.database.ServerValue.TIMESTAMP,
-            gameEndTime: getServerTime() + (40 * 60 * 1000)
+            gameEndTime: getServerTime() + (GAME_DURATION * 1000)
         });
     };
 
@@ -2345,7 +2350,7 @@ function closeModal(){
     }
     document.getElementById('question-modal').style.display='none';
 }
-function log(msg){const l=document.getElementById('game-log'); if(!l) return; const n=document.createElement('div'); n.innerText='> '+msg; l.prepend(n);}
+function log(msg){const l=document.getElementById('game-log'); if(!l) return; const n=document.createElement('div'); n.innerText='> '+msg; l.prepend(n); while(l.children.length > MAX_LOG_ENTRIES) l.removeChild(l.lastChild);}
 function updateVisualOwnership(idx,pid){const e=document.getElementById(`cell-${idx}`); if(e){e.classList.remove('owned-p0','owned-p1','owned-p2','owned-p3','owned-p4','owned-p5'); e.classList.add(`owned-p${pid}`);}}
 
 function triggerGameOver(r){
@@ -2388,7 +2393,7 @@ function setupCanvas(){
     ctx=canvas.getContext('2d');
 
     const widthSlider = document.getElementById('pen-width');
-    if(widthSlider) widthSlider.oninput = (e) => penWidth = e.target.value;
+    if(widthSlider) widthSlider.oninput = (e) => penWidth = parseInt(e.target.value) || 3;
 
     function gp(e){
         const r = canvas.getBoundingClientRect();
@@ -2535,23 +2540,7 @@ async function createSingleRoom() {
             return;
         }
 
-        await roomRef.set({
-            status: 'waiting',
-            players: [],
-            currentPlayerIndex: 0,
-            remainingTime: 40 * 60,
-            gameEndTime: getServerTime() + (40 * 60 * 1000),
-            turnStartTime: getServerTime(),
-            difficultyMode: difficulty,
-            teacherName: teacherName,
-            teacherUid: currentUserUid,
-            createdAt: getServerTime(),
-            gameBoard: boardConfig.map((c, i) => {
-                let diff = (i < 5) ? 1 : (i < 15) ? 2 : 3;
-                if (hardProperties.includes(i)) diff = 3;
-                return { ...c, index: i, owner: null, buildings: 0, price: 150 + (i * 40), difficulty: diff, rentPercent: 10 * diff };
-            })
-        });
+        await roomRef.set(createRoomData(difficulty, teacherName));
 
         // Add to teacher's rooms
         let myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
@@ -2594,23 +2583,7 @@ async function createMultipleRoomsFromDash() {
 
         try {
             const roomRef = db.ref(`rooms/${roomName}`);
-            await roomRef.set({
-                status: 'waiting',
-                players: [],
-                currentPlayerIndex: 0,
-                remainingTime: 40 * 60,
-                gameEndTime: getServerTime() + (40 * 60 * 1000),
-                turnStartTime: getServerTime(),
-                difficultyMode: difficulty,
-                teacherName: teacherName,
-                teacherUid: currentUserUid,
-                createdAt: getServerTime(),
-                gameBoard: boardConfig.map((c, idx) => {
-                    let diff = (idx < 5) ? 1 : (idx < 15) ? 2 : 3;
-                    if (hardProperties.includes(idx)) diff = 3;
-                    return { ...c, index: idx, owner: null, buildings: 0, price: 150 + (idx * 40), difficulty: diff, rentPercent: 10 * diff };
-                })
-            });
+            await roomRef.set(createRoomData(difficulty, teacherName));
 
             myRooms.push(roomName);
             createdRooms.push(roomName);

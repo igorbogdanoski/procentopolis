@@ -11,6 +11,8 @@
     --p3-color: #ff9800;
     --p4-color: #4caf50;
     --p5-color: #795548;
+    --p6-color: #009688;
+    --p7-color: #ff5722;
 
     /* Group Colors */
     --group-south: #aed6f1;
@@ -335,6 +337,8 @@ body {
 .owned-p3 { background-color: #fff3e0 !important; border: 3px solid var(--p3-color) !important; }
 .owned-p4 { background-color: #e8f5e9 !important; border: 3px solid var(--p4-color) !important; }
 .owned-p5 { background-color: #efebe9 !important; border: 3px solid var(--p5-color) !important; }
+.owned-p6 { background-color: #e0f2f1 !important; border: 3px solid var(--p6-color) !important; }
+.owned-p7 { background-color: #fbe9e7 !important; border: 3px solid var(--p7-color) !important; }
 
 .active-cell { transform: scale(1.08); z-index: 50; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: 3px solid #e74c3c !important; }
 
@@ -356,6 +360,8 @@ body {
 #token-3 { background-color: var(--p3-color); }
 #token-4 { background-color: var(--p4-color); }
 #token-5 { background-color: var(--p5-color); }
+#token-6 { background-color: var(--p6-color); }
+#token-7 { background-color: var(--p7-color); }
 
 .building-container { display: flex; gap: 1px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); z-index: 5; }
 
