@@ -564,7 +564,7 @@ const boardConfig = [
 // --- AUDIO ---
 const AudioController = {
     ctx: null,
-    init: function() { const AC = window.AudioContext || window.webkitAudioContext; if (AC) this.ctx = new AC(); },
+    init: function() { const AC = window.AudioContext || /** @type {any} */ (window).webkitAudioContext; if (AC) this.ctx = new AC(); },
     play: function(type) {
         if (!this.ctx) return;
         if (this.ctx.state === 'suspended') this.ctx.resume();
@@ -1091,6 +1091,7 @@ async function createMultipleRooms() {
                 turnStartTime: 0,
                 difficultyMode: diffLevel,
                 teacherName: name,
+                teacherUid: currentUserUid,
                 gameBoard: boardConfig.map((c, idx) => {
                     let diff = (idx < 5) ? 1 : (idx < 15) ? 2 : 3;
                     if (hardProperties.includes(idx)) diff = 3;
@@ -1110,11 +1111,15 @@ async function clearAllMyRooms() {
     const yes = await showConfirmModal("Дали сте сигурни дека сакате да ги избришете СИТЕ ваши соби од листата?");
     if (!yes) return;
     localStorage.setItem('percentopolis_teacher_rooms', "[]");
-    activeDashRoomId = null;
-    if (dashRoomListener) {
-        db.ref(`rooms`).off();
+    if (dashRoomListener && activeDashRoomId) {
+        db.ref(`rooms/${activeDashRoomId}`).off('value', dashRoomListener);
         dashRoomListener = null;
     }
+    Object.keys(gridListeners).forEach(rid => {
+        db.ref(`rooms/${rid}`).off('value', gridListeners[rid]);
+    });
+    gridListeners = {};
+    activeDashRoomId = null;
     openTeacherDash();
     showSuccess("✅ Листата е исчистена.");
 }
@@ -1282,19 +1287,17 @@ async function playTurnMulti(){
     for(let k=0; k<steps; k++){
         p.pos = (p.pos + 1) % TOTAL_CELLS;
         if(p.pos === 0) passedStart = true;
-        
-        // Sync each step to Firebase so others see movement
-        db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ pos: p.pos });
-        
+
+        // Animate locally only — single Firebase write at end prevents write storm
         updateTokenPositionsMulti();
         AudioController.play('step');
-        await new Promise(r => setTimeout(r, 450)); // Slightly slower for better visibility
+        await new Promise(r => setTimeout(r, 450));
     }
-    
+
     if(token) token.classList.remove('walking');
 
-    // Sync powerups at the end
-    db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
+    // Sync final position + powerups in one write
+    db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ pos: p.pos, powerups: p.powerups });
 
     if(passedStart){
         const b = Math.floor(p.money * 0.15);
@@ -1349,10 +1352,13 @@ async function updateMoneyMulti(pid, amt){
             }
         }
     } else {
-        db.ref(`rooms/${roomId}/players/${pid}`).update({ money: newMoney });
+        // Use a transaction to prevent race conditions from stale local data.
+        // The server applies the delta atomically instead of overwriting with a cached value.
+        const moneyRef = db.ref(`rooms/${roomId}/players/${pid}/money`);
+        await moneyRef.transaction(currentMoney => (currentMoney || p.money) + amt);
 
-        // PHASE 2: Check for rich player achievement
-        if (pid === myPlayerId && newMoney >= 1500 && p.money < 1500) {
+        // Achievement check uses local estimate (close enough for non-critical trigger)
+        if (pid === myPlayerId && (p.money + amt) >= 1500 && p.money < 1500) {
             triggerCelebration('richPlayer');
         }
     }
@@ -2349,11 +2355,12 @@ function triggerGameOver(r){
     new QRCode(document.getElementById("qrcode"),{text:rep,width:128,height:128}); 
 }
 
-function setupCanvas(){ 
-    canvas=document.getElementById('whiteboard'); 
+let _canvasEventsAttached = false;
+function setupCanvas(){
+    canvas=document.getElementById('whiteboard');
     if(!canvas) return;
-    ctx=canvas.getContext('2d'); 
-    
+    ctx=canvas.getContext('2d');
+
     const widthSlider = document.getElementById('pen-width');
     if(widthSlider) widthSlider.oninput = (e) => penWidth = e.target.value;
 
@@ -2397,14 +2404,16 @@ function setupCanvas(){
     
     function en(){ isDrawing = false; }
 
-    canvas.addEventListener('mousedown', st);
-    canvas.addEventListener('mousemove', mv);
-    window.addEventListener('mouseup', en);
-    
-    canvas.addEventListener('touchstart', st, {passive:false});
-    canvas.addEventListener('touchmove', mv, {passive:false});
-    canvas.addEventListener('touchend', en);
-    
+    if (!_canvasEventsAttached) {
+        canvas.addEventListener('mousedown', st);
+        canvas.addEventListener('mousemove', mv);
+        window.addEventListener('mouseup', en);
+        canvas.addEventListener('touchstart', st, {passive:false});
+        canvas.addEventListener('touchmove', mv, {passive:false});
+        canvas.addEventListener('touchend', en);
+        _canvasEventsAttached = true;
+    }
+
     resizeCanvas();
 }
 
@@ -2436,7 +2445,8 @@ function renderBoard(){
         const d=document.createElement('div'); d.className=`cell type-${c.type}`; if(c.group)d.classList.add(`group-${c.group}`); d.id=`cell-${i}`;
         if(c.owner !== null && c.owner !== undefined) d.classList.add(`owned-p${c.owner}`);
         d.style.gridRow=gp[i].r; d.style.gridColumn=gp[i].c;
-        d.innerHTML=`<div class="cell-name">${c.name}</div>${c.type==='property'?`<div class="cell-price">${c.price}д</div>`:''}<div class="building-container" id="bld-${i}"></div>`;
+        d.innerHTML=`<div class="cell-name"></div>${c.type==='property'?`<div class="cell-price">${c.price}д</div>`:''}<div class="building-container" id="bld-${i}"></div>`;
+        d.querySelector('.cell-name').textContent = c.name;
         b.appendChild(d);
     });
     updateTokenPositionsMulti();
