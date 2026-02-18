@@ -141,14 +141,15 @@ body {
 
 /* --- TEACHER DASHBOARD RESPONSIVENESS --- */
 .teacher-modal-content {
-    width: 96vw;
-    max-width: 96vw;
-    height: 95vh;
-    max-height: none;
-    display: flex;
-    flex-direction: row;
-    padding: 0;
-    overflow: hidden;
+    width: 96vw !important;
+    max-width: 96vw !important;
+    height: 95vh !important;
+    max-height: none !important;
+    display: flex !important;
+    flex-direction: row !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border-radius: 16px !important;
 }
 
 #teacher-sidebar {
@@ -233,9 +234,9 @@ body {
 
     /* Teacher dashboard optimization - MORE COMPACT */
     .teacher-modal-content {
-        max-width: 96vw;
-        height: 95vh;
-        max-height: none;
+        max-width: 96vw !important;
+        height: 95vh !important;
+        max-height: none !important;
     }
     #teacher-sidebar {
         width: 190px;
