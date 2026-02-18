@@ -2894,6 +2894,100 @@ function closeModal(){
 function log(msg){const l=document.getElementById('game-log'); if(!l) return; const n=document.createElement('div'); n.innerText='> '+msg; l.prepend(n); while(l.children.length > MAX_LOG_ENTRIES) l.removeChild(l.lastChild);}
 function updateVisualOwnership(idx,pid){const e=document.getElementById(`cell-${idx}`); if(e){e.classList.remove('owned-p0','owned-p1','owned-p2','owned-p3','owned-p4','owned-p5'); e.classList.add(`owned-p${pid}`);}}
 
+// --- POST-GAME LEARNING REFLECTION ---
+
+function classifyQuestion(q) {
+    if (/Зголеми/.test(q))                      return { label: 'Зголемување за %',      emoji: '📈' };
+    if (/Намали/.test(q))                        return { label: 'Намалување за %',        emoji: '📉' };
+    if (/проценти е|Колку проценти/i.test(q))   return { label: 'Наоди ја стапката (%)',  emoji: '🔍' };
+    if (/од кој број/.test(q))                   return { label: 'Наоди ја основата',      emoji: '🧮' };
+    if (/камата|кредит/i.test(q))                return { label: 'Камата',                 emoji: '🏦' };
+    if (/крајната цена/.test(q))                 return { label: 'Данок на производ',      emoji: '🏷️' };
+    return { label: 'Пресметај %', emoji: '🔢' };
+}
+
+function buildLearningSummary(name, history) {
+    if (!history || history.length === 0) return '';
+
+    // Group by question type
+    const typeMap = {};
+    history.forEach(h => {
+        const cat = classifyQuestion(h.q);
+        if (!typeMap[cat.label]) typeMap[cat.label] = { ...cat, correct: 0, wrong: 0, wrongExamples: [] };
+        if (h.isCorrect) typeMap[cat.label].correct++;
+        else { typeMap[cat.label].wrong++; typeMap[cat.label].wrongExamples.push(h); }
+    });
+
+    const types = Object.values(typeMap);
+    const strong = types.filter(t => t.wrong === 0);
+    const weak   = types.filter(t => t.wrong > 0).sort((a, b) => b.wrong - a.wrong);
+    const focus  = weak[0];
+    const focusEx = focus?.wrongExamples[0];
+
+    const strongHtml = strong.length > 0
+        ? `<div style="margin:10px 0 5px;font-size:0.8rem;font-weight:700;color:#374151;">💪 Го совладуваш:</div>
+           ${strong.map(t => `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#f0fdf4;border-radius:6px;margin-bottom:4px;font-size:0.82rem;">
+               <span>${t.emoji}</span><span style="flex:1;color:#166534;font-weight:600;">${escapeHtml(t.label)}</span>
+               <span style="color:#16a34a;font-weight:700;">${t.correct}/${t.correct} ✅</span>
+           </div>`).join('')}` : '';
+
+    const weakHtml = weak.length > 0
+        ? `<div style="margin:10px 0 5px;font-size:0.8rem;font-weight:700;color:#374151;">🎯 Уште работи на:</div>
+           ${weak.map(t => `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fef2f2;border-radius:6px;margin-bottom:4px;font-size:0.82rem;">
+               <span>${t.emoji}</span><span style="flex:1;color:#991b1b;font-weight:600;">${escapeHtml(t.label)}</span>
+               <span style="color:#dc2626;font-weight:700;">${t.correct}/${t.correct + t.wrong} ✅</span>
+           </div>`).join('')}`
+        : `<div style="padding:8px;background:#f0fdf4;border-radius:8px;color:#166534;font-weight:700;text-align:center;font-size:0.88rem;">🎉 Совршено! Нема погрешни одговори!</div>`;
+
+    const focusHtml = focus
+        ? `<div style="margin:12px 0 10px;padding:10px 12px;background:#eff6ff;border-radius:8px;border-left:3px solid #3b82f6;font-size:0.85rem;">
+               📌 <strong>Следен фокус:</strong> ${escapeHtml(focus.label)}
+               ${focusEx ? `<div style="margin-top:5px;font-size:0.78rem;color:#374151;">Пример: <em>${escapeHtml(focusEx.q)}</em> → <strong>${escapeHtml(focusEx.correctAns)}</strong></div>` : ''}
+           </div>` : '';
+
+    const wrongAnswers = history.filter(h => !h.isCorrect);
+    const wrongListHtml = wrongAnswers.map(h =>
+        `<div style="display:flex;align-items:flex-start;gap:6px;padding:5px 8px;background:#fef2f2;border-radius:6px;border-left:3px solid #dc2626;margin-bottom:5px;font-size:0.8rem;">
+            <span style="flex-shrink:0;">❌</span>
+            <span style="flex:1;color:#374151;">${escapeHtml(h.q)}</span>
+            <span style="color:#dc2626;font-weight:700;white-space:nowrap;margin-left:4px;">→ ${escapeHtml(h.correctAns)}</span>
+        </div>`).join('');
+
+    const wrongToggle = wrongAnswers.length > 0
+        ? `<div id="wrong-answers-panel" style="display:none;max-height:160px;overflow-y:auto;margin-bottom:8px;">${wrongListHtml}</div>
+           <button onclick="toggleWrongAnswers()" id="toggle-wrong-btn" style="width:100%;padding:7px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;margin-bottom:8px;">📋 ВИДИ ГРЕШКИТЕ (${wrongAnswers.length})</button>` : '';
+
+    const total = history.length;
+    const correct = history.filter(h => h.isCorrect).length;
+    const pct = Math.round((correct / total) * 100);
+    const pctColor = pct >= 70 ? '#16a34a' : pct >= 40 ? '#d97706' : '#dc2626';
+
+    return `
+        <div style="text-align:center;margin-bottom:12px;">
+            <div style="font-size:1rem;font-weight:800;color:#1e293b;">🎓 ${escapeHtml(name)}, еве твојот учебен извештај!</div>
+            <div style="margin-top:4px;font-size:0.82rem;color:#64748b;">${correct} точни од ${total} прашања — <strong style="color:${pctColor};">${pct}%</strong></div>
+        </div>
+        ${strongHtml}
+        ${weakHtml}
+        ${focusHtml}
+        ${wrongToggle}
+        <button onclick="showFullReport()" style="width:100%;padding:10px;background:var(--primary-color);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.9rem;margin-top:4px;">➡️ ПРОДОЛЖИ КОН ИЗВЕШТАЈ</button>`;
+}
+
+function showFullReport() {
+    document.getElementById('learning-summary').style.display = 'none';
+    document.getElementById('report-section').style.display = 'block';
+}
+
+function toggleWrongAnswers() {
+    const panel = document.getElementById('wrong-answers-panel');
+    const btn   = document.getElementById('toggle-wrong-btn');
+    if (!panel || !btn) return;
+    const isHidden = panel.style.display === 'none';
+    panel.style.display = isHidden ? 'block' : 'none';
+    btn.textContent = isHidden ? '📋 СКРИЈ ГРЕШКИТЕ' : `📋 ВИДИ ГРЕШКИТЕ`;
+}
+
 function triggerGameOver(r){
     if (gameOverTriggered) return;
     gameOverTriggered = true;
@@ -2911,9 +3005,14 @@ function triggerGameOver(r){
     closeAuctionOverlay();
     if (auctionListener) { db.ref(`rooms/${roomId}/auction`).off('value', auctionListener); auctionListener = null; }
     db.ref(`rooms/${roomId}/auction`).set(null);
-    document.getElementById('game-over-overlay').style.display='flex'; 
-    
+    document.getElementById('game-over-overlay').style.display='flex';
+    const learnEl  = document.getElementById('learning-summary');
+    const reportEl = document.getElementById('report-section');
+
     if (myPlayerId === -1) {
+        // Teacher: no learning summary, show results directly
+        if (learnEl)  learnEl.style.display  = 'none';
+        if (reportEl) reportEl.style.display = 'block';
         let summary = "КРАЈНИ РЕЗУЛТАТИ:\n\n";
         players.forEach(p => {
             if(p) summary += `${p.name}: ${p.money}д\n`;
@@ -2964,6 +3063,15 @@ function triggerGameOver(r){
         </div>
         ${historyHtml}`;
     new QRCode(document.getElementById("qrcode"),{text:qrText,width:128,height:128});
+
+    // Show learning summary first; report section revealed when student clicks through
+    if (questionHistory.length > 0) {
+        if (learnEl)  { learnEl.innerHTML = buildLearningSummary(studentName, questionHistory); learnEl.style.display = 'block'; }
+        if (reportEl) reportEl.style.display = 'none';
+    } else {
+        if (learnEl)  learnEl.style.display  = 'none';
+        if (reportEl) reportEl.style.display = 'block';
+    }
 }
 
 let _canvasEventsAttached = false;

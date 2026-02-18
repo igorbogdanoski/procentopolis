@@ -414,12 +414,17 @@
 
 <!-- Game Over -->
 <div id="game-over-overlay">
-    <div class="modal-mini" style="width:600px; display:block; position:relative; top:auto; left:auto; transform:none; animation:none;">
+    <div class="modal-mini" style="width:620px; display:block; position:relative; top:auto; left:auto; transform:none; animation:none; max-height:90vh; overflow-y:auto;">
         <h2>🏆 КРАЈ НА ИГРАТА</h2>
-        <p id="report-text" style="text-align:left; line-height:1.6; font-size:0.9rem; max-height: 300px; overflow-y:auto;"></p>
-        <div id="qrcode" style="margin:15px auto; display:flex; justify-content:center;"></div>
-        <button onclick="clearSave(); location.reload()" style="padding:10px 20px; background:var(--primary-color); color:white; border:none; border-radius:8px; cursor:pointer; margin-top:10px;">НОВА ИГРА</button>
-        <p style="margin-top:15px; font-size:0.65rem; color:#94a3b8; font-weight:600;">ПроцентОполис &copy; Игор Богданоски</p>
+        <!-- Learning reflection — shown first for students (hidden for teacher / 0 questions) -->
+        <div id="learning-summary" style="display:none;"></div>
+        <!-- Full stats report — shown after student clicks through summary -->
+        <div id="report-section">
+            <p id="report-text" style="text-align:left; line-height:1.6; font-size:0.9rem; max-height:300px; overflow-y:auto;"></p>
+            <div id="qrcode" style="margin:15px auto; display:flex; justify-content:center;"></div>
+            <button onclick="clearSave(); location.reload()" style="padding:10px 20px; background:var(--primary-color); color:white; border:none; border-radius:8px; cursor:pointer; margin-top:10px;">НОВА ИГРА</button>
+            <p style="margin-top:15px; font-size:0.65rem; color:#94a3b8; font-weight:600;">ПроцентОполис &copy; Игор Богданоски</p>
+        </div>
     </div>
 </div>
 
