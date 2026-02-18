@@ -767,14 +767,18 @@ function buildContextualQuestion(eventType, ctx) {
         const rentAmt = Math.floor(Y * X / 100);
         const diff = ctx.difficulty || 2;
         if (diff >= 3) {
-            // D3: Find the base — "rent is X% of what price?"
-            const ans = String(Y);
+            // D3: Percentage increase of rent — answer is NOT visible on the card
+            const rates = [5, 8, 10, 12, 15];
+            const R = rates[Math.floor(Math.random() * rates.length)];
+            const increase = Math.floor(rentAmt * R / 100);
+            const newRent = rentAmt + increase;
+            const ans = String(newRent);
             return {
-                question: `Кириjата за „${name}" е ${rentAmt}д. Таа кирија е ${X}% од цената. Колку чини имотот?`,
+                question: `Ако го купиш „${name}", кириjата е ${rentAmt}д. Следниот месец кириjата расте за ${R}%. Колку е новата кирија?`,
                 correct_answer: ans, difficulty: 3,
-                options: buildOpts(ans, [String(rentAmt + Y), String(Math.floor(Y * 0.5)), String(rentAmt * 3), String(Y + X)]),
-                explanation: `${rentAmt} = ${X}% од ? → Цена = ${rentAmt} ÷ (${X}÷100) = ${rentAmt} × (100÷${X}) = ${ans}д`,
-                hint: `💡 Ако кириjата (${rentAmt}д) е ${X}%, цената = ${rentAmt}÷${X}×100.`
+                options: buildOpts(ans, [String(rentAmt + R), String(rentAmt * 2), String(increase), String(Math.floor(rentAmt * 1.5))]),
+                explanation: `${rentAmt} + ${R}% = ${rentAmt} + ${increase} = ${ans}д`,
+                hint: `💡 Прво пресметај ${R}% од ${rentAmt}д (= ${increase}д), па додај го на ${rentAmt}д.`
             };
         }
         if (diff === 2) {
@@ -804,14 +808,19 @@ function buildContextualQuestion(eventType, ctx) {
         const rentAmt = Math.floor(Y * X / 100);
         const diff = ctx.difficulty || 2;
         if (diff >= 3) {
-            // D3: Find the base — "rent is X% of what price?"
-            const ans = String(Y);
+            // D3: Percentage increase of rent — answer is NOT visible on the card
+            const rates = [5, 8, 10, 12, 15];
+            const R = rates[Math.floor(Math.random() * rates.length)];
+            const increase = Math.floor(rentAmt * R / 100);
+            const newRent = rentAmt + increase;
+            const ans = String(newRent);
+            const dbl = String(rentAmt * 2);
             return {
-                question: `Плаќаш кирија ${rentAmt}д за „${name}". Таа кирија е ${X}% од цената. Колку чини имотот?`,
+                question: `Плаќаш кирија ${rentAmt}д за „${name}". Ако кириjата порасне за ${R}%, колку ќе изнесува новата кирија?`,
                 correct_answer: ans, difficulty: 3,
-                options: buildOpts(ans, [String(rentAmt + Y), String(Math.floor(Y * 0.5)), String(rentAmt * 3), String(Y + X)]),
-                explanation: `${rentAmt} = ${X}% од ? → Цена = ${rentAmt} ÷ (${X}÷100) = ${rentAmt} × (100÷${X}) = ${ans}д`,
-                hint: `💡 Ако ${rentAmt}д е ${X}%, целото = ${rentAmt}÷${X}×100.`
+                options: buildOpts(ans, [String(rentAmt + R), dbl, String(increase), String(Math.floor(rentAmt * 1.5))]),
+                explanation: `${rentAmt} + ${R}% = ${rentAmt} + ${increase} = ${ans}д`,
+                hint: `💡 Прво пресметај ${R}% од ${rentAmt}д, па додај го на ${rentAmt}д.`
             };
         }
         if (diff === 2) {
