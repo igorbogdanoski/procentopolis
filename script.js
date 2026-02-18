@@ -1224,8 +1224,10 @@ function handleRoomUpdate(snapshot) {
         if (window.mainGameTicker) { clearInterval(window.mainGameTicker); window.mainGameTicker = null; }
         if (_questionTimerInterval) { clearInterval(_questionTimerInterval); _questionTimerInterval = null; }
         window.lastTurnStartTime = null;
-        // Hide game-over and question modal, restore lobby
+        // Hide game-over and question modal, restore lobby; reset reflection panel for next game
         document.getElementById('game-over-overlay').style.display = 'none';
+        const _ls = document.getElementById('learning-summary'); if (_ls) { _ls.style.display='none'; _ls.innerHTML=''; }
+        const _rs = document.getElementById('report-section');   if (_rs) _rs.style.display = 'block';
         document.getElementById('question-modal').style.display = 'none';
         document.getElementById('game-wrapper').classList.add('blur-filter');
         document.getElementById('login-overlay').style.display = 'flex';
