@@ -863,7 +863,7 @@ function buildContextualQuestion(eventType, ctx) {
     return getUniqueTask(2);
 }
 
-const hardProperties = [4, 9, 14, 19];
+const hardProperties = [9, 14, 19]; // cell 4 removed — too early for D3 (first lap)
 
 // --- FACTORY FUNCTIONS ---
 function createInitialGameBoard() {
