@@ -1288,7 +1288,7 @@ function handleRoomUpdate(snapshot) {
     if (data.status === 'playing') {
         syncGameState();
         // Trigger game over when time is up
-        if (remainingTime <= 0) {
+        if (remainingTime <= 0 && !gameOverTriggered) {
             triggerGameOver("Времето истече!");
         }
     }
@@ -1529,6 +1529,7 @@ function updateTokenPositionsMulti() {
 
 function updateBoardVisuals() {
     gameBoard.forEach((c, i) => {
+        if (!c) return;
         if (c.owner !== null) {
             updateVisualOwnership(i, c.owner);
         }
@@ -1885,10 +1886,13 @@ function endTurnMulti(){
 
     // Double check if we landed on a valid student player who is not eliminated
     if (players[nextPlayerIndex] && players[nextPlayerIndex].role !== 'teacher' && !players[nextPlayerIndex].isEliminated) {
-        db.ref(`rooms/${roomId}`).update({ 
+        db.ref(`rooms/${roomId}`).update({
             currentPlayerIndex: nextPlayerIndex,
-            turnStartTime: firebase.database.ServerValue.TIMESTAMP 
+            turnStartTime: firebase.database.ServerValue.TIMESTAMP
         });
+    } else {
+        // No valid player found — all students eliminated, end the game
+        if (!gameOverTriggered) triggerGameOver("Сите играчи се елиминирани!");
     }
 }
 
@@ -2510,6 +2514,7 @@ function getUniqueTask(diff){
         filtered = allTasks.filter(t => t.difficulty === finalDiff);
     }
     const t = filtered[Math.floor(Math.random()*filtered.length)];
+    if (!t) return allTasks[Math.floor(Math.random()*allTasks.length)]; // safety fallback
     usedQuestionIds.push(t.id);
     return t;
 }
@@ -2763,6 +2768,7 @@ function renderBoard(){
     b.innerHTML='';
     const gp=[{r:1,c:1},{r:1,c:2},{r:1,c:3},{r:1,c:4},{r:1,c:5},{r:1,c:6},{r:2,c:6},{r:3,c:6},{r:4,c:6},{r:5,c:6},{r:6,c:6},{r:6,c:5},{r:6,c:4},{r:6,c:3},{r:6,c:2},{r:6,c:1},{r:5,c:1},{r:4,c:1},{r:3,c:1},{r:2,c:1}];
     gameBoard.forEach((c,i)=>{
+        if (!c) return;
         const d=document.createElement('div'); d.className=`cell type-${c.type}`; if(c.group)d.classList.add(`group-${c.group}`); d.id=`cell-${i}`;
         if(c.owner !== null && c.owner !== undefined) d.classList.add(`owned-p${c.owner}`);
         d.style.gridRow=gp[i].r; d.style.gridColumn=gp[i].c;
