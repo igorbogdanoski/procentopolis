@@ -901,7 +901,7 @@ function createRoomData(diffLevel, teacherName, duration) {
         players: [],
         currentPlayerIndex: 0,
         remainingTime: dur,
-        gameEndTime: getServerTime() + (dur * 1000),
+        gameEndTime: null,
         turnStartTime: 0,
         difficultyMode: diffLevel,
         gameDuration: dur,
@@ -1346,23 +1346,33 @@ function handleRoomUpdate(snapshot) {
     }
 
     // Update Class Timer UI from gameEndTime (robust sync)
+    // BUGFIX: Only run ticker during 'playing' state; only recreate when gameEndTime changes.
+    // Previously, ticker ran during 'waiting' with a stale gameEndTime (from room creation),
+    // setting remainingTime=0 before the game started → instant game-over on first update.
     const classTimerEl = document.getElementById('class-timer');
-    if (classTimerEl && data.gameEndTime) {
-        if (window.mainGameTicker) clearInterval(window.mainGameTicker);
-        window.mainGameTicker = setInterval(() => {
-            const serverTimeNow = getServerTime();
-            const remMs = data.gameEndTime - serverTimeNow;
-            remainingTime = Math.max(0, Math.floor(remMs / 1000));
-            
-            const m = Math.floor(remainingTime / 60);
-            const s = remainingTime % 60;
-            classTimerEl.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
-            
-            if (remainingTime <= 0 && data.status === 'playing') {
-                clearInterval(window.mainGameTicker);
-                triggerGameOver("Времето истече!");
-            }
-        }, 1000);
+    if (classTimerEl && data.gameEndTime && data.status === 'playing') {
+        if (data.gameEndTime !== window.lastGameEndTime) {
+            window.lastGameEndTime = data.gameEndTime;
+            if (window.mainGameTicker) clearInterval(window.mainGameTicker);
+            window.mainGameTicker = setInterval(() => {
+                const serverTimeNow = getServerTime();
+                const remMs = data.gameEndTime - serverTimeNow;
+                remainingTime = Math.max(0, Math.floor(remMs / 1000));
+
+                const m = Math.floor(remainingTime / 60);
+                const s = remainingTime % 60;
+                classTimerEl.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+
+                if (remainingTime <= 0) {
+                    clearInterval(window.mainGameTicker);
+                    triggerGameOver("Времето истече!");
+                }
+            }, 1000);
+        }
+    } else if (data.status !== 'playing' && window.mainGameTicker) {
+        clearInterval(window.mainGameTicker);
+        window.mainGameTicker = null;
+        window.lastGameEndTime = null;
     }
     
     // Turn Timer Logic - FIXED: Always update timer, not just on turnStartTime change
@@ -1419,7 +1429,12 @@ function handleRoomUpdate(snapshot) {
     
     if (data.status === 'playing') {
         syncGameState();
-        // Trigger game over when time is up
+        // Trigger game over when time is up.
+        // BUGFIX: Recompute remainingTime from current gameEndTime here to avoid
+        // firing on a stale value left over from the pre-game 'waiting' ticker.
+        if (data.gameEndTime) {
+            remainingTime = Math.max(0, Math.floor((data.gameEndTime - getServerTime()) / 1000));
+        }
         if (remainingTime <= 0 && !gameOverTriggered) {
             triggerGameOver("Времето истече!");
         }
@@ -1555,14 +1570,14 @@ async function startAllMyRooms() {
         if (data && data.status === 'waiting') {
             const players = data.players || [];
             let firstStudent = 0;
-            while(players[firstStudent] && players[firstStudent].role !== 'student' && firstStudent < players.length) {
+            while(players[firstStudent] && (players[firstStudent].role !== 'student' || players[firstStudent].isEliminated) && firstStudent < players.length) {
                 firstStudent++;
             }
-            
+
             if (players.length > 0) {
-                await roomRef.update({ 
+                await roomRef.update({
                     status: 'playing',
-                    currentPlayerIndex: firstStudent, 
+                    currentPlayerIndex: firstStudent,
                     turnStartTime: firebase.database.ServerValue.TIMESTAMP,
                     gameEndTime: getServerTime() + ((window.roomGameDuration || GAME_DURATION) * 1000)
                 });
@@ -1579,15 +1594,20 @@ function requestStartGame() {
         return;
     }
     
-    // Find first valid student index
+    // Find first valid student index (skip teachers and eliminated players from previous games)
     let firstStudent = 0;
-    while(players[firstStudent] && players[firstStudent].role !== 'student' && firstStudent < players.length) {
+    while(players[firstStudent] && (players[firstStudent].role !== 'student' || players[firstStudent].isEliminated) && firstStudent < players.length) {
         firstStudent++;
     }
 
-    db.ref('rooms/' + roomId).update({ 
+    if (firstStudent >= players.length) {
+        showError("Нема активни ученици. Сите ученици се елиминирани или не се поврзани.");
+        return;
+    }
+
+    db.ref('rooms/' + roomId).update({
         status: 'playing',
-        currentPlayerIndex: firstStudent, 
+        currentPlayerIndex: firstStudent,
         turnStartTime: firebase.database.ServerValue.TIMESTAMP,
         gameEndTime: getServerTime() + ((window.roomGameDuration || GAME_DURATION) * 1000)
     });
@@ -2739,7 +2759,7 @@ async function resetRoomForNewGame() {
         players: resetPlayers,
         currentPlayerIndex: 0,
         turnStartTime: 0,
-        gameEndTime: getServerTime() + (dur * 1000),
+        gameEndTime: null,
         remainingTime: dur,
         auction: null,
         endReason: null,
