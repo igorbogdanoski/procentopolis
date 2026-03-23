@@ -1309,6 +1309,7 @@ function handleRoomUpdate(snapshot) {
         document.getElementById('game-over-overlay').style.display = 'none';
         const _ls = document.getElementById('learning-summary'); if (_ls) { _ls.style.display='none'; _ls.innerHTML=''; }
         const _rs = document.getElementById('report-section');   if (_rs) _rs.style.display = 'block';
+        const _csvBtn = document.getElementById('teacher-csv-btn'); if (_csvBtn) _csvBtn.remove();
         document.getElementById('question-modal').style.display = 'none';
         document.getElementById('game-wrapper').classList.add('blur-filter');
         document.getElementById('login-overlay').style.display = 'flex';
@@ -2163,6 +2164,8 @@ function openShop() {
 
 let activeDashRoomId = null;
 let dashRoomListener = null;
+let liveFeedListener = null;
+let liveFeedRoomId = null;
 let gridListeners = {}; // Track grid view listeners for cleanup
 
 function closeTeacherDash() {
@@ -2273,6 +2276,11 @@ function showCreateRoomInterface() {
         db.ref(`rooms/${activeDashRoomId}`).off('value', dashRoomListener);
         dashRoomListener = null;
     }
+    if (liveFeedListener && liveFeedRoomId) {
+        db.ref(`rooms/${liveFeedRoomId}/liveUpdates`).off('value', liveFeedListener);
+        liveFeedListener = null;
+        liveFeedRoomId = null;
+    }
     activeDashRoomId = null;
 
     // Hide all other views, show create container
@@ -2375,8 +2383,16 @@ function switchDashRoom(rid) {
     dashRoomListener = db.ref(`rooms/${rid}`).on('value', snapshot => {
         const data = snapshot.val();
         if (!data) return;
-
         updateDashStats(data);
+    });
+
+    // Live answers feed listener
+    if (liveFeedListener && liveFeedRoomId) {
+        db.ref(`rooms/${liveFeedRoomId}/liveUpdates`).off('value', liveFeedListener);
+    }
+    liveFeedRoomId = rid;
+    liveFeedListener = db.ref(`rooms/${rid}/liveUpdates`).limitToLast(25).on('value', snap => {
+        renderLiveFeed(snap);
     });
 }
 
@@ -2789,6 +2805,24 @@ function updateDashVisualizations(data, players) {
             </div>
         `;
     }).join('');
+}
+
+function downloadGameOverCSV() {
+    const csvEscape = v => `"${String(v).replace(/"/g, '""')}"`;
+    let csv = "Ученик,Одделение,Богатство,Точни,Грешни,Успех %\n";
+    players.filter(p => p && p.role !== 'teacher').forEach(p => {
+        const _c = p.correct || 0, _w = p.wrong || 0;
+        const success = (_c + _w) === 0 ? '—' : `${Math.round((_c / (_c + _w)) * 100)}%`;
+        csv += [csvEscape(p.name), csvEscape(p.odd||''), csvEscape(p.money + 'д'), csvEscape(_c), csvEscape(_w), csvEscape(success)].join(',') + '\n';
+    });
+    const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.setAttribute("href", URL.createObjectURL(blob));
+    link.setAttribute("download", `Procentopolis_${roomId || 'game'}_rezultati.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 function downloadRoomReport() {
@@ -3240,14 +3274,26 @@ function triggerGameOver(r){
     const reportEl = document.getElementById('report-section');
 
     if (myPlayerId === -1) {
-        // Teacher: no learning summary, show results directly
+        // Teacher: no learning summary, show results with CSV download
         if (learnEl)  learnEl.style.display  = 'none';
         if (reportEl) reportEl.style.display = 'block';
-        let summary = "КРАЈНИ РЕЗУЛТАТИ:\n\n";
-        players.forEach(p => {
-            if(p) summary += `${p.name}: ${p.money}д\n`;
+        const students = players.filter(p => p && p.role !== 'teacher');
+        const rows = students.map(p => {
+            const _c = p.correct || 0, _w = p.wrong || 0;
+            const success = (_c + _w) === 0 ? '—' : `${Math.round((_c / (_c + _w)) * 100)}%`;
+            return `${p.emoji||''} ${p.name} (${p.odd||''}): ${p.money}д | Точни: ${_c} | Грешни: ${_w} | Успех: ${success}`;
         });
-        document.getElementById('report-text').innerText = summary;
+        document.getElementById('report-text').innerText = "КРАЈНИ РЕЗУЛТАТИ:\n\n" + rows.join('\n');
+
+        // Add CSV download button if not already present
+        if (!document.getElementById('teacher-csv-btn')) {
+            const csvBtn = document.createElement('button');
+            csvBtn.id = 'teacher-csv-btn';
+            csvBtn.textContent = '📥 Преземи CSV';
+            csvBtn.style.cssText = 'margin-top:12px;padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;width:100%;';
+            csvBtn.onclick = downloadGameOverCSV;
+            reportEl.appendChild(csvBtn);
+        }
         return;
     }
 
@@ -3416,22 +3462,43 @@ function rollDiceAnimation(){
     });
 }
 
-function sendLiveUpdate(question, answer, _isCorrect) {
-    if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE") return; 
-    const payload = {
-        player: studentName + " (" + studentOdd + ")",
-        score: (players[myPlayerId] && players[myPlayerId].money) || 0,
-        correct: studentCorrect,
-        wrong: studentWrong,
-        last_question: question,
-        last_answer: answer
-    };
-    fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    }).catch(err => console.log("Sync error", err));
+function sendLiveUpdate(question, answer, isCorrect) {
+    if (!roomId || myPlayerId === null) return;
+    const p = players[myPlayerId];
+    db.ref(`rooms/${roomId}/liveUpdates`).push({
+        ts: firebase.database.ServerValue.TIMESTAMP,
+        playerName: studentName,
+        odd: studentOdd || '',
+        emoji: (p && p.emoji) || '👤',
+        question: question.length > 80 ? question.slice(0, 80) + '…' : question,
+        answer: String(answer).slice(0, 40),
+        correct: !!isCorrect
+    }).catch(err => console.log("Live update error", err));
+}
+
+function renderLiveFeed(snap) {
+    const feed = document.getElementById('dash-live-feed');
+    if (!feed) return;
+    const entries = [];
+    snap.forEach(child => entries.push(child.val()));
+    entries.reverse(); // newest first
+    if (entries.length === 0) {
+        feed.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:20px;">Нема одговори уште.</p>';
+        return;
+    }
+    feed.innerHTML = entries.map(e => {
+        const icon = e.correct ? '✅' : '❌';
+        const bg = e.correct ? '#f0fdf4' : '#fef2f2';
+        const border = e.correct ? '#16a34a' : '#dc2626';
+        return `<div style="padding:8px 12px;border-radius:8px;background:${bg};border-left:3px solid ${border};margin-bottom:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-weight:700;font-size:0.85rem;">${escapeHtml(e.emoji||'👤')} ${escapeHtml(e.playerName||'')} <span style="color:#64748b;font-weight:400;font-size:0.72rem;">(${escapeHtml(e.odd||'')})</span></span>
+                <span style="font-size:1.1rem;">${icon}</span>
+            </div>
+            <div style="font-size:0.78rem;color:#374151;margin-top:3px;">${escapeHtml(e.question||'')}</div>
+            <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Одговор: <strong>${escapeHtml(String(e.answer||''))}</strong></div>
+        </div>`;
+    }).join('');
 }
 
 // Generate a random 6-character alphanumeric room code (e.g. "K7M2XQ")
