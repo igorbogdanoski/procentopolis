@@ -1218,23 +1218,35 @@ async function joinRoom() {
                         setTimeout(() => location.reload(), 2000);
                         return;
                     }
-                    myPlayerId = currentPlayers.length;
-                    const newPlayer = {
-                        id: myPlayerId,
-                        uid: currentUserUid,
-                        name: studentName,
-                        odd: studentOdd,
-                        role: 'student',
-                        money: START_MONEY,
-                        pos: 0,
-                        streak: 0,
-                        emoji: myTokenEmoji,
-                        color: `var(--p${myPlayerId}-color)`,
-                        powerups: { lawyer: false, shield: false, nitro: false, bribe: false },
-                        hasLoan: false,
-                        jailTurns: 0
-                    };
-                    playersRef.child(myPlayerId).set(newPlayer);
+                    // FIX #9: Use Firebase transaction to atomically claim a player slot.
+                    // Without this, two students joining simultaneously both read the same
+                    // players.length and overwrite the same index → one player disappears.
+                    const txResult = await playersRef.transaction(txArr => {
+                        const arr = txArr || [];
+                        if (arr.length >= MAX_PLAYERS) return; // abort — room full
+                        const pid = arr.length;
+                        arr.push({
+                            id: pid, uid: currentUserUid, name: studentName, odd: studentOdd,
+                            role: 'student', money: START_MONEY, pos: 0, streak: 0,
+                            emoji: myTokenEmoji, color: `var(--p${pid}-color)`,
+                            powerups: { lawyer: false, shield: false, nitro: false, bribe: false },
+                            hasLoan: false, jailTurns: 0, isSpectator: false, rescueToken: false
+                        });
+                        return arr;
+                    });
+                    if (!txResult.committed) {
+                        showError("Собата е полна! Обиди се повторно.");
+                        hideLoader();
+                        return;
+                    }
+                    const committedArr = txResult.snapshot.val() || [];
+                    const joined = committedArr.find(p => p && p.uid === currentUserUid);
+                    myPlayerId = joined ? joined.id : -1;
+                    if (myPlayerId === -1) {
+                        showError("Грешка при придружување. Обиди се повторно.");
+                        hideLoader();
+                        return;
+                    }
                 }
             }
 
