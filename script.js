@@ -733,6 +733,75 @@ markupParams.forEach(([X, Y], i) => {
 });
 }
 
+// TYPE 8: STORE DISCOUNT — "Артикл чини Y₌. Попуст X%. Финална цена / заштеда?"  (D3, 35 tasks, ids 630-664)
+{
+const shopItems = ['телевизор','лаптоп','патики','мобилен телефон','јакна','велосипед','слушалки','таблет','фотоапарат','рачен часовник','играчка конзола'];
+const discountParams = [
+    [10,200],[20,300],[25,400],[15,600],[30,500],[5,800],[10,1000],[20,250],[25,800],[15,400],
+    [30,600],[10,500],[20,400],[25,200],[40,500],[10,300],[20,500],[15,200],[30,400],[5,600],
+    [10,400],[20,600],[25,1000],[15,800],[30,200],[40,300],[10,600],[20,800],[25,600],[15,1000],
+    [30,300],[20,1000],[40,400],[25,500],[10,800]
+];
+discountParams.forEach(([X, Y], i) => {
+    const savings = (Y * X) / 100;
+    const finalPrice = Y - savings;
+    const askFinal = (i % 2 === 0); // alternate: final price vs savings
+    const item = shopItems[i % shopItems.length];
+    const ans = fmt(askFinal ? finalPrice : savings);
+    const wrong1 = fmt(askFinal ? Y + savings : Y * X);
+    const wrong2 = fmt(askFinal ? Y * X / 100 + Y : savings / 10);
+    const wrong3 = fmt(askFinal ? finalPrice * 2 : savings * 2);
+    allTasks.push({
+        id: 630 + i,
+        difficulty: 3,
+        question: askFinal
+            ? `Во продавница ${item} чини ${Y}₌. На попуст е сведен за ${X}%. Колку ќе платиш?`
+            : `${item} чини ${Y}₌ и е на попуст од ${X}%. Колку денари заштедуваш?`,
+        correct_answer: ans,
+        options: shuffleArray([ans, wrong1, wrong2, wrong3].filter((v,idx,a)=>a.indexOf(v)===idx&&parseFloat(v)>0)).slice(0,4),
+        raw: { rate: X, base: Y },
+        explanation: askFinal
+            ? `Попуст: ${X}% од ${Y} = ${fmt(savings)}₌. Финална цена: ${Y} − ${fmt(savings)} = ${ans}₌`
+            : `Заштеда: ${X}% од ${Y} = (${X}÷100) × ${Y} = ${ans}₌`,
+        hint: `💡 Пресметај ${X}% од ${Y} (попустот), па ${askFinal ? 'одземи го од оригиналната цена' : 'тоа е заштедата'}.`
+    });
+});
+}
+
+// TYPE 9: SALARY / DEDUCTIONS — "Бруто плата Y₌, придонеси X%. Колку е нето?"  (D3, 35 tasks, ids 665-699)
+{
+const salaryParams = [
+    [10,2000],[20,3000],[15,4000],[25,2400],[10,3500],[20,2500],[15,3000],[25,4000],[10,5000],[20,4500],
+    [15,2000],[25,3200],[10,4000],[20,3500],[30,2000],[15,5000],[25,2000],[10,6000],[20,2000],[30,3000],
+    [15,6000],[25,5000],[10,8000],[20,6000],[30,4000],[15,8000],[25,6000],[10,10000],[20,8000],[30,5000],
+    [15,4000],[25,8000],[10,12000],[20,10000],[30,6000]
+];
+salaryParams.forEach(([X, Y], i) => {
+    const deduction = (Y * X) / 100;
+    const net = Y - deduction;
+    const ans = fmt(net);
+    const wrong1 = fmt(Y + deduction);
+    const wrong2 = fmt(Y - X);
+    const wrong3 = fmt(net / 2);
+    const contexts = [
+        `Работник со бруто плата ${Y}₌ плаќа ${X}% придонеси за социјално осигурување.`,
+        `Месечна плата изнесува ${Y}₌. Државата задржува ${X}% данок на доход.`,
+        `Бруто заработка е ${Y}₌. Работодавачот одбива ${X}% за здравствено осигурување.`,
+        `Плата пред одбивки: ${Y}₌. Вкупни одбивки: ${X}%.`
+    ];
+    allTasks.push({
+        id: 665 + i,
+        difficulty: 3,
+        question: contexts[i % contexts.length] + ` Колку е нето платата (во рака)?`,
+        correct_answer: ans,
+        options: shuffleArray([ans, wrong1, wrong2, wrong3].filter((v,idx,a)=>a.indexOf(v)===idx&&parseFloat(v)>0)).slice(0,4),
+        raw: { rate: X, base: Y },
+        explanation: `Одбивки: ${X}% од ${Y} = ${fmt(deduction)}₌. Нето: ${Y} − ${fmt(deduction)} = ${ans}₌`,
+        hint: `💡 Пресметај ${X}% од ${Y} (одбивките), па одземи ги од бруто платата.`
+    });
+});
+}
+
 function buildContextualQuestion(eventType, ctx) {
     const buildOpts = (correct, wrongs) => {
         const others = [...new Set(wrongs.filter(w => w !== correct && parseFloat(w) > 0))].slice(0, 3);
