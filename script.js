@@ -2057,7 +2057,8 @@ async function showLandingCardMulti(p, c){
                 document.getElementById('pass-prop').onclick = () => rc();
             } else if(c.owner !== myPlayerId){
                 const ownerName = (players[c.owner] && players[c.owner].name) ? escapeHtml(players[c.owner].name) : "Противник";
-                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Сопственик: ${ownerName}</p><h2>Кирија: ${rent}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">ПЛАТИ</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">ШТИТ (🛡️)</button>':''}</div></div>`;
+                const rescueBtn = p.rescueToken ? '<button class="action-btn btn-buy" id="use-rescue">🎁 ЖЕТОН (прескокни)</button>' : '';
+                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Сопственик: ${ownerName}</p><h2>Кирија: ${rent}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">ПЛАТИ</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">ШТИТ (🛡️)</button>':''}${rescueBtn}</div></div>`;
                 document.getElementById('pay-rent').onclick = async () => {
                     const t = buildContextualQuestion('rent', { price: c.price, rentPercent: c.rentPercent, name: c.name, rent, difficulty: c.difficulty });
                     // Hide the card overlay immediately
@@ -2071,6 +2072,11 @@ async function showLandingCardMulti(p, c){
                 if(p.powerups.shield) document.getElementById('use-shield').onclick = () => {
                     p.powerups.shield = false;
                     db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
+                    rc();
+                };
+                if(p.rescueToken) document.getElementById('use-rescue').onclick = () => {
+                    db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ rescueToken: false });
+                    log(`🎁 ${p.name} го искористи Спасовениот Жетон — кириjата е прескокната!`);
                     rc();
                 };
             } else {
@@ -2117,6 +2123,25 @@ async function showLandingCardMulti(p, c){
 function endTurnMulti(){
     isRolling = false;
     if (players.length === 0) return;
+
+    // Catch-up check: grant rescue token if player's money ≤ 25% of active-player average
+    if (myPlayerId !== null && myPlayerId >= 0 && currentPlayerIndex === myPlayerId) {
+        const myP = players[myPlayerId];
+        if (myP && !myP.isEliminated && !myP.isSpectator && !myP.rescueToken) {
+            const active = players.filter(p => p && p.role !== 'teacher' && !p.isEliminated && !p.isSpectator);
+            if (active.length >= 2) {
+                const avg = active.reduce((sum, p) => sum + (p.money || 0), 0) / active.length;
+                if (avg > 0 && myP.money <= avg * 0.25) {
+                    db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ rescueToken: true });
+                    players[myPlayerId].rescueToken = true;
+                    showSuccess('🎁 Спасовен Жетон! Ќе ја прескокнеш следната кирија.');
+                    showFloatingTextMulti('🎁 ЖЕТОН', myPlayerId);
+                    log(`🎁 ${myP.name} доби Спасовен Жетон!`);
+                }
+            }
+        }
+    }
+
     let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
 
     // Skip null/undefined players, teachers, and eliminated players in turn rotation
@@ -2165,6 +2190,7 @@ function updateUI(){
             if(p.powerups.shield) powerupsEl.innerHTML += '🛡️';
             if(p.powerups.nitro) powerupsEl.innerHTML += '🚀';
             if(p.powerups.bribe) powerupsEl.innerHTML += '🕵️';
+            if(p.rescueToken) powerupsEl.innerHTML += '🎁';
         }
     });
 }
@@ -2887,7 +2913,7 @@ async function resetRoomForNewGame() {
         return {
             ...p,
             money: START_MONEY, pos: 0, correct: 0, wrong: 0,
-            streak: 0, hasLoan: false, isEliminated: (p.correct || 0) + (p.wrong || 0) > 0, isSpectator: false, jailTurns: 0,
+            streak: 0, hasLoan: false, isEliminated: (p.correct || 0) + (p.wrong || 0) > 0, isSpectator: false, rescueToken: false, jailTurns: 0,
             powerups: { lawyer: false, shield: false, nitro: false, bribe: false },
             questionHistory: [], lastActivity: null, isThinking: false
         };
