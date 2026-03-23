@@ -1251,7 +1251,7 @@ async function joinRoom() {
         knownGameVersion = snapshot.val()?.gameVersion || 1;
         
         const playersRef = roomRef.child('players');
-        playersRef.once('value', pSnap => {
+        playersRef.once('value', async pSnap => {
             const currentPlayers = pSnap.val() || [];
             
             if (currentRole === 'teacher') {
@@ -1511,9 +1511,9 @@ function handleRoomUpdate(snapshot) {
 
     updateLobbyUI();
 
-    // Pause overlay — shown to students when teacher pauses the game
+    // Pause overlay — shown to students when teacher pauses the game (not to the teacher)
     let pauseOverlay = document.getElementById('pause-overlay');
-    if (data.status === 'paused') {
+    if (data.status === 'paused' && currentRole !== 'teacher') {
         if (!pauseOverlay) {
             pauseOverlay = document.createElement('div');
             pauseOverlay.id = 'pause-overlay';
@@ -2002,8 +2002,8 @@ function showFloatingTextMulti(amount, pid) {
 
 async function showLandingCardMulti(p, c){
     if (!p || !c) return;
-    // Spectators skip property cards (no money to pay or buy with)
-    if (p.isSpectator && c.type === 'property') return;
+    // Spectators skip property and tax cards (0 money makes them meaningless)
+    if (p.isSpectator && (c.type === 'property' || c.type === 'tax')) return;
     return new Promise(resolve => {
         const o = document.getElementById('card-overlay');
         o.style.display = 'flex';
@@ -2639,7 +2639,13 @@ function updateDashStats(data) {
     } else if (data.status === 'paused') {
         pauseBtn.style.display = 'block';
         pauseBtn.textContent = '▶️ ПРОДОЛЖИ';
-        pauseBtn.onclick = () => db.ref(`rooms/${activeDashRoomId}`).update({ status: 'playing' });
+        // Reset turnStartTime on resume so the current player gets a fresh 30-second turn.
+        // Without this, the turn timer counts the pause duration as elapsed time →
+        // can trigger auto-skip immediately after a long pause.
+        pauseBtn.onclick = () => db.ref(`rooms/${activeDashRoomId}`).update({
+            status: 'playing',
+            turnStartTime: firebase.database.ServerValue.TIMESTAMP
+        });
     } else {
         pauseBtn.style.display = 'none';
     }
@@ -2653,11 +2659,12 @@ function updateDashStats(data) {
         while(players[firstStudent] && (players[firstStudent].role !== 'student' || players[firstStudent].isEliminated) && firstStudent < players.length) {
             firstStudent++;
         }
-        db.ref(`rooms/${activeDashRoomId}`).update({ 
+        db.ref(`rooms/${activeDashRoomId}`).update({
             status: 'playing',
-            currentPlayerIndex: firstStudent, 
+            currentPlayerIndex: firstStudent,
             turnStartTime: firebase.database.ServerValue.TIMESTAMP,
-            gameEndTime: getServerTime() + ((window.roomGameDuration || GAME_DURATION) * 1000)
+            gameEndTime: getServerTime() + ((window.roomGameDuration || GAME_DURATION) * 1000),
+            liveUpdates: null  // clear feed from previous session
         });
     };
 
@@ -3009,6 +3016,7 @@ async function resetRoomForNewGame() {
         remainingTime: dur,
         auction: null,
         endReason: null,
+        liveUpdates: null,
         gameBoard: createInitialGameBoard(),
         gameVersion: currentVersion + 1
     });
