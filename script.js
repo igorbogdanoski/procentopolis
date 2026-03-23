@@ -491,8 +491,9 @@ let canvas, ctx, isDrawing = false, lastX = 0, lastY = 0;
 let penColor = '#000000';
 let penWidth = 3;
 let diceRotationCounter = 0;
-let currentDifficultyLevel = 1; 
+let currentDifficultyLevel = 1;
 let correctStreak = 0;
+let wrongStreak = 0;
 let currentTaskData = null;
 let turnRemainingTime = 30;
 let myTokenEmoji = "👤";
@@ -741,10 +742,11 @@ function buildContextualQuestion(eventType, ctx) {
     const fl = n => String(Math.floor(n));
 
     if (eventType === 'bonus') {
-        const Y = ctx.money, X = 15;
+        const Y = ctx.money;
+        const X = ctx.pct || 15; // pct pre-selected at call site for consistency
         const ans = fl(Y * X / 100);
         return {
-            question: `Имаш ${Y}д. Добиваш ${X}% бонус. Колку денари добиваш?`,
+            question: `Имаш ${Y}д. Поминувајќи низ СТАРТ добиваш ${X}% бонус. Колку денари добиваш?`,
             correct_answer: ans, difficulty: 1,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X), String(Math.floor(Y*X/100)+1)]),
             explanation: `${X}% од ${Y} = (${X}÷100)×${Y} = ${ans}д`,
@@ -1410,7 +1412,11 @@ function handleRoomUpdate(snapshot) {
     };
 
     // Restart timer interval when turn changes
-    if (data.turnStartTime && data.turnStartTime !== window.lastTurnStartTime) {
+    if (data.status === 'paused') {
+        // Freeze turn timer display during pause
+        clearInterval(localTurnTicker);
+        localTurnTicker = null;
+    } else if (data.turnStartTime && data.turnStartTime !== window.lastTurnStartTime) {
         window.lastTurnStartTime = data.turnStartTime;
         clearInterval(localTurnTicker);
         updateTimerDisplay();
@@ -1422,6 +1428,22 @@ function handleRoomUpdate(snapshot) {
     }
 
     updateLobbyUI();
+
+    // Pause overlay — shown to students when teacher pauses the game
+    let pauseOverlay = document.getElementById('pause-overlay');
+    if (data.status === 'paused') {
+        if (!pauseOverlay) {
+            pauseOverlay = document.createElement('div');
+            pauseOverlay.id = 'pause-overlay';
+            pauseOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);z-index:9000;display:flex;align-items:center;justify-content:center;';
+            pauseOverlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:2rem 3rem;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.3);"><div style="font-size:3.5rem;">⏸️</div><h2 style="margin:0.5rem 0;color:#1e293b;">Игра паузирана</h2><p style="color:#64748b;margin:0;">Наставникот ја паузираше играта. Чекај...</p></div>';
+            document.body.appendChild(pauseOverlay);
+        }
+        const rollBtn = document.getElementById('roll-btn');
+        if (rollBtn) rollBtn.disabled = true;
+    } else {
+        if (pauseOverlay) pauseOverlay.remove();
+    }
     
     if (data.status === 'playing' && document.getElementById('login-overlay').style.display !== 'none') {
         initMultiplayerGame();
@@ -1615,6 +1637,9 @@ function requestStartGame() {
 
 function initMultiplayerGame() {
     questionHistory = [];
+    currentDifficultyLevel = 1;
+    correctStreak = 0;
+    wrongStreak = 0;
     AudioController.init();
     document.getElementById('player-display-name').innerText = (currentRole === 'teacher' ? 'Наставник: ' : 'Играч: ') + studentName;
     document.getElementById('login-overlay').style.display = 'none';
@@ -1739,10 +1764,11 @@ async function playTurnMulti(){
     db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ pos: p.pos, powerups: p.powerups });
 
     if(passedStart){
-        const b = Math.floor(p.money * 0.15);
+        const bonusPct = [10, 12, 15, 18, 20][Math.floor(Math.random() * 5)];
+        const b = Math.floor(p.money * bonusPct / 100);
         const auctionWon = await offerAuctionChoice("СТАРТ БОНУС", 1);
         if (!auctionWon) {
-            const t = buildContextualQuestion('bonus', { money: p.money });
+            const t = buildContextualQuestion('bonus', { money: p.money, pct: bonusPct });
             const ok = await askQuestion("СТАРТ БОНУС", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
             if(ok) await updateMoneyMulti(myPlayerId, b);
         }
@@ -1919,8 +1945,9 @@ async function showLandingCardMulti(p, c){
                     if(btc) btc.onclick = async (e) => {
                         e.stopPropagation();
                         clearTimeout(chanceFallback);
-                        // Scale CHANCE difficulty: turns 1-3 → D1, turns 4-6 → D2, turns 7+ → D3
-                        const chanceDiff = myTurnCount <= 3 ? 1 : myTurnCount <= 6 ? 2 : 3;
+                        // Scale CHANCE difficulty: adaptive per-student level, with turn count as floor
+                        const turnBaseDiff = myTurnCount <= 3 ? 1 : myTurnCount <= 6 ? 2 : 3;
+                        const chanceDiff = Math.max(turnBaseDiff, currentDifficultyLevel);
                         const auctionWon = await offerAuctionChoice("ШАНСА", chanceDiff);
                         if (!auctionWon) {
                             const t = getUniqueTask(chanceDiff);
@@ -1959,7 +1986,32 @@ async function showLandingCardMulti(p, c){
                 rc();
             };
         } else if(c.type === 'jail'){
-            o.innerHTML = `<div class="card-view"><div class="card-header" style="background:#7f8c8d">ЗАТВОР / ОДМОР</div><div class="card-body"><p>Одмараш 1 потег.</p></div><div class="card-actions"><button class="action-btn btn-pass" id="jail-ok">ДОБРО</button></div></div>`;
+            // Determine difficulty for escape challenge: adaptive level with turn count as floor
+            const jailTurnBase = myTurnCount <= 3 ? 1 : myTurnCount <= 6 ? 2 : 3;
+            const jailDiff = Math.max(jailTurnBase, currentDifficultyLevel);
+            const jailTask = getUniqueTask(jailDiff);
+            o.innerHTML = `<div class="card-view">
+                <div class="card-header" style="background:#7f8c8d">⛓️ ЗАТВОР / ОДМОР</div>
+                <div class="card-body">
+                    <p style="font-size:0.9rem;">Седиш 1 потег. Но можеш да излезеш ВЕДНАШ ако решиш задача!</p>
+                </div>
+                <div class="card-actions">
+                    <button class="action-btn btn-buy" id="jail-escape">🔓 РЕШИ И ИЗЛЕЗИ</button>
+                    <button class="action-btn btn-pass" id="jail-ok">⏳ ОСТАНИ (1 потег)</button>
+                </div>
+            </div>`;
+            document.getElementById('jail-escape').onclick = async () => {
+                o.style.display = 'none';
+                const ok = await askQuestion("🔓 БЕГСТВО ОД ЗАТВОР", jailTask.question, jailTask.correct_answer, jailTask.options, true, jailTask.explanation, jailTask.hint, jailTask.difficulty);
+                if (ok) {
+                    log(`🔓 ${p.name} ја реши задачата и излезе од затвор!`);
+                    // jailTurns stays 0 — player is free
+                } else {
+                    log(`⛓️ ${p.name} не ја реши задачата — останува 1 потег.`);
+                    db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ jailTurns: 1 });
+                }
+                rc();
+            };
             document.getElementById('jail-ok').onclick = () => {
                 db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ jailTurns: 1 });
                 rc();
@@ -2428,13 +2480,34 @@ function updateDashStats(data) {
     const downloadBtn = document.getElementById('dash-download-btn');
 
     statusText.innerText = data.status === 'playing' ? '🟢 Активна игра'
+        : data.status === 'paused'  ? '⏸️ Паузирана игра'
         : data.status === 'ended'  ? '🔴 Играта е завршена — кликни НОВА ИГРА'
         : '🟡 Во исчекување на ученици';
     startBtn.style.display = (data.status === 'waiting') ? 'block' : 'none';
     const newGameBtn = document.getElementById('dash-newgame-btn');
     if (newGameBtn) newGameBtn.style.display = (data.status === 'ended') ? 'block' : 'none';
     const endGameBtn = document.getElementById('dash-endgame-btn');
-    if (endGameBtn) endGameBtn.style.display = (data.status === 'playing') ? 'block' : 'none';
+    if (endGameBtn) endGameBtn.style.display = (data.status === 'playing' || data.status === 'paused') ? 'block' : 'none';
+
+    // Pause / Resume button
+    let pauseBtn = document.getElementById('dash-pause-btn');
+    if (!pauseBtn) {
+        pauseBtn = document.createElement('button');
+        pauseBtn.id = 'dash-pause-btn';
+        pauseBtn.style.cssText = 'margin:4px;padding:8px 14px;border-radius:10px;border:none;font-weight:700;cursor:pointer;background:#f59e0b;color:white;font-size:0.85rem;';
+        endGameBtn && endGameBtn.parentNode && endGameBtn.parentNode.insertBefore(pauseBtn, endGameBtn);
+    }
+    if (data.status === 'playing') {
+        pauseBtn.style.display = 'block';
+        pauseBtn.textContent = '⏸️ ПАУЗА';
+        pauseBtn.onclick = () => db.ref(`rooms/${activeDashRoomId}`).update({ status: 'paused' });
+    } else if (data.status === 'paused') {
+        pauseBtn.style.display = 'block';
+        pauseBtn.textContent = '▶️ ПРОДОЛЖИ';
+        pauseBtn.onclick = () => db.ref(`rooms/${activeDashRoomId}`).update({ status: 'playing' });
+    } else {
+        pauseBtn.style.display = 'none';
+    }
 
     // Store data globally for report generation
     window.lastDashData = data;
@@ -2932,6 +3005,17 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
                 p.streak = (p.streak || 0) + 1;
                 updates.streak = p.streak;
 
+                // Adaptive difficulty: 3 correct in a row → bump up level
+                correctStreak++;
+                wrongStreak = 0;
+                if (correctStreak >= 3) {
+                    if (currentDifficultyLevel < 3) {
+                        currentDifficultyLevel++;
+                        showSuccess(`🔼 Тежина зголемена на ниво ${currentDifficultyLevel}!`);
+                    }
+                    correctStreak = 0;
+                }
+
                 // PHASE 2: Trigger correct answer celebration
                 triggerCelebration('correctAnswer');
 
@@ -2957,6 +3041,17 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
                 updates.wrong = studentWrong;
                 p.streak = 0;
                 updates.streak = 0;
+
+                // Adaptive difficulty: 3 wrong in a row → drop level
+                wrongStreak++;
+                correctStreak = 0;
+                if (wrongStreak >= 3) {
+                    if (currentDifficultyLevel > 1) {
+                        currentDifficultyLevel--;
+                        showSuccess(`🔽 Тежина намалена на ниво ${currentDifficultyLevel}.`);
+                    }
+                    wrongStreak = 0;
+                }
 
                 // PHASE 2: Trigger wrong answer (no celebration)
                 triggerCelebration('wrongAnswer');
