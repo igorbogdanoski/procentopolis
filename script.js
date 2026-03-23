@@ -1771,7 +1771,7 @@ async function playTurnMulti(){
         if (!auctionWon) {
             const t = buildContextualQuestion('bonus', { money: p.money, pct: bonusPct });
             const ok = await askQuestion("СТАРТ БОНУС", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
-            if(ok) await updateMoneyMulti(myPlayerId, b);
+            if(ok && !p.isSpectator) await updateMoneyMulti(myPlayerId, b);
         }
     }
 
@@ -1814,9 +1814,13 @@ async function updateMoneyMulti(pid, amt){
                 await showSellPropertyModal(pid, newMoney);
                 return; // Modal will handle further logic
             } else {
-                // Final Bankruptcy
-                db.ref(`rooms/${roomId}/players/${pid}`).update({ money: -1, isEliminated: true });
-                triggerGameOver("Банкрот! Немаш повеќе пари ниту имоти.");
+                // Final Bankruptcy → Spectator mode (stays engaged, answers questions)
+                db.ref(`rooms/${roomId}/players/${pid}`).update({ money: 0, isSpectator: true });
+                players[pid].money = 0;
+                players[pid].isSpectator = true;
+                showFloatingTextMulti('👁️ ГЛЕДАЧ', pid);
+                log(`💸 ${players[pid].name} е банкрутиран — продолжува како гледач!`);
+                showSuccess('💸 Банкрот! Продолжуваш како гледач. Одговарај на ШАНСА и ДАНОК прашања!');
                 return;
             }
         }
@@ -1879,9 +1883,13 @@ async function showSellPropertyModal(pid, currentDebt) {
                     if (remaining.length > 0) {
                         resolve(await showSellPropertyModal(pid, p.money));
                     } else {
-                        // No more properties — bankruptcy
-                        db.ref(`rooms/${roomId}/players/${pid}`).update({ money: -1, isEliminated: true });
-                        triggerGameOver("Банкрот! Немаш повеќе пари ниту имоти.");
+                        // No more properties — Spectator mode
+                        db.ref(`rooms/${roomId}/players/${pid}`).update({ money: 0, isSpectator: true });
+                        players[pid].money = 0;
+                        players[pid].isSpectator = true;
+                        showFloatingTextMulti('👁️ ГЛЕДАЧ', pid);
+                        log(`💸 ${players[pid].name} е банкрутиран — продолжува како гледач!`);
+                        showSuccess('💸 Банкрот! Продолжуваш како гледач. Одговарај на ШАНСА и ДАНОК прашања!');
                         resolve();
                     }
                 } else {
@@ -1913,6 +1921,8 @@ function showFloatingTextMulti(amount, pid) {
 
 async function showLandingCardMulti(p, c){
     if (!p || !c) return;
+    // Spectators skip property cards (no money to pay or buy with)
+    if (p.isSpectator && c.type === 'property') return;
     return new Promise(resolve => {
         const o = document.getElementById('card-overlay');
         o.style.display = 'flex';
@@ -1953,8 +1963,10 @@ async function showLandingCardMulti(p, c){
                         if (!auctionWon) {
                             const t = getUniqueTask(chanceDiff);
                             const ok = await askQuestion("ШАНСА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
-                            if(ok) updateMoneyMulti(myPlayerId, isPos ? amt : 0);
-                            else if(!isPos) updateMoneyMulti(myPlayerId, amt);
+                            if (!p.isSpectator) {
+                                if(ok) updateMoneyMulti(myPlayerId, isPos ? amt : 0);
+                                else if(!isPos) updateMoneyMulti(myPlayerId, amt);
+                            }
                         }
                         if (!chanceResolved) { chanceResolved = true; rc(); }
                     };
@@ -1970,10 +1982,10 @@ async function showLandingCardMulti(p, c){
                 if (!auctionWon) {
                     const t = buildContextualQuestion('tax', { money: p.money });
                     const ok = await askQuestion("ДАНOЧНА ИНСПЕКЦИЈА", `Реши точно за да не платиш ${tax}д данок!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
-                    if(!ok) {
+                    if(!ok && !p.isSpectator) {
                         await updateMoneyMulti(myPlayerId, -tax);
                         log(`❌ Не ја реши задачата и плати ${tax}д данок.`);
-                    } else {
+                    } else if (ok) {
                         log(`✅ Ја реши задачата и го избегна данокот!`);
                     }
                 }
@@ -2588,10 +2600,12 @@ function updateDashStats(data) {
         // PHASE 2: Streak badge
         const streakBadge = (p.streak && p.streak >= 3) ?
             `<span style="margin-left:8px; padding:3px 8px; background:#fbbf24; color:#78350f; border-radius:12px; font-size:0.65rem; font-weight:900;">🔥 ${p.streak} ПО РЕД</span>` : '';
+        const spectatorBadge = p.isSpectator ?
+            `<span style="margin-left:8px; padding:3px 8px; background:#e2e8f0; color:#475569; border-radius:12px; font-size:0.65rem; font-weight:900;">👁️ ГЛЕДАЧ</span>` : '';
 
         tr.innerHTML = `
             <td style="padding:12px 14px;">
-                <div style="font-weight:700; color:#1e293b; font-size:0.9rem;">${p.emoji || '👤'} ${escapeHtml(p.name)}${streakBadge}</div>
+                <div style="font-weight:700; color:#1e293b; font-size:0.9rem;">${p.emoji || '👤'} ${escapeHtml(p.name)}${streakBadge}${spectatorBadge}</div>
                 <div style="font-size:0.7rem; color:#64748b;">${escapeHtml(p.odd)}</div>
             </td>
             <td style="padding:12px 14px;">
@@ -2873,7 +2887,7 @@ async function resetRoomForNewGame() {
         return {
             ...p,
             money: START_MONEY, pos: 0, correct: 0, wrong: 0,
-            streak: 0, hasLoan: false, isEliminated: (p.correct || 0) + (p.wrong || 0) > 0, jailTurns: 0,
+            streak: 0, hasLoan: false, isEliminated: (p.correct || 0) + (p.wrong || 0) > 0, isSpectator: false, jailTurns: 0,
             powerups: { lawyer: false, shield: false, nitro: false, bribe: false },
             questionHistory: [], lastActivity: null, isThinking: false
         };
