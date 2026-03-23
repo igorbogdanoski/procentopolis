@@ -8,3 +8,8 @@ Thumbs.db
 # Editor files
 .vscode/
 *.swp
+
+# Local backup files
+*.backup.js
+*.backup-*
+NUL
