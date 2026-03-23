@@ -841,7 +841,7 @@ function buildContextualQuestion(eventType, ctx) {
         const ans = String(rentAmt);
         const dbl = String(rentAmt * 2);
         return {
-            question: `„${name}" чини ${Y}д, кирија ${X}%. Точен одговор → ${ans}д. Погрешен → ${dbl}д. Колку е ${X}% од ${Y}?`,
+            question: `„${name}" чини ${Y}д. Кириjата е ${X}% од цената. Колку денари плаќаш кирија?`,
             correct_answer: ans, difficulty: 1,
             options: buildOpts(ans, [dbl, fl((Y*X)/10), fl(Y+X), fl(Y/X)]),
             explanation: `${X}% од ${Y} = (${X}÷100)×${Y} = ${ans}д`,
@@ -1744,7 +1744,7 @@ async function playTurnMulti(){
         if (!auctionWon) {
             const t = buildContextualQuestion('bonus', { money: p.money });
             const ok = await askQuestion("СТАРТ БОНУС", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
-            if(ok) updateMoneyMulti(myPlayerId, b);
+            if(ok) await updateMoneyMulti(myPlayerId, b);
         }
     }
 
@@ -1838,17 +1838,28 @@ async function showSellPropertyModal(pid, currentDebt) {
             btn.onclick = async () => {
                 // Update Firebase: remove owner
                 await db.ref(`rooms/${roomId}/gameBoard/${prop.index}`).update({ owner: null, buildings: 0 });
-                // Update Local money
+                // Update local money
                 let p = players[pid];
                 p.money += sellValue;
                 await db.ref(`rooms/${roomId}/players/${pid}`).update({ money: p.money });
-                
+
                 log(`💸 Го продаде ${prop.name} за ${sellValue}д.`);
                 o.style.display = 'none';
-                
-                // Recursively check if still in debt
-                updateMoneyMulti(pid, 0); 
-                resolve();
+
+                // Recheck: if still in debt after this sale, open modal again for next property
+                if (p.money < 0) {
+                    const remaining = gameBoard.filter(c => c.owner === pid);
+                    if (remaining.length > 0) {
+                        resolve(await showSellPropertyModal(pid, p.money));
+                    } else {
+                        // No more properties — bankruptcy
+                        db.ref(`rooms/${roomId}/players/${pid}`).update({ money: -1, isEliminated: true });
+                        triggerGameOver("Банкрот! Немаш повеќе пари ниту имоти.");
+                        resolve();
+                    }
+                } else {
+                    resolve();
+                }
             };
             list.appendChild(btn);
         });
@@ -1894,6 +1905,12 @@ async function showLandingCardMulti(p, c){
             const amt = [150, 100, -50, -100, 200][Math.floor(Math.random() * 5)];
             const isPos = amt > 0;
             o.innerHTML = `<div class="flip-card" id="cc"><div class="flip-card-inner"><div class="flip-card-front"><h1>❓</h1><h2>ШАНСА</h2></div><div class="flip-card-back"><h1>${isPos?'💰':'💸'}</h1><h2 style="color:${isPos?'green':'red'}">${isPos?'+':''}${amt}д</h2><button class="action-btn btn-build" id="btc" style="display:none;">${isPos?'Реши за да ДОБИЕШ':'Реши за да ИЗБЕГНЕШ'}</button></div></div></div>`;
+            // BUGFIX: Auto-resolve after 60s — prevents deadlock if student disconnects
+            // before clicking the card or the "Реши" button (isRolling=true blocks auto-skip)
+            let chanceResolved = false;
+            const chanceFallback = setTimeout(() => {
+                if (!chanceResolved) { chanceResolved = true; rc(); }
+            }, 60000);
             document.getElementById('cc').onclick = async function() {
                 this.classList.add('flipped');
                 setTimeout(() => {
@@ -1901,6 +1918,7 @@ async function showLandingCardMulti(p, c){
                     if(btc) btc.style.display = 'block';
                     if(btc) btc.onclick = async (e) => {
                         e.stopPropagation();
+                        clearTimeout(chanceFallback);
                         // Scale CHANCE difficulty: turns 1-3 → D1, turns 4-6 → D2, turns 7+ → D3
                         const chanceDiff = myTurnCount <= 3 ? 1 : myTurnCount <= 6 ? 2 : 3;
                         const auctionWon = await offerAuctionChoice("ШАНСА", chanceDiff);
@@ -1910,13 +1928,13 @@ async function showLandingCardMulti(p, c){
                             if(ok) updateMoneyMulti(myPlayerId, isPos ? amt : 0);
                             else if(!isPos) updateMoneyMulti(myPlayerId, amt);
                         }
-                        rc();
+                        if (!chanceResolved) { chanceResolved = true; rc(); }
                     };
                 }, 800);
             };
         } else if(c.type === 'tax'){
             const tax = Math.floor(p.money * 0.1);
-            o.innerHTML = `<div class="card-view"><div class="card-header" style="background:#34495e">ДАНOК</div><div class="card-body"><p>Инспекција! Реши ја задачата за да избегнеш 10% данок.</p><h2>Казна: ${tax}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-tax-task">РЕШИ ЗАДАЧА</button>${p.powerups.lawyer?'<button class="action-btn btn-buy" id="use-lawyer">АДВОКАТ (⚖️)</button>':''}</div></div>`;
+            o.innerHTML = `<div class="card-view"><div class="card-header" style="background:#34495e">ДАНOК</div><div class="card-body"><p>Данечна инспекција! Реши ја задачата за да избегнеш 10% данок.</p><h2>Данок: 10%</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-tax-task">РЕШИ ЗАДАЧА</button>${p.powerups.lawyer?'<button class="action-btn btn-buy" id="use-lawyer">АДВОКАТ (⚖️)</button>':''}</div></div>`;
             
             document.getElementById('pay-tax-task').onclick = async () => {
                 o.style.display = 'none';
@@ -1925,7 +1943,7 @@ async function showLandingCardMulti(p, c){
                     const t = buildContextualQuestion('tax', { money: p.money });
                     const ok = await askQuestion("ДАНOЧНА ИНСПЕКЦИЈА", `Реши точно за да не платиш ${tax}д данок!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
                     if(!ok) {
-                        updateMoneyMulti(myPlayerId, -tax);
+                        await updateMoneyMulti(myPlayerId, -tax);
                         log(`❌ Не ја реши задачата и плати ${tax}д данок.`);
                     } else {
                         log(`✅ Ја реши задачата и го избегна данокот!`);
@@ -1961,7 +1979,7 @@ async function showLandingCardMulti(p, c){
                             let finalPrice = c.price;
                             if(p.powerups.bribe){ finalPrice = 1; p.powerups.bribe = false; }
                             db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ owner: myPlayerId });
-                            updateMoneyMulti(myPlayerId, -finalPrice);
+                            await updateMoneyMulti(myPlayerId, -finalPrice);
                             db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
                             AudioController.play('success');
                             const myProperties = gameBoard.filter(prop => prop.owner === myPlayerId);
@@ -1981,8 +1999,8 @@ async function showLandingCardMulti(p, c){
                     o.style.display = 'none';
                     const ok = await askQuestion("КИРИЈА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
                     const finalRent = ok ? rent : rent * 2;
-                    updateMoneyMulti(myPlayerId, -finalRent);
-                    updateMoneyMulti(c.owner, finalRent);
+                    await updateMoneyMulti(myPlayerId, -finalRent);
+                    updateMoneyMulti(c.owner, finalRent); // receiving money — safe without await
                     resolve();
                 };
                 if(p.powerups.shield) document.getElementById('use-shield').onclick = () => {
@@ -2017,7 +2035,7 @@ async function showLandingCardMulti(p, c){
                     const ok = await askQuestion("ГРАДЕЊЕ", t.question, t.correct_answer, [], true, t.explanation, t.hint, t.difficulty);
                     if(ok){
                         db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ buildings: c.buildings + 1, rentPercent: c.rentPercent + 15 });
-                        updateMoneyMulti(myPlayerId, -buildCost);
+                        await updateMoneyMulti(myPlayerId, -buildCost);
                         AudioController.play('success');
                     }
                     resolve();
