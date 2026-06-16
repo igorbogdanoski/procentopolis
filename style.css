@@ -424,6 +424,9 @@ body {
 }
 .token-choice:hover { transform: translateY(-3px) scale(1.05); border-color: #cbd5e0; background: #f8fafc; }
 .token-choice.active { border-color: var(--primary-color); background: #eff6ff; transform: scale(1.1); box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2); }
+.token-choice.token-locked { filter: grayscale(1); opacity: 0.45; position: relative; cursor: not-allowed; }
+.token-choice.token-locked::after { content: "🔒"; position: absolute; bottom: 1px; right: 2px; font-size: 0.7rem; filter: none; opacity: 1; }
+.token-choice.token-locked:hover { transform: none; border-color: #edf2f7; background: white; }
 
 /* Updated Token Design */
 .token { 

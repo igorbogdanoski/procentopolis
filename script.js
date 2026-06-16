@@ -1224,7 +1224,75 @@ window.onload = () => {
     }
 };
 
+// === PHASE 6.1: XP, LEVELS & COSMETIC UNLOCKS ===
+const XP_PER_LEVEL = 100;
+// Cosmetic avatars locked behind levels (basic 5 are always free)
+const COSMETIC_UNLOCKS = { '🦊': 2, '🐲': 3, '🍕': 4, '💎': 5, '🐱': 6 };
+
+function getXP() { return parseInt(localStorage.getItem('percentopolis_xp') || '0', 10) || 0; }
+function setXPValue(v) { localStorage.setItem('percentopolis_xp', String(Math.max(0, Math.floor(v)))); }
+function getLevel(xp) { const x = (xp == null) ? getXP() : xp; return Math.floor(x / XP_PER_LEVEL) + 1; }
+function xpIntoLevel(xp) { const x = (xp == null) ? getXP() : xp; return x % XP_PER_LEVEL; }
+
+function isCosmeticUnlocked(emoji) {
+    const req = COSMETIC_UNLOCKS[emoji];
+    return !req || getLevel() >= req;
+}
+
+function awardXP(amount) {
+    const before = getXP();
+    const beforeLevel = getLevel(before);
+    const after = before + Math.max(0, Math.floor(amount));
+    setXPValue(after);
+    const afterLevel = getLevel(after);
+    renderXpBadge();
+    renderAvatarLocks();
+    return { earned: after - before, total: after, leveledUp: afterLevel > beforeLevel, newLevel: afterLevel };
+}
+
+function renderXpBadge() {
+    const el = document.getElementById('xp-badge');
+    if (!el) return;
+    const xp = getXP();
+    const lvl = getLevel(xp);
+    const into = xpIntoLevel(xp);
+    const pct = Math.round((into / XP_PER_LEVEL) * 100);
+    const isMk = currentLanguage === 'mk';
+    const lvlLabel = isMk ? 'Ниво' : 'Level';
+    el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span style="background:#6366f1;color:#fff;font-weight:900;font-size:0.72rem;padding:3px 9px;border-radius:20px;">⭐ ${lvlLabel} ${lvl}</span>
+            <span style="font-size:0.68rem;color:#64748b;font-weight:700;">${into}/${XP_PER_LEVEL} XP</span>
+        </div>
+        <div style="width:100%;height:7px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#818cf8,#6366f1);transition:width 0.5s;"></div>
+        </div>`;
+}
+
+function renderAvatarLocks() {
+    const lvl = getLevel();
+    const isMk = currentLanguage === 'mk';
+    document.querySelectorAll('.token-choice').forEach(btn => {
+        const emoji = (btn.dataset.emoji || '').trim();
+        const req = COSMETIC_UNLOCKS[emoji];
+        if (req && lvl < req) {
+            btn.classList.add('token-locked');
+            btn.setAttribute('title', isMk ? `Се отклучува на ниво ${req}` : `Unlocks at level ${req}`);
+        } else {
+            btn.classList.remove('token-locked');
+            btn.removeAttribute('title');
+        }
+    });
+}
+
 function selectToken(emoji, btn) {
+    if (!isCosmeticUnlocked(emoji)) {
+        const req = COSMETIC_UNLOCKS[emoji];
+        showWarning(currentLanguage === 'mk'
+            ? `🔒 Овој аватар се отклучува на ниво ${req}. Играј за да освоиш XP!`
+            : `🔒 This avatar unlocks at level ${req}. Play to earn XP!`);
+        return;
+    }
     myTokenEmoji = emoji;
     document.querySelectorAll('.token-choice').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
@@ -1353,6 +1421,8 @@ function setRole(role) {
         roomsContainer.style.display = 'block';
         loginBtn.style.display = 'block';
         teacherDashBtn.style.display = 'none';
+        renderXpBadge();
+        renderAvatarLocks();
         fetchAvailableRooms();
     }
     checkLoginValid();
@@ -3743,6 +3813,19 @@ function triggerGameOver(r){
     const successColor = successRate >= 70 ? '#16a34a' : successRate >= 40 ? '#d97706' : '#dc2626';
     const loanDisplay = p.hasLoan ? ` <span style="font-size:0.75rem;color:#dc2626;">(loan -1500d)</span>` : '';
 
+    // PHASE 6.1: award XP — participation + per correct answer + mastery bonus
+    const xpEarned = 20 + (studentCorrect * 10) + (successRate >= 70 ? 30 : successRate >= 40 ? 15 : 0);
+    const xpResult = awardXP(xpEarned);
+    const isMk = currentLanguage === 'mk';
+    const xpHtml = `<div style="margin-top:10px;padding:10px 12px;background:#eef2ff;border-radius:10px;border:1px solid #c7d2fe;">
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.85rem;font-weight:800;color:#3730a3;">
+                <span>⭐ +${xpResult.earned} XP</span>
+                <span>${isMk ? 'Ниво' : 'Level'} ${xpResult.newLevel}</span>
+            </div>
+            ${xpResult.leveledUp ? `<div style="margin-top:5px;font-size:0.78rem;color:#16a34a;font-weight:700;">🎉 ${isMk ? 'Ново ниво! Отклучи нов аватар!' : 'Level up! A new avatar may be unlocked!'}</div>` : ''}
+        </div>`;
+    if (xpResult.leveledUp) celebrateWithConfetti(2500);
+
     let historyHtml = '';
     if (questionHistory.length > 0) {
         historyHtml = `<div style="margin-top:12px;border-top:1px solid #e2e8f0;padding-top:10px;">
@@ -3765,6 +3848,7 @@ function triggerGameOver(r){
             <div><span style="color:#64748b;">Correct:</span> <strong style="color:#16a34a;">${studentCorrect}</strong> &nbsp; <span style="color:#64748b;">Wrong:</span> <strong style="color:#dc2626;">${studentWrong}</strong></div>
             <div><span style="color:#64748b;">Properties:</span> <span style="font-size:0.8rem;">${escapeHtml(propNames)}</span></div>
         </div>
+        ${xpHtml}
         ${historyHtml}`;
     new QRCode(document.getElementById("qrcode"),{text:qrText,width:128,height:128});
 
@@ -4927,6 +5011,10 @@ function setLanguage(lang) {
     
     // Update Demo Question
     updateDemoQuestion();
+
+    // PHASE 6.1: refresh XP badge & avatar lock tooltips in the new language
+    if (typeof renderXpBadge === 'function') renderXpBadge();
+    if (typeof renderAvatarLocks === 'function') renderAvatarLocks();
 }
 
 // Apply saved theme & language on load
@@ -4935,3 +5023,7 @@ if (localStorage.getItem('percentopolis_theme') === 'dark') {
 }
 const savedLang = localStorage.getItem('percentopolis_lang') || 'en';
 setLanguage(savedLang);
+
+// PHASE 6.1: initialise XP badge & avatar locks on load
+renderXpBadge();
+renderAvatarLocks();

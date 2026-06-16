@@ -25,8 +25,8 @@ This plan outlines the professional overhaul of ProcentOpolis to transform it in
 - **5.1 Dynamic Difficulty Algorithm**: Real-time difficulty tuning per student, with per-question-type mastery tracking (not just global streaks).
 - **5.2 Smart Hints**: After 2 consecutive mistakes on the same task type, proactively show step-by-step guidance / visual percentage breakdown instead of just rejecting the answer.
 
-## Phase 6: Meta-game & Retention - PLANNED 📈
-- **6.1 XP & Cosmetics**: Award experience points per finished game; unlock avatar cosmetics (hats, glasses) and board skins.
+## Phase 6: Meta-game & Retention - IN PROGRESS 📈
+- **6.1 XP & Cosmetics**: ✅ Persistent XP + leveling (localStorage); XP awarded per finished game (participation + correct answers + mastery bonus); avatar cosmetics unlock by level with locked-state UI and level/progress badge on homepage.
 - **6.2 Achievements System**: Digital badges for specific feats (e.g. "10 flawless rounds", "Discount Specialist").
 - **6.3 Leaderboards**: Optional class-level ranking (teacher-toggleable) for healthy competition.
 
