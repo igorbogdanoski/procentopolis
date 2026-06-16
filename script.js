@@ -543,6 +543,10 @@ const TRANSLATIONS = {
         difficulty: "Difficulty:", duration: "Duration:",
         standard: "Standard", easy: "Easy", hard: "Hard",
         startBonus: "START BONUS", bankLoan: "🏦 BANK LOAN",
+        bankLoanPrompt: () => `Solve the task for 1500d loan, otherwise you LOSE!`,
+        propertyPurchase: "PROPERTY PURCHASE",
+        dashStatusPlaying: "🟢 Active game", dashStatusPaused: "⏸️ Paused game",
+        dashStatusEnded: "🔴 Game over — click NEW GAME", dashStatusWaiting: "🟡 Waiting for students",
         chance: "CHANCE", taxInspection: "TAX INSPECTION",
         jailEscape: "🔓 JAIL ESCAPE", purchase: "PURCHASE",
         rentLabel: "RENT", building: "BUILDING",
@@ -574,7 +578,40 @@ const TRANSLATIONS = {
         roomLabel: "🏠 ROOM:",
         roleLabel: "🎭 YOUR ROLE:",
         chooseAvatarLabel: "🚀 CHOOSE YOUR AVATAR:",
-        subtitle: "MASTER PORTAL"
+        subtitle: "MASTER PORTAL",
+        check: "CHECK",
+        // Shop items
+        lawyer: "Lawyer", lawyerDesc: "Protects you from the next tax inspection.",
+        shield: "Golden Shield", shieldDesc: "Skip paying rent once at an opponent's property.",
+        nitro: "Nitro Dice", nitroDesc: "Your next dice roll value is doubled.",
+        insider: "Insider", insiderDesc: "Take the next property you land on for just 1 denar.",
+        shopClose: "CLOSE",
+        // Quick practice
+        demoPerfect: "✅ PERFECT! You are ready!",
+        demoTryAgain: "❌ Try again!",
+        demoQuestion: (r, b) => `Calculate ${r}% of ${b}:`,
+        // In-game cards
+        solveToGet: "Solve to GET", solveToAvoid: "Solve to AVOID",
+        chanceLabel: "CHANCE",
+        buyCard: "BUY (SOLVE TASK)", passCard: "PASS", payCard: "PAY RENT",
+        buildCard: "BUILD", closeCard: "CLOSE",
+        jailStay: "⏳ STAY (skip 1 turn)", jailEscapeBtn: "🔓 SOLVE TO GET OUT",
+        monopolyRequired: "⚠️ You need all properties of this color to build.",
+        yourProperty: "Your property",
+        // Tax card
+        taxHeader: "TAX", taxBody: "Tax inspection! Solve the task to avoid 10% tax.",
+        taxRate: "Tax: 10%", taxSolveBtn: "SOLVE TASK", lawyerUseBtn: "LAWYER (⚖️)",
+        taxSolvePrompt: (tax) => `Solve correctly to not pay ${tax}d tax!`,
+        taxAuctionLabel: "TAX INSPECTION",
+        bankruptMsg: "💸 Bankrupt! You continue as a spectator. Answer CHANCE and TAX questions!",
+        // Report labels
+        reportPlayer: "Player:", reportReason: "Reason:", reportMoney: "Money:",
+        reportSuccess: "Success:", reportCorrect: "Correct:", reportWrong: "Wrong:",
+        reportProps: "Properties:",
+        // Status
+        playerPrefix: "Player: ", teacherPrefix: "Teacher: ",
+        statusActive: "ACTIVE", statusWaiting: "WAITING",
+        waitingLabel: "Waiting"
     },
     mk: {
         goal: "Цел:", goalDesc: "Собери најголемо богатство!",
@@ -595,6 +632,10 @@ const TRANSLATIONS = {
         difficulty: "Тежина:", duration: "Времетраење:",
         standard: "Стандардна", easy: "Лесна", hard: "Тешка",
         startBonus: "СТАРТ БОНУС", bankLoan: "🏦 БАНКАРСКИ ЗАЕМ",
+        bankLoanPrompt: () => `Реши задача за заем од 1500d, инаку ГУБИШ!`,
+        propertyPurchase: "КУПУВАЊЕ НА ИМОТ",
+        dashStatusPlaying: "🟢 Активна игра", dashStatusPaused: "⏸️ Игра на пауза",
+        dashStatusEnded: "🔴 Игра завршена — кликни НОВА ИГРА", dashStatusWaiting: "🟡 Чека ученици",
         chance: "ШАНСА", taxInspection: "ДАНОЧНА ИНСПЕКЦИЈА",
         jailEscape: "🔓 БЕГСТВО ОД ЗАТВОР", purchase: "КУПУВАЊЕ",
         rentLabel: "КИРИЈА", building: "ГРАДБА",
@@ -626,7 +667,40 @@ const TRANSLATIONS = {
         roomLabel: "🏠 СОБА:",
         roleLabel: "🎭 ТВОЈАТА УЛОГА:",
         chooseAvatarLabel: "🚀 ИЗБЕРИ СВОЈ АВАТАР:",
-        subtitle: "ГЛАВЕН ПОРТАЛ"
+        subtitle: "ГЛАВЕН ПОРТАЛ",
+        check: "ПРОВЕРИ",
+        // Shop items
+        lawyer: "Адвокат", lawyerDesc: "Те штити од следната даночна инспекција.",
+        shield: "Златен штит", shieldDesc: "Еднаш прескокни плаќање кирија кај противник.",
+        nitro: "Нитро коцки", nitroDesc: "Следното фрлање коцки е двојно.",
+        insider: "Инсајдер", insiderDesc: "Следниот имот на кој ќе стапиш го купуваш за 1 денар.",
+        shopClose: "ЗАТВОРИ",
+        // Quick practice
+        demoPerfect: "✅ ОДЛИЧНО! Си подготвен/а!",
+        demoTryAgain: "❌ Обиди се повторно!",
+        demoQuestion: (r, b) => `Пресметај ${r}% од ${b}:`,
+        // In-game cards
+        solveToGet: "Реши за да ДОБИЕШ", solveToAvoid: "Реши за да ИЗБЕГНЕШ",
+        chanceLabel: "ШАНСА",
+        buyCard: "КУПИ (РЕШИ ЗАДАЧА)", passCard: "ПОМИНИ", payCard: "ПЛАТИ КИРИЈА",
+        buildCard: "ГРАДИ", closeCard: "ЗАТВОРИ",
+        jailStay: "⏳ ОСТАНИ (прескокни 1 ред)", jailEscapeBtn: "🔓 РЕШИ И ИЗЛЕЗИ",
+        monopolyRequired: "⚠️ Ти требаат сите имоти од оваа боја за да градиш.",
+        yourProperty: "Твој имот",
+        // Tax card
+        taxHeader: "ДАНОК", taxBody: "Даночна инспекција! Реши задача за да избегнеш 10% данок.",
+        taxRate: "Данок: 10%", taxSolveBtn: "РЕШИ ЗАДАЧА", lawyerUseBtn: "АДВОКАТ (⚖️)",
+        taxSolvePrompt: (tax) => `Реши точно за да не платиш ${tax}d данок!`,
+        taxAuctionLabel: "ДАНОЧНА ИНСПЕКЦИЈА",
+        bankruptMsg: "💸 Банкрот! Продолжуваш како набљудувач. Одговарај на ШАНСА и ДАНОК прашања!",
+        // Report labels
+        reportPlayer: "Играч:", reportReason: "Причина:", reportMoney: "Пари:",
+        reportSuccess: "Успех:", reportCorrect: "Точни:", reportWrong: "Грешни:",
+        reportProps: "Имоти:",
+        // Status
+        playerPrefix: "Играч: ", teacherPrefix: "Наставник: ",
+        statusActive: "АКТИВНА", statusWaiting: "ЧЕКАЊЕ",
+        waitingLabel: "Чекање"
     }
 };
 
@@ -1203,29 +1277,38 @@ let currentRole = 'student';
 
 // --- QUICK PRACTICE DEMO ---
 let currentDemoAnswer = 20;
+let _demoBase = 80, _demoRate = 25;
+
+function updateDemoQuestion() {
+    const el = document.getElementById('demo-question');
+    if (!el) return;
+    const t = TRANSLATIONS[currentLanguage];
+    el.innerText = t.demoQuestion(_demoRate, _demoBase);
+}
+
 function checkDemoAnswer() {
     const input = document.getElementById('demo-input');
     const feedback = document.getElementById('demo-feedback');
     const userVal = parseFloat(input.value);
+    const t = TRANSLATIONS[currentLanguage];
 
     if (userVal === currentDemoAnswer) {
         feedback.style.color = '#059669';
-        feedback.innerText = '✅ PERFECT! You are ready!';
+        feedback.innerText = t.demoPerfect;
         triggerConfetti();
         AudioController.play('success');
-        
-        // Generate new simple question after 2 seconds
+
         setTimeout(() => {
-            const base = [40, 60, 80, 100, 120, 200][Math.floor(Math.random() * 6)];
-            const rate = [10, 20, 25, 50][Math.floor(Math.random() * 4)];
-            currentDemoAnswer = (base * rate) / 100;
-            document.getElementById('demo-question').innerText = `Calculate ${rate}% of ${base}:`;
+            _demoBase = [40, 60, 80, 100, 120, 200][Math.floor(Math.random() * 6)];
+            _demoRate = [10, 20, 25, 50][Math.floor(Math.random() * 4)];
+            currentDemoAnswer = (_demoBase * _demoRate) / 100;
+            updateDemoQuestion();
             input.value = '';
             feedback.innerText = '';
         }, 2000);
     } else {
         feedback.style.color = '#dc2626';
-        feedback.innerText = '❌ Try again!';
+        feedback.innerText = t.demoTryAgain;
         AudioController.play('failure');
     }
 }
@@ -2070,7 +2153,7 @@ function initMultiplayerGame() {
     typeWrongStreak = {};
     typeMastery = {};
     AudioController.init();
-    document.getElementById('player-display-name').innerText = (currentRole === 'teacher' ? 'Teacher: ' : 'Player: ') + studentName;
+    document.getElementById('player-display-name').innerText = (currentRole === 'teacher' ? TRANSLATIONS[currentLanguage].teacherPrefix : TRANSLATIONS[currentLanguage].playerPrefix) + studentName;
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('game-wrapper').classList.remove('blur-filter');
     
@@ -2199,10 +2282,10 @@ async function playTurnMulti(){
     if(passedStart){
         const bonusPct = [10, 12, 15, 18, 20][Math.floor(Math.random() * 5)];
         const b = Math.floor(p.money * bonusPct / 100);
-        const auctionWon = await offerAuctionChoice("START BONUS", 1);
+        const auctionWon = await offerAuctionChoice(TRANSLATIONS[currentLanguage].startBonus, 1);
         if (!auctionWon) {
             const t = buildContextualQuestion('bonus', { money: p.money, pct: bonusPct });
-            const ok = await askQuestion("START BONUS", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty, 0);
+            const ok = await askQuestion(TRANSLATIONS[currentLanguage].startBonus, t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty, 0);
             if(ok && !p.isSpectator) await updateMoneyMulti(myPlayerId, b);
         }
     }
@@ -2227,7 +2310,8 @@ async function updateMoneyMulti(pid, amt){
         if (!p.hasLoan) {
             log("⚠️ CRISIS! You don't have enough money. The bank offers a LOAN.");
             const t = buildContextualQuestion('loan', {});
-            const ok = await askQuestion("🏦 BANK LOAN", `Solve the task for 1500d loan, otherwise you LOSE!\n\n${t.question}`, t.correct_answer, [], true, t.explanation, t.hint, t.difficulty);
+            const _tl = TRANSLATIONS[currentLanguage];
+            const ok = await askQuestion(_tl.bankLoan, `${_tl.bankLoanPrompt()}\n\n${t.question}`, t.correct_answer, [], true, t.explanation, t.hint, t.difficulty);
             
             if (ok) {
                 newMoney += 1500;
@@ -2252,7 +2336,7 @@ async function updateMoneyMulti(pid, amt){
                 players[pid].isSpectator = true;
                 showFloatingTextMulti('👁️ SPECTATOR', pid);
                 log(`💸 ${players[pid].name} is bankrupt — continues as a spectator!`);
-                showSuccess('💸 Bankrupt! You continue as a spectator. Answer CHANCE and TAX questions!');
+                showSuccess(TRANSLATIONS[currentLanguage].bankruptMsg);
                 return;
             }
         }
@@ -2323,7 +2407,7 @@ async function showSellPropertyModal(pid, currentDebt) {
                         players[pid].isSpectator = true;
                         showFloatingTextMulti('👁️ SPECTATOR', pid);
                         log(`💸 ${players[pid].name} is bankrupt — continues as a spectator!`);
-                        showSuccess('💸 Bankrupt! You continue as a spectator. Answer CHANCE and TAX questions!');
+                        showSuccess(TRANSLATIONS[currentLanguage].bankruptMsg);
                         resolve();
                     }
                 } else {
@@ -2375,7 +2459,8 @@ async function showLandingCardMulti(p, c){
         if(c.type === 'chance'){
             const amt = [150, 100, -50, -100, 200][Math.floor(Math.random() * 5)];
             const isPos = amt > 0;
-            o.innerHTML = `<div class="flip-card" id="cc"><div class="flip-card-inner"><div class="flip-card-front"><h1>❓</h1><h2>CHANCE</h2></div><div class="flip-card-back"><h1>${isPos?'💰':'💸'}</h1><h2 style="color:${isPos?'green':'red'}">${isPos?'+':''}${amt}d</h2><button class="action-btn btn-build" id="btc" style="display:none;">${isPos?'Solve to GET':'Solve to AVOID'}</button></div></div></div>`;
+            const _tc = TRANSLATIONS[currentLanguage];
+            o.innerHTML = `<div class="flip-card" id="cc"><div class="flip-card-inner"><div class="flip-card-front"><h1>❓</h1><h2>${_tc.chanceLabel}</h2></div><div class="flip-card-back"><h1>${isPos?'💰':'💸'}</h1><h2 style="color:${isPos?'green':'red'}">${isPos?'+':''}${amt}d</h2><button class="action-btn btn-build" id="btc" style="display:none;">${isPos?_tc.solveToGet:_tc.solveToAvoid}</button></div></div></div>`;
             // BUGFIX: Auto-resolve after 60s — prevents deadlock if student disconnects
             // before clicking the card or the "Solve" button (isRolling=true blocks auto-skip)
             let chanceResolved = false;
@@ -2393,10 +2478,11 @@ async function showLandingCardMulti(p, c){
                         // Scale CHANCE difficulty: adaptive per-student level, with turn count as floor
                         const turnBaseDiff = myTurnCount <= 3 ? 1 : myTurnCount <= 6 ? 2 : 3;
                         const chanceDiff = Math.max(turnBaseDiff, currentDifficultyLevel);
-                        const auctionWon = await offerAuctionChoice("CHANCE", chanceDiff);
+                        const _tch = TRANSLATIONS[currentLanguage];
+                        const auctionWon = await offerAuctionChoice(_tch.chance, chanceDiff);
                         if (!auctionWon) {
                             const t = getUniqueTask(chanceDiff);
-                            const ok = await askQuestion("CHANCE", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty, c.index);
+                            const ok = await askQuestion(_tch.chance, t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty, c.index);
                             if (!p.isSpectator) {
                                 if(ok) updateMoneyMulti(myPlayerId, isPos ? amt : 0);
                                 else if(!isPos) updateMoneyMulti(myPlayerId, amt);
@@ -2408,14 +2494,15 @@ async function showLandingCardMulti(p, c){
             };
         } else if(c.type === 'tax'){
             const tax = Math.floor(p.money * 0.1);
-            o.innerHTML = `<div class="card-view"><div class="card-header" style="background:#34495e">TAX</div><div class="card-body"><p>Tax inspection! Solve the task to avoid 10% tax.</p><h2>Tax: 10%</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-tax-task">SOLVE TASK</button>${p.powerups.lawyer?'<button class="action-btn btn-buy" id="use-lawyer">LAWYER (⚖️)</button>':''}</div></div>`;
-            
+            const _tt = TRANSLATIONS[currentLanguage];
+            o.innerHTML = `<div class="card-view"><div class="card-header" style="background:#34495e">${_tt.taxHeader}</div><div class="card-body"><p>${_tt.taxBody}</p><h2>${_tt.taxRate}</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-tax-task">${_tt.taxSolveBtn}</button>${p.powerups.lawyer?`<button class="action-btn btn-buy" id="use-lawyer">${_tt.lawyerUseBtn}</button>`:''}</div></div>`;
+
             document.getElementById('pay-tax-task').onclick = async () => {
                 o.style.display = 'none';
-                const auctionWon = await offerAuctionChoice("TAX INSPECTION", 2);
+                const auctionWon = await offerAuctionChoice(_tt.taxAuctionLabel, 2);
                 if (!auctionWon) {
                     const t = buildContextualQuestion('tax', { money: p.money });
-                    const ok = await askQuestion("TAX INSPECTION", `Solve correctly to not pay ${tax}d tax!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty, c.index);
+                    const ok = await askQuestion(_tt.taxAuctionLabel, `${_tt.taxSolvePrompt(tax)}\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty, c.index);
                     if(!ok && !p.isSpectator) {
                         await updateMoneyMulti(myPlayerId, -tax);
                         log(`❌ Did not solve the task and paid ${tax}d tax.`);
@@ -2437,19 +2524,23 @@ async function showLandingCardMulti(p, c){
             const jailTurnBase = myTurnCount <= 3 ? 1 : myTurnCount <= 6 ? 2 : 3;
             const jailDiff = Math.max(jailTurnBase, currentDifficultyLevel);
             const jailTask = getUniqueTask(jailDiff);
+            const _tj = TRANSLATIONS[currentLanguage];
+            const jailBodyText = currentLanguage === 'mk'
+                ? 'Седиш 1 ред. Но можеш да излезеш ВЕДНАШ ако решиш задача!'
+                : 'You sit 1 turn. But you can get out IMMEDIATELY if you solve a task!';
             o.innerHTML = `<div class="card-view">
-                <div class="card-header" style="background:#7f8c8d">⛓️ JAIL / REST</div>
+                <div class="card-header" style="background:#7f8c8d">⛓️ ${currentLanguage === 'mk' ? 'ЗАТВОР / ОДМОР' : 'JAIL / REST'}</div>
                 <div class="card-body">
-                    <p style="font-size:0.9rem;">You sit 1 turn. But you can get out IMMEDIATELY if you solve a task!</p>
+                    <p style="font-size:0.9rem;">${jailBodyText}</p>
                 </div>
                 <div class="card-actions">
-                    <button class="action-btn btn-buy" id="jail-escape">🔓 SOLVE AND GET OUT</button>
-                    <button class="action-btn btn-pass" id="jail-ok">⏳ STAY (1 turn)</button>
+                    <button class="action-btn btn-buy" id="jail-escape">${_tj.jailEscapeBtn}</button>
+                    <button class="action-btn btn-pass" id="jail-ok">${_tj.jailStay}</button>
                 </div>
             </div>`;
             document.getElementById('jail-escape').onclick = async () => {
                 o.style.display = 'none';
-                const ok = await askQuestion("🔓 JAIL ESCAPE", jailTask.question, jailTask.correct_answer, jailTask.options, true, jailTask.explanation, jailTask.hint, jailTask.difficulty, c.index);
+                const ok = await askQuestion(TRANSLATIONS[currentLanguage].jailEscape, jailTask.question, jailTask.correct_answer, jailTask.options, true, jailTask.explanation, jailTask.hint, jailTask.difficulty, c.index);
                 if (ok) {
                     log(`🔓 ${p.name} solved the task and got out of jail!`);
                     // jailTurns stays 0 — player is free
@@ -2465,15 +2556,21 @@ async function showLandingCardMulti(p, c){
             };
         } else if(c.type === 'property'){
             const rent = Math.floor(c.price * (c.rentPercent / 100));
+            const _tp = TRANSLATIONS[currentLanguage];
+            const priceLabel = currentLanguage === 'mk' ? 'Цена:' : 'Price:';
+            const rentLbl   = currentLanguage === 'mk' ? 'Кирија:' : 'Rent:';
+            const ownerLbl  = currentLanguage === 'mk' ? 'Сопственик:' : 'Owner:';
+            const rentTitle = currentLanguage === 'mk' ? 'Кирија:' : 'Rent:';
             if(c.owner == null){ // Matches null and undefined
-                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><div class="card-row"><span>Price:</span><span>${c.price}d</span></div><div class="card-row"><span>Rent:</span><span>${rent}d</span></div></div><div class="card-actions"><button class="action-btn btn-buy" id="buy-prop">BUY (SOLVE TASK)</button><button class="action-btn btn-pass" id="pass-prop">PASS</button></div></div>`;
+                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><div class="card-row"><span>${priceLabel}</span><span>${c.price}d</span></div><div class="card-row"><span>${rentLbl}</span><span>${rent}d</span></div></div><div class="card-actions"><button class="action-btn btn-buy" id="buy-prop">${_tp.buyCard}</button><button class="action-btn btn-pass" id="pass-prop">${_tp.passCard}</button></div></div>`;
                 document.getElementById('buy-prop').onclick = async () => {
                     o.style.display = 'none';
-                    const auctionWon = await offerAuctionChoice("PROPERTY PURCHASE", c.difficulty);
+                    const _tpp = TRANSLATIONS[currentLanguage];
+                    const auctionWon = await offerAuctionChoice(_tpp.propertyPurchase, c.difficulty);
                     if (!auctionWon) {
                         const isHard = c.difficulty === 3;
                         const t = buildContextualQuestion('buy', { price: c.price, rentPercent: c.rentPercent, name: c.name, difficulty: c.difficulty });
-                        const ok = await askQuestion("PURCHASE", t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation, t.hint, t.difficulty, c.index);
+                        const ok = await askQuestion(_tpp.purchase, t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation, t.hint, t.difficulty, c.index);
                         if(ok){
                             let finalPrice = c.price;
                             if(p.powerups.bribe){ finalPrice = 1; p.powerups.bribe = false; }
@@ -2490,14 +2587,17 @@ async function showLandingCardMulti(p, c){
                 };
                 document.getElementById('pass-prop').onclick = () => rc();
             } else if(c.owner !== myPlayerId){
-                const ownerName = (players[c.owner] && players[c.owner].name) ? escapeHtml(players[c.owner].name) : "Opponent";
-                const rescueBtn = p.rescueToken ? '<button class="action-btn btn-buy" id="use-rescue">🎁 TOKEN (skip)</button>' : '';
-                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Owner: ${ownerName}</p><h2>Rent: ${rent}d</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">PAY</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">SHIELD (🛡️)</button>':''}${rescueBtn}</div></div>`;
+                const opponentLabel = currentLanguage === 'mk' ? 'Противник' : 'Opponent';
+                const ownerName = (players[c.owner] && players[c.owner].name) ? escapeHtml(players[c.owner].name) : opponentLabel;
+                const tokenSkipLabel = currentLanguage === 'mk' ? '🎁 ТОКЕН (прескокни)' : '🎁 TOKEN (skip)';
+                const shieldLabel = currentLanguage === 'mk' ? 'ШТИТ (🛡️)' : 'SHIELD (🛡️)';
+                const rescueBtn = p.rescueToken ? `<button class="action-btn btn-buy" id="use-rescue">${tokenSkipLabel}</button>` : '';
+                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>${ownerLbl} ${ownerName}</p><h2>${rentTitle} ${rent}d</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">${_tp.payCard}</button>${p.powerups.shield?`<button class="action-btn btn-buy" id="use-shield">${shieldLabel}</button>`:''}${rescueBtn}</div></div>`;
                 document.getElementById('pay-rent').onclick = async () => {
                     const t = buildContextualQuestion('rent', { price: c.price, rentPercent: c.rentPercent, name: c.name, rent, difficulty: c.difficulty });
                     // Hide the card overlay immediately
                     o.style.display = 'none';
-                    const ok = await askQuestion("RENT", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty, c.index);
+                    const ok = await askQuestion(TRANSLATIONS[currentLanguage].rentLabel, t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty, c.index);
                     const finalRent = ok ? rent : rent * 2;
                     await updateMoneyMulti(myPlayerId, -finalRent);
                     updateMoneyMulti(c.owner, finalRent); // receiving money — safe without await
@@ -2524,20 +2624,20 @@ async function showLandingCardMulti(p, c){
                 let buildActionHtml = '';
                 if (c.buildings < 3) {
                     if (ownsAll) {
-                        buildActionHtml = `<button class="action-btn btn-build" id="build-btn">BUILD (${buildCost}d)</button>`;
+                        buildActionHtml = `<button class="action-btn btn-build" id="build-btn">${_tp.buildCard} (${buildCost}d)</button>`;
                     } else {
-                        buildActionHtml = `<p style="font-size:0.8rem; color:#e67e22;">⚠️ Monopoly required (all of this color) to build.</p>`;
+                        buildActionHtml = `<p style="font-size:0.8rem; color:#e67e22;">${_tp.monopolyRequired}</p>`;
                     }
                 }
 
-                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Your property</p></div><div class="card-actions">${buildActionHtml} <button class="action-btn btn-pass" id="pass-prop">CLOSE</button></div></div>`;
+                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>${_tp.yourProperty}</p></div><div class="card-actions">${buildActionHtml} <button class="action-btn btn-pass" id="pass-prop">${_tp.closeCard}</button></div></div>`;
 
                 const bldBtn = document.getElementById('build-btn');
                 if(bldBtn) bldBtn.onclick = async () => {
                     const t = buildContextualQuestion('build', { price: c.price, pct: buildPct });
                     // Hide the card overlay immediately
                     o.style.display = 'none';
-                    const ok = await askQuestion("BUILDING", t.question, t.correct_answer, [], true, t.explanation, t.hint, t.difficulty, c.index);
+                    const ok = await askQuestion(TRANSLATIONS[currentLanguage].building, t.question, t.correct_answer, [], true, t.explanation, t.hint, t.difficulty, c.index);
                     if(ok){
                         db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ buildings: c.buildings + 1, rentPercent: c.rentPercent + 15 });
                         await updateMoneyMulti(myPlayerId, -buildCost);
@@ -2949,7 +3049,7 @@ function renderDashGrid() {
             
             const statusEl = document.getElementById(`grid-status-${rid}`);
             if (statusEl) {
-                statusEl.innerText = data.status === 'playing' ? 'ACTIVE' : 'WAITING';
+                statusEl.innerText = data.status === 'playing' ? TRANSLATIONS[currentLanguage].statusActive : TRANSLATIONS[currentLanguage].statusWaiting;
                 statusEl.style.background = data.status === 'playing' ? '#dcfce7' : '#fef3c7';
                 statusEl.style.color = data.status === 'playing' ? '#166534' : '#92400e';
             }
@@ -2973,10 +3073,11 @@ function updateDashStats(data) {
     const startBtn = document.getElementById('dash-start-btn');
     const downloadBtn = document.getElementById('dash-download-btn');
 
-    statusText.innerText = data.status === 'playing' ? '🟢 Active game'
-        : data.status === 'paused'  ? '⏸️ Paused game'
-        : data.status === 'ended'  ? '🔴 Game over — click NEW GAME'
-        : '🟡 Waiting for students';
+    const _tds = TRANSLATIONS[currentLanguage];
+    statusText.innerText = data.status === 'playing' ? _tds.dashStatusPlaying
+        : data.status === 'paused'  ? _tds.dashStatusPaused
+        : data.status === 'ended'  ? _tds.dashStatusEnded
+        : _tds.dashStatusWaiting;
     startBtn.style.display = (data.status === 'waiting') ? 'block' : 'none';
     const newGameBtn = document.getElementById('dash-newgame-btn');
     if (newGameBtn) newGameBtn.style.display = (data.status === 'ended') ? 'block' : 'none';
@@ -3210,7 +3311,7 @@ function updateDashVisualizations(data, players) {
     const remainingMs = Math.max(0, gameEndTime - serverTime);
     const remainingMin = Math.floor(remainingMs / 60000);
     const remainingSec = Math.floor((remainingMs % 60000) / 1000);
-    document.getElementById('dash-viz-time-left').innerText = data.status === 'playing' ? `${remainingMin}:${remainingSec.toString().padStart(2, '0')}` : 'Waiting';
+    document.getElementById('dash-viz-time-left').innerText = data.status === 'playing' ? `${remainingMin}:${remainingSec.toString().padStart(2, '0')}` : TRANSLATIONS[currentLanguage].waitingLabel;
 
     const allPlayers = data.players || [];
     const currentPlayer = allPlayers[data.currentPlayerIndex];
@@ -3814,7 +3915,7 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty, cel
                 // PHASE 2: Trigger wrong answer (no celebration)
                 triggerCelebration('wrongAnswer');
             }
-            updates.lastActivity = (res ? "Correct: " : "Wrong: ") + q;
+            updates.lastActivity = (res ? TRANSLATIONS[currentLanguage].correct.replace(' ✅','') + ': ' : TRANSLATIONS[currentLanguage].error.replace(' ❌','') + ': ') + q;
 
             db.ref(`rooms/${roomId}/players/${myPlayerId}`).update(updates);
             m.style.display='none';
@@ -4100,15 +4201,16 @@ function triggerGameOver(r){
         </div>`;
     }
 
-    const qrText = `Player: ${studentName}\nReason: ${r}\nMoney: ${finalMoney}d\nCorrect: ${studentCorrect}, Wrong: ${studentWrong} (${successRate}%)`;
+    const _tr = TRANSLATIONS[currentLanguage];
+    const qrText = `${_tr.reportPlayer} ${studentName}\n${_tr.reportReason} ${r}\n${_tr.reportMoney} ${finalMoney}d\n${_tr.reportCorrect} ${studentCorrect}, ${_tr.reportWrong} ${studentWrong} (${successRate}%)`;
     document.getElementById('report-text').innerHTML = `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 18px;font-size:0.88rem;margin-bottom:4px;">
-            <div><span style="color:#64748b;">Player:</span> <strong>${escapeHtml(studentName)}</strong></div>
-            <div><span style="color:#64748b;">Reason:</span> ${escapeHtml(r)}</div>
-            <div><span style="color:#64748b;">Money:</span> <strong>${finalMoney}d</strong>${loanDisplay}</div>
-            <div><span style="color:#64748b;">Success:</span> <strong style="color:${successColor};">${successRate}%</strong></div>
-            <div><span style="color:#64748b;">Correct:</span> <strong style="color:#16a34a;">${studentCorrect}</strong> &nbsp; <span style="color:#64748b;">Wrong:</span> <strong style="color:#dc2626;">${studentWrong}</strong></div>
-            <div><span style="color:#64748b;">Properties:</span> <span style="font-size:0.8rem;">${escapeHtml(propNames)}</span></div>
+            <div><span style="color:#64748b;">${_tr.reportPlayer}</span> <strong>${escapeHtml(studentName)}</strong></div>
+            <div><span style="color:#64748b;">${_tr.reportReason}</span> ${escapeHtml(r)}</div>
+            <div><span style="color:#64748b;">${_tr.reportMoney}</span> <strong>${finalMoney}d</strong>${loanDisplay}</div>
+            <div><span style="color:#64748b;">${_tr.reportSuccess}</span> <strong style="color:${successColor};">${successRate}%</strong></div>
+            <div><span style="color:#64748b;">${_tr.reportCorrect}</span> <strong style="color:#16a34a;">${studentCorrect}</strong> &nbsp; <span style="color:#64748b;">${_tr.reportWrong}</span> <strong style="color:#dc2626;">${studentWrong}</strong></div>
+            <div><span style="color:#64748b;">${_tr.reportProps}</span> <span style="font-size:0.8rem;">${escapeHtml(propNames)}</span></div>
         </div>
         ${xpHtml}
         ${classRankHtml}
@@ -5257,6 +5359,23 @@ function setLanguage(lang) {
         if(okBtn) okBtn.innerText = t.gotIt;
     }
     
+    // Shop modal items
+    const shopModal = document.getElementById('shop-modal');
+    if (shopModal) {
+        shopModal.innerHTML = `
+        <div class="modal-mini" style="width:500px; display:block;">
+            <h2>🛒 ${t.powerupShop}</h2>
+            <p style="margin-bottom:15px; font-size:0.85rem; color:#64748b;">${lang === 'en' ? 'Spend your denarii on powerful advantages!' : 'Потроши денари за моќни предности!'}</p>
+            <div class="shop-grid">
+                <div class="shop-item" onclick="buyItem('lawyer',300)"><div class="shop-icon">⚖️</div><h3>${t.lawyer}</h3><p>${t.lawyerDesc}</p><div class="shop-price">300d</div></div>
+                <div class="shop-item" onclick="buyItem('shield',250)"><div class="shop-icon">🛡️</div><h3>${t.shield}</h3><p>${t.shieldDesc}</p><div class="shop-price">250d</div></div>
+                <div class="shop-item" onclick="buyItem('nitro',150)"><div class="shop-icon">🚀</div><h3>${t.nitro}</h3><p>${t.nitroDesc}</p><div class="shop-price">150d</div></div>
+                <div class="shop-item" onclick="buyItem('bribe',500)"><div class="shop-icon">🕵️</div><h3>${t.insider}</h3><p>${t.insiderDesc}</p><div class="shop-price">500d</div></div>
+            </div>
+            <button class="action-btn btn-pass" style="margin-top:20px; width:100%;" onclick="document.getElementById('shop-modal').style.display='none'">${t.shopClose}</button>
+        </div>`;
+    }
+
     // In-game dynamic elements (if they exist in the DOM)
     if(document.querySelector('.trade-btn-label')) document.querySelectorAll('.trade-btn-label').forEach(el => el.innerText = t.trade);
     if(document.getElementById('inventory-tab-label')) document.getElementById('inventory-tab-label').innerText = t.inventory;
