@@ -1166,7 +1166,11 @@ button.loading::after {
 }
 /* === PHASE 6.3: LIVE LEADERBOARD OVERLAY === */
 #leaderboard-overlay {
-    transition: opacity 0.2s;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+    transform: translateX(0);
+}
+#leaderboard-overlay[style*="display: none"] {
+    transform: translateX(100%);
 }
 #leaderboard-overlay::-webkit-scrollbar { width: 5px; }
 #leaderboard-overlay::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -1917,3 +1921,79 @@ body.high-contrast .achievement-toast {
 /* HC button active state */
 #hc-btn { opacity: 0.45; transition: opacity 0.2s; }
 #hc-btn:hover { opacity: 0.9; }
+
+/* ── UI/UX POLISH (June 2026) ─────────────────────────────────────── */
+
+/* 1. Game log readability */
+#game-log { font-size: 0.78rem !important; }
+
+/* 2. Dark mode — card overlay & modals */
+body.dark-theme .card-view {
+    background: rgba(30, 41, 59, 0.97) !important;
+    color: var(--text-main);
+}
+body.dark-theme .card-row { color: #94a3b8; border-color: rgba(255,255,255,0.06); }
+body.dark-theme .card-row span:last-child { color: #e2e8f0; }
+body.dark-theme .card-actions { background: rgba(15, 23, 42, 0.4); }
+body.dark-theme .card-body { color: var(--text-main); }
+
+/* 3. Validation hint — WCAG AA contrast */
+.validation-hint { color: #475569 !important; }
+.validation-hint.active { color: #059669 !important; }
+
+/* 4. Auction bids scrollbar */
+.auction-bids-list {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f1f5f9;
+}
+.auction-bids-list::-webkit-scrollbar { width: 5px; }
+.auction-bids-list::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
+
+/* 5. Shop grid — 1 column on small phones */
+@media (max-width: 480px) {
+    .shop-grid { grid-template-columns: 1fr !important; }
+    .shop-item { padding: 18px; }
+    .shop-price { font-size: 1rem; }
+}
+
+/* 6. Avatar token — stronger active feedback (filter is GPU-composited, avoids paint) */
+.token-choice.active {
+    border-color: var(--primary-color) !important;
+    background: #eff6ff !important;
+    transform: scale(1.15) !important;
+    outline: 3px solid rgba(59,130,246,0.5);
+    outline-offset: 2px;
+    animation: tokenGlow 1.5s ease-in-out infinite alternate;
+}
+@keyframes tokenGlow {
+    from { filter: brightness(1) drop-shadow(0 0 4px rgba(59,130,246,0.3)); }
+    to   { filter: brightness(1.06) drop-shadow(0 0 10px rgba(59,130,246,0.55)); }
+}
+
+/* 7. Question/whiteboard — 50/50 split on desktop (was 35/65) */
+@media (min-width: 1025px) {
+    .question-side  { width: 50% !important; }
+    .whiteboard-side { width: 50% !important; }
+}
+
+/* 8. Login overlay — smooth fade out */
+#login-overlay { transition: opacity 0.3s ease-out; }
+
+/* 9. TTS button disabled state */
+#tts-btn[disabled] { opacity: 0.35 !important; cursor: not-allowed !important; }
+
+/* 10. Minimum touch targets on mobile */
+@media (max-width: 900px) {
+    #roll-btn, .action-btn, .option-btn, .shop-item {
+        min-height: 44px;
+    }
+    .dash-tab { min-height: 40px; }
+}
+
+/* 11. Game log scrollbar styling */
+#game-log {
+    scrollbar-width: thin;
+    scrollbar-color: #475569 #2c3e50;
+}
+#game-log::-webkit-scrollbar { width: 4px; }
+#game-log::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }

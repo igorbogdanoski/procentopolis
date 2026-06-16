@@ -1346,6 +1346,22 @@ window.onload = () => {
         }
         checkLoginValid();
     }
+
+    // TTS: disable button if browser doesn't support Speech Synthesis
+    const ttsBtn = document.getElementById('tts-btn');
+    if (ttsBtn && !window.speechSynthesis) {
+        ttsBtn.disabled = true;
+        ttsBtn.title = currentLanguage === 'mk' ? 'Text-to-speech не е поддржан во овој прелистувач' : 'Text-to-speech not supported in this browser';
+    }
+
+    // Auto-speak toggle: render checkbox state from localStorage
+    const asToggle = document.getElementById('autospeak-toggle');
+    if (asToggle) {
+        asToggle.checked = localStorage.getItem('percentopolis_autospeak') === '1';
+        asToggle.onchange = () => {
+            localStorage.setItem('percentopolis_autospeak', asToggle.checked ? '1' : '0');
+        };
+    }
 };
 
 // === PHASE 6.1: XP, LEVELS & COSMETIC UNLOCKS ===
@@ -2168,7 +2184,9 @@ function initMultiplayerGame() {
     typeMastery = {};
     AudioController.init();
     document.getElementById('player-display-name').innerText = (currentRole === 'teacher' ? TRANSLATIONS[currentLanguage].teacherPrefix : TRANSLATIONS[currentLanguage].playerPrefix) + studentName;
-    document.getElementById('login-overlay').style.display = 'none';
+    const _lo = document.getElementById('login-overlay');
+    _lo.style.opacity = '0';
+    setTimeout(() => { _lo.style.display = 'none'; }, 300);
     document.getElementById('game-wrapper').classList.remove('blur-filter');
     
     if (isCreator || currentRole === 'teacher') {
@@ -3518,7 +3536,11 @@ function renderLeaderboardOverlay(roomData) {
         overlay.style.display = 'none';
         return;
     }
+    const wasHidden = overlay.style.display === 'none';
     overlay.style.display = 'block';
+    if (wasHidden && currentRole !== 'teacher') {
+        showSuccess(currentLanguage === 'mk' ? '📊 Наставникот ја отвори ранг-листата!' : '📊 The teacher opened the leaderboard!');
+    }
 
     const ps = roomData.players ? Object.values(roomData.players) : [];
     const active = ps.filter(p => p && p.role !== 'teacher' && !p.isEliminated);
