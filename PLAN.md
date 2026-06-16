@@ -16,17 +16,27 @@ This plan outlines the professional overhaul of ProcentOpolis to transform it in
 - **3.1 Security Hardening**: Atomic transactions, room ownership rules, anti-cheat turn logic.
 - **3.2 Mathematical Integrity**: Logic guards for contextual calculations and turn-sync.
 
-## Phase 3: Gameplay Juiciness & Strategic Depth
-- **3.1 Visual & Audio "Juiciness"**:
-    - Money transfer animations (flying coins).
-    - Haptic feedback (vibration) for key actions.
-    - Screen-shake effects for "big wins" or "bankruptcies".
-- **3.2 Strategic Mechanics**:
-    - Collaborative "Community Goals".
-    - Risk-based rent options (Variable Rent).
-- **3.3 Universal Accessibility**:
-    - Screen reader (ARIA) labels.
-    - High-contrast accessibility toggle.
+## Phase 4: Modernization & Global Reach - COMPLETED ✅
+- **4.1 Multilingual Support (i18n)**: Toggle between MKD and ENG for all UI, tasks, and reports.
+- **4.2 Mobile-First Experience**: Service Worker (PWA) for offline play, manifest.json, and specialized portrait CSS.
+- **4.3 Advanced Gameplay Tools**: Professional Whiteboard (Undo/Redo), Bundled Trading, and refined physics animations.
 
----
-*Execution order: Sequential from 1.1 to 3.3. No compromises.*
+## Phase 5: Adaptive Learning & AI - IN PROGRESS 🧠
+- **5.1 Dynamic Difficulty Algorithm**: Real-time difficulty tuning per student, with per-question-type mastery tracking (not just global streaks).
+- **5.2 Smart Hints**: After 2 consecutive mistakes on the same task type, proactively show step-by-step guidance / visual percentage breakdown instead of just rejecting the answer.
+
+## Phase 6: Meta-game & Retention - PLANNED 📈
+- **6.1 XP & Cosmetics**: Award experience points per finished game; unlock avatar cosmetics (hats, glasses) and board skins.
+- **6.2 Achievements System**: Digital badges for specific feats (e.g. "10 flawless rounds", "Discount Specialist").
+- **6.3 Leaderboards**: Optional class-level ranking (teacher-toggleable) for healthy competition.
+
+## Phase 7: Teacher-Generated Content (UGC) - PLANNED ✍️
+- **7.1 Custom Task Creator**: Teachers author their own text problems / thematic sets aligned to curriculum.
+- **7.2 Sharing Library**: Teachers publish and share their task sets with other teachers on the platform.
+
+## Phase 8: Advanced Accessibility (a11y) - PLANNED ♿
+- **8.1 Text-to-Speech**: Read problem text aloud (critical for dyslexic students).
+- **8.2 Visual Adjustments**: High-contrast modes and color-blind-safe palettes for all elements (heatmaps, tokens).
+
+## Status: PRODUCTION READY 🚀
+Phases 1-4 implemented without compromise. Phase 5 in active development.

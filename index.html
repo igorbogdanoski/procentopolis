@@ -43,82 +43,86 @@
 <div id="login-overlay">
     <div class="hero-glow"></div>
     <div class="login-container">
-        <!-- Theme Toggle -->
-        <button onclick="toggleTheme()" style="position:absolute; top:20px; right:20px; background:none; border:none; font-size:1.5rem; cursor:pointer; z-index:10010;" title="Toggle Light/Dark Mode">🌓</button>
+        <!-- Theme & Language Toggle Container -->
+        <div style="position:absolute; top:20px; right:20px; display:flex; gap:12px; align-items:center; z-index:10010;">
+            <button onclick="openInfoModal()" class="info-trigger" title="Instructions & Shop">?</button>
+            <div class="lang-selector" style="display:flex; background:rgba(255,255,255,0.1); padding:4px; border-radius:12px; border:1px solid var(--border-color);">
+                <button onclick="setLanguage('en')" id="lang-en" class="lang-btn active" style="padding:5px 10px; border:none; border-radius:8px; cursor:pointer; font-weight:800; font-size:0.7rem; transition:all 0.2s;">ENG</button>
+                <button onclick="setLanguage('mk')" id="lang-mk" class="lang-btn" style="padding:5px 10px; border:none; border-radius:8px; cursor:pointer; font-weight:800; font-size:0.7rem; transition:all 0.2s;">МКД</button>
+            </div>
+            <button onclick="toggleTheme()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;" title="Toggle Light/Dark Mode">🌓</button>
+        </div>
         
-        <div class="login-info">
-            <h2>📜 GAME INSTRUCTIONS</h2>
+        <div class="login-info" id="login-info-panel">
+            <h2 id="ui-instructions">📜 GAME INSTRUCTIONS</h2>
             <ul class="rules-list">
-                <li class="rule-icon-money"><strong>Goal:</strong> Collect the greatest fortune!</li>
-                <li class="rule-icon-calc"><strong>Buying:</strong> Solve a problem to buy property.</li>
-                <li class="rule-icon-rent"><strong>Rent:</strong> Calculate correctly or pay DOUBLE!</li>
+                <li class="rule-icon-money"><strong id="ui-goal">Goal:</strong> <span id="ui-goal-desc">Collect the greatest fortune!</span></li>
+                <li class="rule-icon-calc"><strong id="ui-buying">Buying:</strong> <span id="ui-buying-desc">Solve a problem to buy property.</span></li>
+                <li class="rule-icon-rent"><strong id="ui-rent">Rent:</strong> <span id="ui-rent-desc">Calculate correctly or pay DOUBLE!</span></li>
             </ul>
 
             <div class="shop-preview">
-                <h3>🛒 POWER-UP SHOP</h3>
+                <h3 id="ui-shop-title">🛒 POWER-UP SHOP</h3>
                 <div class="shop-preview-grid">
-                    <div class="shop-preview-item">⚖️ Lawyer</div>
-                    <div class="shop-preview-item">🛡️ Shield</div>
-                    <div class="shop-preview-item">🚀 Nitro</div>
-                    <div class="shop-preview-item">🕵️ Insider</div>
+                    <div class="shop-preview-item">⚖️ <span id="ui-lawyer">Lawyer</span></div>
+                    <div class="shop-preview-item">🛡️ <span id="ui-shield">Shield</span></div>
+                    <div class="shop-preview-item">🚀 <span id="ui-nitro">Nitro</span></div>
+                    <div class="shop-preview-item">🕵️ <span id="ui-insider">Insider</span></div>
                 </div>
             </div>
 
             <!-- Interactive Demo Area -->
             <div id="demo-area" style="margin-top:25px; background: #fffbeb; padding: 20px; border-radius: 20px; border: 2px solid #fef3c7;">
-                <h3 style="margin:0 0 10px 0; font-size: 0.9rem; color: #92400e; font-weight: 900;">⚡ QUICK PRACTICE</h3>
+                <h3 id="ui-practice-title" style="margin:0 0 10px 0; font-size: 0.9rem; color: #92400e; font-weight: 900;">⚡ QUICK PRACTICE</h3>
                 <p id="demo-question" style="font-size: 0.85rem; margin-bottom: 12px; font-weight: 600;">Calculate 25% of 80:</p>
                 <div style="display:flex; gap:8px;">
                     <input type="number" id="demo-input" placeholder="?" style="width: 70px; padding: 8px; border-radius: 10px; border: 1px solid #d1d9e6;">
-                    <button onclick="checkDemoAnswer()" style="padding: 8px 15px; background: #f59e0b; color: white; border: none; border-radius: 10px; font-weight: 800; cursor: pointer;">CHECK</button>
+                    <button onclick="checkDemoAnswer()" id="ui-check-btn" style="padding: 8px 15px; background: #f59e0b; color: white; border: none; border-radius: 10px; font-weight: 800; cursor: pointer;">CHECK</button>
                 </div>
                 <div id="demo-feedback" style="margin-top: 10px; font-size: 0.8rem; font-weight: 700;"></div>
-            </div>
-
-            <div class="setup-sidebar" style="margin-top:25px; background: #f0f4f8; padding: 20px; border-radius: 20px; border: 1px solid #d1d9e6;">
-                <label style="display:block; font-weight:800; margin-bottom:10px; color:#2c3e50; font-size:0.8rem;">🎭 YOUR ROLE:</label>
-                <div class="role-selector" style="display:flex; gap:5px; margin-bottom:20px;">
-                    <button id="role-student" class="role-btn active" onclick="setRole('student')">STUDENT</button>
-                    <button id="role-teacher" class="role-btn" onclick="setRole('teacher')">TEACHER</button>
-                </div>
-
-                <div id="student-only-fields">
-                    <label style="display:block; font-weight:800; margin-bottom:10px; color:#2c3e50; font-size:0.8rem;">🚀 CHOOSE YOUR AVATAR:</label>
-                    <div id="token-selector" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; justify-content:center;">
-                        <button onclick="selectToken('🚀', this)" class="token-choice active">🚀</button>
-                        <button onclick="selectToken('🚗', this)" class="token-choice">🚗</button>
-                        <button onclick="selectToken('🛸', this)" class="token-choice">🛸</button>
-                        <button onclick="selectToken('🤖', this)" class="token-choice">🤖</button>
-                        <button onclick="selectToken('🦄', this)" class="token-choice">🦄</button>
-                        <button onclick="selectToken('🦊', this)" class="token-choice">🦊</button>
-                        <button onclick="selectToken('🐲', this)" class="token-choice">🐲</button>
-                        <button onclick="selectToken('🍕', this)" class="token-choice">🍕</button>
-                        <button onclick="selectToken('💎', this)" class="token-choice">💎</button>
-                        <button onclick="selectToken('🐱', this)" class="token-choice">🐱</button>
-                    </div>
-                </div>
             </div>
         </div>
         <div class="login-form">
             <div class="portal-header">
                 <h1>PROCENTOPOLIS</h1>
-                <p class="subtitle">MASTER PORTAL</p>
+                <p class="subtitle" id="ui-subtitle">MASTER PORTAL</p>
                 <p style="margin-top: 8px; font-size: 0.7rem; color: #94a3b8; font-weight: 600; letter-spacing: 1px;">Created by: Igor Bogdanoski</p>
-                <div style="margin-top: 10px; font-size: 0.8rem; color: #64748b; font-weight: bold; background: #f1f5f9; display: inline-block; padding: 5px 15px; border-radius: 20px;">
-                    👥 4 to 8 players per room
-                </div>
             </div>
             
             <div id="auth-section">
+                <div class="setup-sidebar" style="margin-bottom:20px; background: #f8fafc; padding: 15px; border-radius: 20px; border: 1px solid #e2e8f0;">
+                    <label id="ui-role-label" style="display:block; font-weight:800; margin-bottom:10px; color:#2c3e50; font-size:0.8rem;">🎭 YOUR ROLE:</label>
+                    <div class="role-selector" style="display:flex; gap:5px; margin-bottom:15px;">
+                        <button id="role-student" class="role-btn active" onclick="setRole('student')">STUDENT</button>
+                        <button id="role-teacher" class="role-btn" onclick="setRole('teacher')">TEACHER</button>
+                    </div>
+
+                    <div id="student-only-fields">
+                        <label id="ui-avatar-label" style="display:block; font-weight:800; margin-bottom:10px; color:#2c3e50; font-size:0.8rem;">🚀 CHOOSE YOUR AVATAR:</label>
+                        <div id="token-selector" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; justify-content:center;">
+                            <button onclick="selectToken('🚀', this)" class="token-choice active">🚀</button>
+                            <button onclick="selectToken('🚗', this)" class="token-choice">🚗</button>
+                            <button onclick="selectToken('🛸', this)" class="token-choice">🛸</button>
+                            <button onclick="selectToken('🤖', this)" class="token-choice">🤖</button>
+                            <button onclick="selectToken('🦄', this)" class="token-choice">🦄</button>
+                            <button onclick="selectToken('🦊', this)" class="token-choice">🦊</button>
+                            <button onclick="selectToken('🐲', this)" class="token-choice">🐲</button>
+                            <button onclick="selectToken('🍕', this)" class="token-choice">🍕</button>
+                            <button onclick="selectToken('💎', this)" class="token-choice">💎</button>
+                            <button onclick="selectToken('🐱', this)" class="token-choice">🐱</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="input-group">
-                    <label>👤 YOUR NAME:</label>
+                    <label id="ui-name-label">👤 YOUR NAME:</label>
                     <input type="text" id="player-name-input" placeholder="Enter name..." autocomplete="off">
                     <div id="name-error" style="display:none; color:#ef4444; font-size:0.75rem; margin-top:5px; font-weight:600;"></div>
                 </div>
 
-                <div id="student-class-box">
-                    <div class="input-group">
-                        <label>🏫 CLASS:</label>
+                <div id="student-class-box" style="display: flex; gap: 15px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label id="ui-class-label">🏫 CLASS:</label>
                         <select id="player-odd-input">
                             <option value="8-1">8-1</option>
                             <option value="8-2">8-2</option>
@@ -126,12 +130,17 @@
                             <option value="8-4">8-4</option>
                         </select>
                     </div>
+                    <div class="input-group" style="flex: 2;">
+                        <div id="ui-players-per-room" style="margin-top: 25px; font-size: 0.7rem; color: #64748b; font-weight: bold; background: #f1f5f9; display: block; padding: 12px; border-radius: 12px; text-align: center;">
+                            👥 4-8 players
+                        </div>
+                    </div>
                 </div>
 
                 <div class="input-group room-box" id="student-room-box">
-                    <label id="room-label">🏠 ROOM:</label>
+                    <label id="ui-room-label">🏠 ROOM:</label>
                     <div id="available-rooms-container" style="display:none; margin-bottom:10px; max-height:150px; overflow-y:auto; border:1px solid #ddd; border-radius:10px; padding:10px; background:white;">
-                        <p style="font-size:0.7rem; color:#666; margin-bottom:5px;">SELECT ACTIVE ROOM:</p>
+                        <p id="ui-select-room" style="font-size:0.7rem; color:#666; margin-bottom:5px;">SELECT ACTIVE ROOM:</p>
                         <div id="available-rooms-list" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
                     </div>
                     <input type="text" id="room-id-input" placeholder="Enter or select code..." autocomplete="off">
@@ -139,6 +148,8 @@
                 </div>
 
                 <button id="login-btn" disabled>🚀 ENTER GAME</button>
+                <div id="login-validation-hint" class="validation-hint">Please enter your name and a room code to join.</div>
+                
                 <button id="teacher-dashboard-btn" style="display:none; width:100%; padding:20px; font-size:1.2rem; background:#8b5cf6; color:white; border:none; border-radius:16px; cursor:pointer; font-weight:800; margin-top:10px; box-shadow:0 10px 20px rgba(139, 92, 246, 0.3);">📊 OPEN CONTROL PANEL</button>
             </div>
             <div id="lobby-section" style="display:none;">
@@ -160,7 +171,22 @@
                 <button id="start-game-btn-multi" style="width: 100%; padding: 20px; background: #10b981; color: white; border: none; border-radius: 16px; font-weight: 900; cursor: pointer; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); font-size: 1.1rem; margin-top: 10px;">START GAME</button>
                 <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 15px; font-weight: 600;">Only the teacher can start the game.</p>
             </div>
-            <button onclick="clearSave()" style="margin-top:10px; background:#e74c3c; border:none; color:white; padding:10px; border-radius:10px; cursor:pointer;">🗑️ DELETE SAVED</button>
+            <div style="margin-top: 15px; display: flex; justify-content: center;">
+                <button onclick="clearSave()" class="btn-secondary">🗑️ DELETE SAVED PROGRESS</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Info Modal (Instructions & Shop) -->
+<div id="info-modal-overlay" class="modal-overlay" style="z-index: 20000;" onclick="closeInfoModal()">
+    <div class="modal-content" style="max-width: 600px; height: auto; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+        <div style="padding: 30px; position: relative;">
+            <button onclick="closeInfoModal()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b;">✕</button>
+            <div id="info-modal-content"></div>
+            <div style="margin-top: 30px; text-align: center;">
+                <button onclick="closeInfoModal()" style="padding: 12px 30px; background: var(--primary-color); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer;">OK, GOT IT!</button>
+            </div>
         </div>
     </div>
 </div>

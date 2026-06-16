@@ -494,6 +494,115 @@ let myPlayerId = null;
 let roomId = null;
 let isCreator = false;
 let lastBroadcastTime = null;
+let currentLanguage = 'en';
+
+const TRANSLATIONS = {
+    en: {
+        goal: "Goal:", goalDesc: "Collect the greatest fortune!",
+        buying: "Buying:", buyingDesc: "Solve a problem to buy property.",
+        rent: "Rent:", rentDesc: "Calculate correctly or pay DOUBLE!",
+        instructions: "📜 GAME INSTRUCTIONS",
+        powerupShop: "🛒 POWER-UP SHOP",
+        quickPractice: "⚡ QUICK PRACTICE",
+        role: "🎭 YOUR ROLE:",
+        student: "STUDENT", teacher: "TEACHER",
+        chooseAvatar: "🚀 CHOOSE YOUR AVATAR:",
+        playersPerRoom: "👥 4-8 players",
+        enterName: "ENTER YOUR NAME:",
+        enterRoom: "ENTER ROOM CODE:",
+        joinGame: "JOIN GAME",
+        createRoom: "CREATE NEW ROOM",
+        roomSettings: "⚙️ ROOM SETTINGS",
+        difficulty: "Difficulty:", duration: "Duration:",
+        standard: "Standard", easy: "Easy", hard: "Hard",
+        startBonus: "START BONUS", bankLoan: "🏦 BANK LOAN",
+        chance: "CHANCE", taxInspection: "TAX INSPECTION",
+        jailEscape: "🔓 JAIL ESCAPE", purchase: "PURCHASE",
+        rentLabel: "RENT", building: "BUILDING",
+        correct: "CORRECT! ✅", error: "ERROR! ❌",
+        timeUp: "⏰ TIME IS UP!",
+        mastering: "💪 You are mastering:",
+        workingOn: "🎯 Still working on:",
+        nextFocus: "📌 Next focus:",
+        mistakes: "📋 SEE MISTAKES",
+        learningReport: "here is your learning report!",
+        newGame: "NEW GAME",
+        trade: "TRADE", inventory: "INVENTORY",
+        sendOffer: "SEND OFFER", cancel: "CANCEL",
+        accept: "ACCEPT", reject: "REJECT",
+        drawingTools: "DRAWING TOOLS", eraser: "ERASER",
+        yourTurn: "IT'S YOUR TURN!",
+        waitingFor: "Waiting for {name}...",
+        bank: "BANK",
+        properties: "Properties",
+        money: "Money",
+        winner: "🏆 WINNER!",
+        points: "points",
+        validationHint: "Please enter your name and a room code to join.",
+        validationSuccess: "Ready to play! Click ENTER GAME.",
+        deleteSaved: "🗑️ DELETE SAVED PROGRESS",
+        gotIt: "OK, GOT IT!",
+        classLabel: "🏫 CLASS:",
+        nameLabel: "👤 YOUR NAME:",
+        roomLabel: "🏠 ROOM:",
+        roleLabel: "🎭 YOUR ROLE:",
+        chooseAvatarLabel: "🚀 CHOOSE YOUR AVATAR:",
+        subtitle: "MASTER PORTAL"
+    },
+    mk: {
+        goal: "Цел:", goalDesc: "Собери најголемо богатство!",
+        buying: "Купување:", buyingDesc: "Реши задача за да купиш имот.",
+        rent: "Кирија:", rentDesc: "Пресметај точно или плати ДУПЛО!",
+        instructions: "📜 ПРАВИЛА НА ИГРАТА",
+        powerupShop: "🛒 ПРОДАВНИЦА ЗА МОЌИ",
+        quickPractice: "⚡ БРЗА ВЕЖБА",
+        role: "🎭 ТВОЈАТА УЛОГА:",
+        student: "УЧЕНИК", teacher: "НАСТАВНИК",
+        chooseAvatar: "🚀 ИЗБЕРИ СВОЈ АВАТАР:",
+        playersPerRoom: "👥 4-8 играчи",
+        enterName: "ВНЕСИ ГО ТВОЕТО ИМЕ:",
+        enterRoom: "ВНЕСИ КОД НА СОБА:",
+        joinGame: "ПРИКЛУЧИ СЕ",
+        createRoom: "КРЕИРАЈ НОВА СОБА",
+        roomSettings: "⚙️ ПОСТАВКИ НА СОБА",
+        difficulty: "Тежина:", duration: "Времетраење:",
+        standard: "Стандардна", easy: "Лесна", hard: "Тешка",
+        startBonus: "СТАРТ БОНУС", bankLoan: "🏦 БАНКАРСКИ ЗАЕМ",
+        chance: "ШАНСА", taxInspection: "ДАНОЧНА ИНСПЕКЦИЈА",
+        jailEscape: "🔓 БЕГСТВО ОД ЗАТВОР", purchase: "КУПУВАЊЕ",
+        rentLabel: "КИРИЈА", building: "ГРАДБА",
+        correct: "ТОЧНО! ✅", error: "ГРЕШКА! ❌",
+        timeUp: "⏰ ВРЕМЕТО ИСТЕЧЕ!",
+        mastering: "💪 Ги совладуваш:",
+        workingOn: "🎯 Сè уште вежбаш:",
+        nextFocus: "📌 Следен фокус:",
+        mistakes: "📋 ВИДИ ГРЕШКИ",
+        learningReport: "еве го твојот извештај за учење!",
+        newGame: "НОВА ИГРА",
+        trade: "ТРГОВИЈА", inventory: "ИНВЕНТАР",
+        sendOffer: "ИСПРАТИ ПОНУДА", cancel: "ОТКАЖИ",
+        accept: "ПРИФАТИ", reject: "ОДБИЈ",
+        drawingTools: "АЛАТКИ ЗА ЦРТАЊЕ", eraser: "ГУМА",
+        yourTurn: "ТВОЈ РЕД Е!",
+        waitingFor: "Се чека на {name}...",
+        bank: "БАНКА",
+        properties: "Имоти",
+        money: "Пари",
+        winner: "🏆 ПОБЕДНИК!",
+        points: "поени",
+        validationHint: "Внеси име и код на соба за да се приклучиш.",
+        validationSuccess: "Спремни за игра! Кликни ВЛЕЗИ ВО ИГРА.",
+        deleteSaved: "🗑️ ИЗБРИШИ ЗАЧУВАН ПРОГРЕС",
+        gotIt: "ВО РЕД, РАЗБРАВ!",
+        classLabel: "🏫 ОДДЕЛЕНИЕ:",
+        nameLabel: "👤 ТВОЕТО ИМЕ:",
+        roomLabel: "🏠 СОБА:",
+        roleLabel: "🎭 ТВОЈАТА УЛОГА:",
+        chooseAvatarLabel: "🚀 ИЗБЕРИ СВОЈ АВАТАР:",
+        subtitle: "ГЛАВЕН ПОРТАЛ"
+    }
+};
+
 let timerInterval, turnTimerInterval, localTurnTicker;
 let gameOverTriggered = false;
 let knownGameVersion = 1;
@@ -505,6 +614,7 @@ let undoStack = [];
 let currentDifficultyLevel = 1;
 let correctStreak = 0;
 let wrongStreak = 0;
+let typeWrongStreak = {};
 let currentTaskData = null;
 let turnRemainingTime = 30;
 let myTokenEmoji = "👤";
@@ -818,19 +928,56 @@ function buildContextualQuestion(eventType, ctx) {
         const others = [...new Set(wrongs.filter(w => w !== correct && parseFloat(w) > 0))].slice(0, 3);
         return shuffleArray([correct, ...others]);
     };
-    // Use floor to match game's Math.floor() calculations (avoids fractional answer mismatches)
     const fl = n => String(Math.floor(n));
+    const lang = currentLanguage;
+
+    const templates = {
+        en: {
+            bonus: `You have {Y}d. Passing through START you get a {X}% bonus. How many denarii do you get?`,
+            tax: `You have {Y}d. The tax is {X}%. How much money do you have LEFT after paying?`,
+            buyD3: `If you buy "{name}", the rent is {rentAmt}d. Next month the rent increases by {R}%. What is the new rent?`,
+            buyD2: `The property "{name}" costs {Y}d. The commission when buying is {X}% of the price. How much do you pay TOTAL?`,
+            buyD1: `The property "{name}" costs {Y}d. The rent is {X}% of the price. How much is the rent?`,
+            rentD3: `You pay rent {rentAmt}d for "{name}". If the rent increases by {R}%, what will be the new rent?`,
+            rentD2: `The rent for "{name}" is {rentAmt}d. If you build a house, the rent increases by {R}%. What is the new rent?`,
+            rentD1: `"{name}" costs {Y}d. The rent is {X}% of the price. How many denarii do you pay in rent?`,
+            build: `The building costs {X}% of the property price ({Y}d). How much do you pay for the building?`,
+            loan: `You took a loan of {Y}d. The bank charges {X}% annual interest. How much interest do you pay for 1 year?`,
+            explBonus: `{X}% of {Y} = ({X}÷100)×{Y} = {ans}d`,
+            explTax: `Tax = {X}% of {Y} = {taxAmt}d. Remaining: {Y} − {taxAmt} = {ans}d`,
+            hintBonus: `💡 Divide {Y} by 100, then multiply by {X}.`,
+            hintTax: `💡 First calculate 10% (= {taxAmt}d), then subtract it from {Y}d.`
+        },
+        mk: {
+            bonus: `Имаш {Y}д. Поминувајќи низ СТАРТ добиваш бонус од {X}%. Колку денари добиваш?`,
+            tax: `Имаш {Y}д. Данокот е {X}%. Колку пари ќЕ ТИ ОСТАНАТ по плаќањето?`,
+            buyD3: `Ако го купиш "{name}", киријата е {rentAmt}д. Следниот месец киријата се зголемува за {R}%. Колку ќе изнесува новата кирија?`,
+            buyD2: `Имотот "{name}" чини {Y}д. Провизијата при купување е {X}% од цената. Колку ќе платиш ВКУПНО?`,
+            buyD1: `Имотот "{name}" чини {Y}д. Киријата изнесува {X}% од цената. Колку изнесува киријата?`,
+            rentD3: `Плаќаш кирија {rentAmt}д за "{name}". Ако киријата се зголеми за {R}%, колку ќе биде новата кирија?`,
+            rentD2: `Киријата за "{name}" е {rentAmt}д. Ако изградиш куќа, киријата се зголемува за {R}%. Колку ќе биде новата кирија?`,
+            rentD1: `"{name}" чини {Y}д. Киријата е {X}% од цената. Колку денари плаќаш за кирија?`,
+            build: `Градбата чини {X}% од цената на имотот ({Y}д). Колку ќе платиш за градбата?`,
+            loan: `Земавте кредит од {Y}д. Банката наплаќа {X}% годишна камата. Колку камата плаќате за 1 година?`,
+            explBonus: `{X}% од {Y} = ({X}÷100)×{Y} = {ans}д`,
+            explTax: `Данок = {X}% од {Y} = {taxAmt}д. Остануваат: {Y} − {taxAmt} = {ans}д`,
+            hintBonus: `💡 Подели го {Y} со 100, па помножи со {X}.`,
+            hintTax: `💡 Прво пресметај 10% (= {taxAmt}д), па одземи ги од {Y}д.`
+        }
+    };
+
+    const t = templates[lang] || templates.en;
 
     if (eventType === 'bonus') {
         const Y = Math.max(0, ctx.money);
-        const X = ctx.pct || 15; // pct pre-selected at call site for consistency
+        const X = ctx.pct || 15;
         const ans = fl(Y * X / 100);
         return {
-            question: `You have ${Y}d. Passing through START you get a ${X}% bonus. How many denarii do you get?`,
+            question: t.bonus.replace('{Y}', Y).replace('{X}', X),
             correct_answer: ans, difficulty: 1,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X), String(Math.floor(Y*X/100)+1)]),
-            explanation: `${X}% of ${Y} = (${X}÷100)×${Y} = ${ans}d`,
-            hint: `💡 Divide ${Y} by 100, then multiply by ${X}.`
+            explanation: t.explBonus.replace('{X}', X).replace('{Y}', Y).replace('{ans}', ans),
+            hint: t.hintBonus.replace('{Y}', Y).replace('{X}', X)
         };
     }
     if (eventType === 'tax') {
@@ -839,11 +986,11 @@ function buildContextualQuestion(eventType, ctx) {
         const remaining = Y - taxAmt;
         const ans = String(remaining);
         return {
-            question: `You have ${Y}d. The tax is ${X}%. How much money do you have LEFT after paying?`,
+            question: t.tax.replace('{Y}', Y).replace('{X}', X),
             correct_answer: ans, difficulty: 2,
             options: buildOpts(ans, [String(taxAmt), String(Y + taxAmt), fl(Y - X), fl(Y * X / 10)]),
-            explanation: `Tax = ${X}% of ${Y} = ${taxAmt}d. Remaining: ${Y} − ${taxAmt} = ${ans}d`,
-            hint: `💡 First calculate 10% (= ${taxAmt}d), then subtract it from ${Y}d.`
+            explanation: t.explTax.replace('{X}', X).replace('{Y}', Y).replace('{taxAmt}', taxAmt).replace('{ans}', ans),
+            hint: t.hintTax.replace('{taxAmt}', taxAmt).replace('{Y}', Y)
         };
     }
     if (eventType === 'buy') {
@@ -851,40 +998,37 @@ function buildContextualQuestion(eventType, ctx) {
         const rentAmt = Math.floor(Y * X / 100);
         const diff = ctx.difficulty || 2;
         if (diff >= 3) {
-            // D3: Percentage increase of rent — answer is NOT visible on the card
             const rates = [5, 8, 10, 12, 15];
             const R = rates[Math.floor(Math.random() * rates.length)];
             const increase = Math.floor(rentAmt * R / 100);
             const newRent = rentAmt + increase;
             const ans = String(newRent);
             return {
-                question: `If you buy "${name}", the rent is ${rentAmt}d. Next month the rent increases by ${R}%. What is the new rent?`,
+                question: t.buyD3.replace('{name}', name).replace('{rentAmt}', rentAmt).replace('{R}', R),
                 correct_answer: ans, difficulty: 3,
                 options: buildOpts(ans, [String(rentAmt + R), String(rentAmt * 2), String(increase), String(Math.floor(rentAmt * 1.5))]),
-                explanation: `${rentAmt} + ${R}% = ${rentAmt} + ${increase} = ${ans}d`,
-                hint: `💡 First calculate ${R}% of ${rentAmt}d (= ${increase}d), then add it to ${rentAmt}d.`
+                explanation: `${rentAmt} + ${R}% = ${ans}d`,
+                hint: lang === 'en' ? `💡 Calculate ${R}% of ${rentAmt}d, then add it.` : `💡 Пресметај ${R}% од ${rentAmt}д, па додај ги.`
             };
         }
         if (diff === 2) {
-            // D2: Markup — "price + X% commission = total"
             const total = Y + rentAmt;
             const ans = String(total);
             return {
-                question: `The property "${name}" costs ${Y}d. The commission when buying is ${X}% of the price. How much do you pay TOTAL?`,
+                question: t.buyD2.replace('{name}', name).replace('{Y}', Y).replace('{X}', X),
                 correct_answer: ans, difficulty: 2,
                 options: buildOpts(ans, [String(Y + X), String(rentAmt), String(Y * 2), String(Math.floor(Y * 1.1))]),
-                explanation: `${Y} + ${X}% of ${Y} = ${Y} + ${rentAmt} = ${ans}d`,
-                hint: `💡 First calculate the commission (${X}% of ${Y}), then add it to the price.`
+                explanation: `${Y} + ${X}% = ${ans}d`,
+                hint: lang === 'en' ? `💡 Calculate proivision (${X}% of ${Y}), then add to price.` : `💡 Пресметај ја провизијата (${X}% од ${Y}), па додај ја на цената.`
             };
         }
-        // D1: basic "X% of price"
         const ans = String(rentAmt);
         return {
-            question: `The property "${name}" costs ${Y}d. The rent is ${X}% of the price. How much is the rent?`,
+            question: t.buyD1.replace('{name}', name).replace('{Y}', Y).replace('{X}', X),
             correct_answer: ans, difficulty: 1,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X*10), fl(rentAmt*2)]),
-            explanation: `${X}% rent of price ${Y}d = (${X}÷100)×${Y} = ${ans}d`,
-            hint: `💡 ${X}% = ${X}÷100. Multiply that by the price ${Y}d.`
+            explanation: `${X}% of ${Y} = ${ans}d`,
+            hint: lang === 'en' ? `💡 Multiply price by ${X}/100.` : `💡 Помножи ја цената со ${X}/100.`
         };
     }
     if (eventType === 'rent') {
@@ -892,75 +1036,72 @@ function buildContextualQuestion(eventType, ctx) {
         const rentAmt = Math.floor(Y * X / 100);
         const diff = ctx.difficulty || 2;
         if (diff >= 3) {
-            // D3: Percentage increase of rent — answer is NOT visible on the card
             const rates = [5, 8, 10, 12, 15];
             const R = rates[Math.floor(Math.random() * rates.length)];
             const increase = Math.floor(rentAmt * R / 100);
             const newRent = rentAmt + increase;
             const ans = String(newRent);
-            const dbl = String(rentAmt * 2);
             return {
-                question: `You pay rent ${rentAmt}d for "${name}". If the rent increases by ${R}%, what will be the new rent?`,
+                question: t.rentD3.replace('{name}', name).replace('{rentAmt}', rentAmt).replace('{R}', R),
                 correct_answer: ans, difficulty: 3,
-                options: buildOpts(ans, [String(rentAmt + R), dbl, String(increase), String(Math.floor(rentAmt * 1.5))]),
-                explanation: `${rentAmt} + ${R}% = ${rentAmt} + ${increase} = ${ans}d`,
-                hint: `💡 First calculate ${R}% of ${rentAmt}d, then add it to ${rentAmt}d.`
+                options: buildOpts(ans, [String(rentAmt + R), String(rentAmt * 2), String(increase), String(Math.floor(rentAmt * 1.5))]),
+                explanation: `${rentAmt} + ${R}% = ${ans}d`,
+                hint: lang === 'en' ? `💡 Calculate ${R}% of ${rentAmt}d, then add.` : `💡 Пресметај ${R}% од ${rentAmt}д, па додај.`
             };
         }
         if (diff === 2) {
-            // D2: Percentage increase — "rent goes up by 20% after a building"
-            const increased = Math.floor(rentAmt * 1.2);
-            const ans = String(increased);
+            const rates = [20, 25, 30];
+            const R = rates[Math.floor(Math.random() * rates.length)];
+            const increase = Math.floor(rentAmt * R / 100);
+            const newRent = rentAmt + increase;
+            const ans = String(newRent);
             return {
-                question: `You pay rent ${rentAmt}d for "${name}". The owner built a building — the rent increases by 20%. What is the new rent?`,
+                question: t.rentD2.replace('{name}', name).replace('{rentAmt}', rentAmt).replace('{R}', R),
                 correct_answer: ans, difficulty: 2,
-                options: buildOpts(ans, [String(rentAmt + 20), String(rentAmt * 2), String(Math.floor(rentAmt * 1.5)), String(rentAmt - Math.floor(rentAmt * 0.2))]),
-                explanation: `${rentAmt} + 20% = ${rentAmt} + ${Math.floor(rentAmt * 0.2)} = ${ans}d`,
-                hint: `💡 Increase ${rentAmt} by 20%: ${rentAmt} + (20%×${rentAmt}).`
+                options: buildOpts(ans, [String(rentAmt + R), String(rentAmt * 2), fl(rentAmt * 1.5), fl(increase)]),
+                explanation: `${rentAmt} + ${R}% = ${ans}d`,
+                hint: lang === 'en' ? `💡 Calculate increase, then add to rent.` : `💡 Пресметај го зголемувањето, па додај го на киријата.`
             };
         }
-        // D1: standard
         const ans = String(rentAmt);
-        const dbl = String(rentAmt * 2);
         return {
-            question: `"${name}" costs ${Y}d. The rent is ${X}% of the price. How many denarii do you pay in rent?`,
+            question: t.rentD1.replace('{name}', name).replace('{Y}', Y).replace('{X}', X),
             correct_answer: ans, difficulty: 1,
-            options: buildOpts(ans, [dbl, fl((Y*X)/10), fl(Y+X), fl(Y/X)]),
-            explanation: `${X}% of ${Y} = (${X}÷100)×${Y} = ${ans}d`,
-            hint: `💡 Rent = price × (percentage ÷ 100).`
+            options: buildOpts(ans, [fl(Y+X), fl(rentAmt*2), fl(rentAmt/2), fl(Y/X)]),
+            explanation: `${X}% of ${Y} = ${ans}d`,
+            hint: lang === 'en' ? `💡 Calculate ${X}% of ${Y}d.` : `💡 Пресметај колку е ${X}% од ${Y}д.`
         };
     }
     if (eventType === 'build') {
-        const Y = ctx.price;
-        const X = ctx.pct || 40; // pct pre-selected at call site so button and question match
-        const ans = fl(Y * X / 100);
+        const Y = ctx.price, X = ctx.pct || 40;
+        const buildCost = Math.floor(Y * X / 100);
+        const ans = String(buildCost);
         const hints = {
-            30: '💡 30% = 3/10. Divide by 10 then multiply by 3.',
-            35: '💡 35% = 10% + 25%. Calculate separately then add.',
-            40: '💡 40% = 2/5. Divide by 5 then multiply by 2.',
-            45: '💡 45% = 50% − 5%. Take half, then subtract 5%.',
-            50: '💡 50% = half. Divide by 2.'
+            30: lang === 'en' ? '💡 30% = 3/10. Divide by 10 then multiply by 3.' : '💡 30% = 3/10. Подели со 10, па помножи со 3.',
+            35: lang === 'en' ? '💡 35% = 10% + 25%. Calculate separately then add.' : '💡 35% = 10% + 25%. Пресметај посебно, па додај.',
+            40: lang === 'en' ? '💡 40% = 2/5. Divide by 5 then multiply by 2.' : '💡 40% = 2/5. Подели со 5, па помножи со 2.',
+            45: lang === 'en' ? '💡 45% = 50% - 5%. Take half, then subtract 5%.' : '💡 45% = 50% - 5%. Земи половина, па одземи 5%.',
+            50: lang === 'en' ? '💡 50% = half. Divide by 2.' : '💡 50% = половина. Подели со 2.'
         };
         return {
-            question: `The building costs ${X}% of the property price (${Y}d). How much do you pay for the building?`,
+            question: t.build.replace('{Y}', Y).replace('{X}', X),
             correct_answer: ans, difficulty: 3,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(parseFloat(ans)+Y), fl(Y*(100-X)/100)]),
-            explanation: `${X}% of ${Y}d = (${X}÷100)×${Y} = ${ans}d`,
-            hint: hints[X] || `💡 Calculate ${X}% of ${Y}d.`
+            explanation: `${X}% of ${Y} = ${ans}d`,
+            hint: hints[X] || (lang === 'en' ? `💡 Calculate ${X}% of the price ${Y}d.` : `💡 Пресметај колку е ${X}% од цената ${Y}д.`)
         };
     }
     if (eventType === 'loan') {
         const Y = 1500, X = [6, 8, 12][Math.floor(Math.random()*3)];
         const ans = fl(Y * X / 100);
         return {
-            question: `You took a loan of ${Y}d. The bank charges ${X}% annual interest. How much interest do you pay for 1 year?`,
+            question: t.loan.replace('{Y}', Y).replace('{X}', X),
             correct_answer: ans, difficulty: 3,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X*10), fl(parseFloat(ans)*2)]),
-            explanation: `${X}% interest of ${Y}d = (${X}÷100)×${Y} = ${ans}d`,
-            hint: `💡 Interest = principal × (interest rate ÷ 100).`
+            explanation: `${X}% of ${Y} = ${ans}d`,
+            hint: lang === 'en' ? `💡 Interest = principal × (interest rate ÷ 100).` : `💡 Камата = главница × (каматна стапка ÷ 100).`
         };
     }
-    // Fallback
     return getUniqueTask(2);
 }
 
@@ -1078,6 +1219,7 @@ window.onload = () => {
         if (session.role === 'student') {
             document.getElementById('room-id-input').value = session.roomId;
         }
+        checkLoginValid();
     }
 };
 
@@ -1093,19 +1235,17 @@ function checkLoginValid() {
     const teacherDashBtn = document.getElementById('teacher-dashboard-btn');
     const nameError = document.getElementById('name-error');
     const roomError = document.getElementById('room-error');
+    const roomBox = document.getElementById('student-room-box');
+    const validationHint = document.getElementById('login-validation-hint');
+    const t = TRANSLATIONS[currentLanguage];
 
     // Validate name
     let nameValid = true;
     if (nameVal.length === 0) {
-        nameError.innerText = '❌ Enter name';
-        nameError.style.display = 'block';
         nameValid = false;
+        nameError.style.display = 'none'; 
     } else if (nameVal.length < 3) {
-        nameError.innerText = '❌ Name must have at least 3 characters';
-        nameError.style.display = 'block';
-        nameValid = false;
-    } else if (nameVal.length > 30) {
-        nameError.innerText = '❌ Name must have maximum 30 characters';
+        nameError.innerText = currentLanguage === 'en' ? '❌ Min 3 chars' : '❌ Мин 3 знаци';
         nameError.style.display = 'block';
         nameValid = false;
     } else {
@@ -1116,24 +1256,49 @@ function checkLoginValid() {
     let roomValid = true;
     if (currentRole === 'student') {
         if (roomVal.length === 0) {
-            roomError.innerText = '❌ Enter room code';
-            roomError.style.display = 'block';
             roomValid = false;
+            roomBox.classList.remove('error-state');
         } else if (roomVal.length < 3) {
-            roomError.innerText = '❌ Code must have at least 3 characters';
-            roomError.style.display = 'block';
+            roomBox.classList.add('error-state');
             roomValid = false;
         } else {
-            roomError.style.display = 'none';
+            roomBox.classList.remove('error-state');
         }
     }
 
-    // Enable/disable buttons
+    // Enable/disable buttons and update hint
     if (currentRole === 'teacher') {
         teacherDashBtn.disabled = !nameValid;
+        validationHint.style.display = 'none';
     } else {
-        loginBtn.disabled = !nameValid || !roomValid;
+        const bothValid = nameValid && roomValid;
+        loginBtn.disabled = !bothValid;
+        
+        if (bothValid) {
+            validationHint.innerText = t.validationSuccess;
+            validationHint.classList.add('active');
+        } else {
+            validationHint.innerText = t.validationHint;
+            validationHint.classList.remove('active');
+        }
+        validationHint.style.display = 'block';
     }
+}
+
+function openInfoModal() {
+    const overlay = document.getElementById('info-modal-overlay');
+    const content = document.getElementById('info-modal-content');
+    const panel = document.getElementById('login-info-panel');
+    
+    if (overlay && content && panel) {
+        content.innerHTML = panel.innerHTML;
+        overlay.style.display = 'flex';
+    }
+}
+
+function closeInfoModal() {
+    const overlay = document.getElementById('info-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
 }
 
 function openTeacherDashDirectly() {
@@ -1777,6 +1942,7 @@ function initMultiplayerGame() {
     currentDifficultyLevel = 1;
     correctStreak = 0;
     wrongStreak = 0;
+    typeWrongStreak = {};
     AudioController.init();
     document.getElementById('player-display-name').innerText = (currentRole === 'teacher' ? 'Teacher: ' : 'Player: ') + studentName;
     document.getElementById('login-overlay').style.display = 'none';
@@ -3189,6 +3355,16 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty, cel
         const fa=document.getElementById('feedback-area'); fa.innerText='';
         currentTaskData = { q, ans, expl, hint };
 
+        // PHASE 5.2: Smart Hints — if the student keeps missing this task type, guide proactively
+        const qType = classifyQuestion(q).label;
+        const strugglingType = (typeWrongStreak[qType] || 0) >= 2;
+        if (strugglingType && hint) {
+            const lead = currentLanguage === 'mk'
+                ? '🧭 <strong>Чекор-по-чекор:</strong>'
+                : '🧭 <strong>Step-by-step:</strong>';
+            fa.innerHTML = `<div style="background:#eef2ff;padding:10px 12px;border-radius:10px;border:1px solid #818cf8;font-size:0.88rem;animation:fadeIn 0.4s ease;">${lead} ${escapeHtml(hint)}</div>`;
+        }
+
         // Adaptive question timer
         if (_questionTimerInterval) clearInterval(_questionTimerInterval);
         const timerSecs = QUESTION_TIMERS[difficulty] || 60;
@@ -3260,6 +3436,7 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty, cel
                 updates.correct = studentCorrect;
                 p.streak = (p.streak || 0) + 1;
                 updates.streak = p.streak;
+                typeWrongStreak[qType] = 0;
 
                 // Adaptive difficulty: 3 correct in a row → bump up level
                 correctStreak++;
@@ -3297,6 +3474,7 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty, cel
                 updates.wrong = studentWrong;
                 p.streak = 0;
                 updates.streak = 0;
+                typeWrongStreak[qType] = (typeWrongStreak[qType] || 0) + 1;
 
                 // Heatmap tracking: Record error for the cell
                 if (cellIndex !== undefined && cellIndex !== null) {
@@ -4093,6 +4271,7 @@ function showIncomingTrade(offer) {
     const fromPlayer = players[offer.from];
     const offeredProps = (offer.myProperties || []).map(idx => gameBoard[idx]);
     const wantedProps = (offer.theirProperties || []).map(idx => gameBoard[idx]);
+    const lang = currentLanguage;
 
     if (!fromPlayer) return;
 
@@ -4104,23 +4283,28 @@ function showIncomingTrade(offer) {
 
     const moneyText = offer.moneyOffered > 0 ? `<div style="margin-top:8px; font-weight:700; color:#f59e0b;">+ ${offer.moneyOffered}d</div>` : '';
 
+    const t_wants = lang === 'en' ? 'wants to trade with you!' : 'сака да тргува со тебе!';
+    const t_offers = lang === 'en' ? 'OFFERS YOU' : 'ТИ НУДИ';
+    const t_wants_from = lang === 'en' ? 'WANTS FROM YOU' : 'БАРА ОД ТЕБЕ';
+    const t_no_props = lang === 'en' ? '(No properties)' : '(Нема имоти)';
+
     document.getElementById('trade-incoming-details').innerHTML = `
         <p style="font-size:0.9rem; color:#475569; margin-bottom:14px;">
-            <strong>${escapeHtml(fromPlayer.name)}</strong> wants to trade with you!
+            <strong>${escapeHtml(fromPlayer.name)}</strong> ${t_wants}
         </p>
         <div style="display:flex; align-items:flex-start; justify-content:center; gap:16px;">
             <div style="flex:1; text-align:center;">
-                <div style="font-size:0.7rem; color:#94a3b8; font-weight:800;">OFFERS YOU</div>
+                <div style="font-size:0.7rem; color:#94a3b8; font-weight:800;">${t_offers}</div>
                 <div style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">
-                    ${offeredProps.length > 0 ? offeredProps.map(renderPropMini).join('') : '<div style="font-size:0.7rem; color:#64748b;">(No properties)</div>'}
+                    ${offeredProps.length > 0 ? offeredProps.map(renderPropMini).join('') : `<div style="font-size:0.7rem; color:#64748b;">${t_no_props}</div>`}
                 </div>
                 ${moneyText}
             </div>
             <div style="font-size:1.5rem; align-self:center;">🔄</div>
             <div style="flex:1; text-align:center;">
-                <div style="font-size:0.7rem; color:#94a3b8; font-weight:800;">WANTS FROM YOU</div>
+                <div style="font-size:0.7rem; color:#94a3b8; font-weight:800;">${t_wants_from}</div>
                 <div style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">
-                    ${wantedProps.length > 0 ? wantedProps.map(renderPropMini).join('') : '<div style="font-size:0.7rem; color:#64748b;">(No properties)</div>'}
+                    ${wantedProps.length > 0 ? wantedProps.map(renderPropMini).join('') : `<div style="font-size:0.7rem; color:#64748b;">${t_no_props}</div>`}
                 </div>
             </div>
         </div>
@@ -4608,18 +4792,25 @@ function setBidControlsEnabled(enabled) {
 function showAuctionWonPanel(auc) {
     const controls = document.getElementById('auction-bid-controls');
     const wonView  = document.getElementById('auction-won-view');
+    const lang = currentLanguage;
     if (controls) controls.style.display = 'none';
     if (wonView) {
         wonView.style.display = 'block';
         const reward = AUCTION_REWARDS[auc.difficulty] || 300;
+        
+        const t_title = lang === 'en' ? '🏆 YOU WON THE AUCTION!' : '🏆 ПОБЕДИ НА АУКЦИЈАТА!';
+        const t_paid = lang === 'en' ? 'Paid amount:' : 'Платен износ:';
+        const t_reward = lang === 'en' ? 'If you answer correctly:' : 'Ако одговориш точно:';
+        const t_prepare = lang === 'en' ? 'Prepare for the question...' : 'Подготви се за прашањето...';
+
         const h3 = document.createElement('h3');
-        h3.textContent = '🏆 YOU WON THE AUCTION!';
+        h3.textContent = t_title;
         const p1 = document.createElement('p');
-        p1.textContent = `Paid amount: ${auc.currentBid}d`;
+        p1.textContent = `${t_paid} ${auc.currentBid}d`;
         const p2 = document.createElement('p');
-        p2.textContent = `If you answer correctly: +${reward}d`;
+        p2.textContent = `${t_reward} +${reward}d`;
         const p3 = document.createElement('p');
-        p3.textContent = 'Prepare for the question...';
+        p3.textContent = t_prepare;
         p3.style.cssText = 'opacity:0.7;font-size:0.8rem;margin-top:8px;';
         wonView.innerHTML = '';
         wonView.append(h3, p1, p2, p3);
@@ -4641,7 +4832,83 @@ function toggleTheme() {
     showSuccess(`${isDark ? 'Dark' : 'Light'} mode activated!`);
 }
 
-// Apply saved theme on load
+function setLanguage(lang) {
+    currentLanguage = lang;
+    localStorage.setItem('percentopolis_lang', lang);
+    
+    // Update active class on buttons
+    document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+    document.getElementById('lang-mk').classList.toggle('active', lang === 'mk');
+    
+    const t = TRANSLATIONS[lang];
+    
+    // Update Landing UI
+    if(document.getElementById('ui-instructions')) document.getElementById('ui-instructions').innerText = t.instructions;
+    if(document.getElementById('ui-goal')) document.getElementById('ui-goal').innerText = t.goal;
+    if(document.getElementById('ui-goal-desc')) document.getElementById('ui-goal-desc').innerText = t.goalDesc;
+    if(document.getElementById('ui-buying')) document.getElementById('ui-buying').innerText = t.buying;
+    if(document.getElementById('ui-buying-desc')) document.getElementById('ui-buying-desc').innerText = t.buyingDesc;
+    if(document.getElementById('ui-rent')) document.getElementById('ui-rent').innerText = t.rent;
+    if(document.getElementById('ui-rent-desc')) document.getElementById('ui-rent-desc').innerText = t.rentDesc;
+    if(document.getElementById('ui-shop-title')) document.getElementById('ui-shop-title').innerText = t.powerupShop;
+    if(document.getElementById('ui-lawyer')) document.getElementById('ui-lawyer').innerText = t.lawyer;
+    if(document.getElementById('ui-shield')) document.getElementById('ui-shield').innerText = t.shield;
+    if(document.getElementById('ui-nitro')) document.getElementById('ui-nitro').innerText = t.nitro;
+    if(document.getElementById('ui-insider')) document.getElementById('ui-insider').innerText = t.insider;
+    if(document.getElementById('ui-practice-title')) document.getElementById('ui-practice-title').innerText = t.quickPractice;
+    if(document.getElementById('ui-check-btn')) document.getElementById('ui-check-btn').innerText = t.check || (lang==='en'?'CHECK':'ПРОВЕРИ');
+    if(document.getElementById('ui-role-label')) document.getElementById('ui-role-label').innerText = t.role;
+    if(document.getElementById('role-student')) document.getElementById('role-student').innerText = t.student;
+    if(document.getElementById('role-teacher')) document.getElementById('role-teacher').innerText = t.teacher;
+    if(document.getElementById('ui-avatar-label')) document.getElementById('ui-avatar-label').innerText = t.chooseAvatar;
+    if(document.getElementById('ui-subtitle')) document.getElementById('ui-subtitle').innerText = lang === 'en' ? 'MASTER PORTAL' : 'ГЛАВЕН ПОРТАЛ';
+    if(document.getElementById('ui-players-per-room')) document.getElementById('ui-players-per-room').innerText = t.playersPerRoom;
+    if(document.getElementById('ui-name-label')) document.getElementById('ui-name-label').innerText = t.nameLabel;
+    if(document.getElementById('ui-class-label')) document.getElementById('ui-class-label').innerText = t.classLabel;
+    if(document.getElementById('ui-room-label')) document.getElementById('ui-room-label').innerText = t.roomLabel;
+    if(document.getElementById('ui-select-room')) document.getElementById('ui-select-room').innerText = lang === 'en' ? 'SELECT ACTIVE ROOM:' : 'ИЗБЕРИ АКТИВНА СОБА:';
+    if(document.getElementById('login-btn')) document.getElementById('login-btn').innerText = lang === 'en' ? '🚀 ENTER GAME' : '🚀 ВЛЕЗИ ВО ИГРА';
+    
+    // Validation Hint
+    const vHint = document.getElementById('login-validation-hint');
+    if(vHint) {
+        if(vHint.classList.contains('active')) vHint.innerText = t.validationSuccess;
+        else vHint.innerText = t.validationHint;
+    }
+    
+    // Delete Button
+    const deleteBtn = document.querySelector('.btn-secondary');
+    if(deleteBtn) deleteBtn.innerText = t.deleteSaved;
+
+    // Got it button in modal
+    const infoOverlay = document.getElementById('info-modal-overlay');
+    if(infoOverlay) {
+        const okBtn = infoOverlay.querySelector('button[onclick="closeInfoModal()"]:not([style*="top"])');
+        if(okBtn) okBtn.innerText = t.gotIt;
+    }
+    
+    // In-game dynamic elements (if they exist in the DOM)
+    if(document.querySelector('.trade-btn-label')) document.querySelectorAll('.trade-btn-label').forEach(el => el.innerText = t.trade);
+    if(document.getElementById('inventory-tab-label')) document.getElementById('inventory-tab-label').innerText = t.inventory;
+    if(document.getElementById('bank-label')) document.getElementById('bank-label').innerText = t.bank;
+    if(document.getElementById('btn-send-offer')) document.getElementById('btn-send-offer').innerText = t.sendOffer;
+    if(document.getElementById('btn-cancel-trade')) document.getElementById('btn-cancel-trade').innerText = t.cancel;
+    if(document.getElementById('btn-accept-trade')) document.getElementById('btn-accept-trade').innerText = t.accept;
+    if(document.getElementById('btn-reject-trade')) document.getElementById('btn-reject-trade').innerText = t.reject;
+    if(document.getElementById('drawing-tools-title')) document.getElementById('drawing-tools-title').innerText = t.drawingTools;
+    if(document.getElementById('btn-eraser-label')) document.getElementById('btn-eraser-label').innerText = t.eraser;
+    
+    // Update Placeholders
+    if(document.getElementById('player-name-input')) document.getElementById('player-name-input').placeholder = lang === 'en' ? 'Enter name...' : 'Внеси име...';
+    if(document.getElementById('room-id-input')) document.getElementById('room-id-input').placeholder = lang === 'en' ? 'Enter or select code...' : 'Внеси или избери код...';
+    
+    // Update Demo Question
+    updateDemoQuestion();
+}
+
+// Apply saved theme & language on load
 if (localStorage.getItem('percentopolis_theme') === 'dark') {
     document.body.classList.add('dark-theme');
 }
+const savedLang = localStorage.getItem('percentopolis_lang') || 'en';
+setLanguage(savedLang);

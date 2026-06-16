@@ -128,8 +128,19 @@ body {
 .role-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.3s; background: transparent; color: #64748b; font-size: 0.9rem; }
 .role-btn.active { background: white; color: var(--primary-color); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
 
-.room-box { background: #fff5f5; padding: 20px; border-radius: 18px; border: 2px solid #fee2e2; margin-top: 10px; }
+.room-box { background: #f8fafc; padding: 20px; border-radius: 18px; border: 2px solid #e2e8f0; margin-top: 10px; transition: all 0.3s ease; }
+.room-box.error-state { background: #fff5f5; border-color: #ef4444; }
 .room-box.teacher-mode { background: #f0f9ff; border-color: #e0f2fe; }
+
+.btn-secondary { background: transparent; color: #94a3b8; border: 1px solid #e2e8f0; padding: 10px 15px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s; }
+.btn-secondary:hover { color: #ef4444; border-color: #fca5a5; background: #fff5f5; }
+
+.info-trigger { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 900; transition: all 0.2s; }
+.info-trigger:hover { background: var(--primary-color); border-color: white; transform: scale(1.1); }
+
+/* Validation Message */
+.validation-hint { font-size: 0.75rem; color: #64748b; margin-top: 10px; font-weight: 600; transition: opacity 0.3s; }
+.validation-hint.active { color: #10b981; }
 
 #login-btn { 
     width: 100%; padding: 20px; font-size: 1.2rem; background: var(--primary-color); 
@@ -1797,6 +1808,10 @@ button.loading::after {
     margin-top: 16px;
 }
 .trade-incoming-actions .trade-action-btn { width: 50%; }
+
+.lang-btn { background: transparent; color: var(--text-muted); }
+.lang-btn.active { background: var(--primary-color) !important; color: white !important; }
+body.dark-theme .lang-selector { background: rgba(0,0,0,0.2); }
 
 /* Specific Portrait Optimization for Mobile */
 @media (max-width: 600px) and (orientation: portrait) {
