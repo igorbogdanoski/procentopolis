@@ -1,11 +1,15 @@
 {
-  "name": "ProcentOpolis",
-  "short_name": "ProcentOpolis",
-  "start_url": ".",
+  "name": "Процентополис / Procentopolis",
+  "short_name": "Процентополис",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#4a90e2",
-  "description": "Educational math game about percentages",
+  "lang": "mk",
+  "dir": "ltr",
+  "description": "Мултиплеер образовна игра за учење проценти преку купување имоти. За ученици и наставници.",
+  "categories": ["education", "games"],
+  "screenshots": [],
   "icons": [
     {
       "src": "https://percentopolis.web.app/og-image.png",
