@@ -325,6 +325,7 @@
                         <button class="dash-tab" onclick="switchDashTab('live')" id="dash-tab-live">🎮 Live Status</button>
                         <button class="dash-tab" onclick="switchDashTab('analytics')" id="dash-tab-analytics">📊 Analytics</button>
                         <button class="dash-tab" onclick="switchDashTab('tasks')" id="dash-tab-tasks">✍️ Tasks</button>
+                        <button class="dash-tab" onclick="switchDashTab('library')" id="dash-tab-library">📚 Library</button>
                         <button class="dash-tab" onclick="switchDashTab('report')" id="dash-tab-report">📋 Report</button>
                     </div>
 
@@ -466,7 +467,25 @@
                         <div id="custom-tasks-list" style="display:flex; flex-direction:column; gap:6px; max-height:300px; overflow-y:auto;"></div>
                     </div>
 
-                    <!-- TAB 6: End-of-Game Report -->
+                    <!-- TAB 6: Global Task Library (Phase 7.2) -->
+                    <div id="dash-panel-library" class="dash-tab-panel" style="display:none;">
+                        <div style="background:#eff6ff; padding:14px 16px; border-radius:12px; border:1px solid #bfdbfe; margin-bottom:12px;">
+                            <p style="font-size:0.8rem; color:#1e40af; margin:0 0 10px; font-weight:700;">📚 GLOBAL TASK LIBRARY — tasks shared by all teachers</p>
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <select id="lib-filter-diff" onchange="loadGlobalLibrary()" style="padding:6px 10px; border-radius:8px; border:1px solid #bfdbfe; font-size:0.82rem; font-weight:700;">
+                                    <option value="0">All difficulties</option>
+                                    <option value="1">D1 — Easy</option>
+                                    <option value="2">D2 — Medium</option>
+                                    <option value="3">D3 — Hard</option>
+                                </select>
+                                <input type="text" id="lib-search" placeholder="Search questions…" oninput="filterLibraryDisplay()" style="flex:1; min-width:120px; padding:6px 10px; border-radius:8px; border:1px solid #bfdbfe; font-size:0.82rem;">
+                                <button onclick="loadGlobalLibrary()" style="padding:6px 14px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; font-size:0.82rem;">🔄 Refresh</button>
+                            </div>
+                        </div>
+                        <div id="global-library-list" style="display:flex; flex-direction:column; gap:6px; max-height:380px; overflow-y:auto;"></div>
+                    </div>
+
+                    <!-- TAB 7: End-of-Game Report -->
                     <div id="dash-panel-report" class="dash-tab-panel" style="display:none;">
                         <div id="dash-report-content" style="padding:4px 0;">
                             <p style="color:#94a3b8;text-align:center;padding:40px 20px;">

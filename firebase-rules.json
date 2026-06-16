@@ -100,6 +100,18 @@
           "resolved":   { ".validate": "newData.isBoolean()" }
         }
       }
+    },
+
+    "globalTaskLibrary": {
+      ".read": "auth !== null",
+      "$taskId": {
+        ".write": "auth !== null",
+        "question":      { ".validate": "newData.isString() && newData.val().length >= 5 && newData.val().length <= 500" },
+        "correct_answer":{ ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 200" },
+        "difficulty":    { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 3" },
+        "creatorName":   { ".validate": "newData.isString() && newData.val().length <= 50" },
+        "usageCount":    { ".validate": "newData.isNumber() && newData.val() >= 0" }
+      }
     }
   }
 }

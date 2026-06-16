@@ -608,6 +608,13 @@ const TRANSLATIONS = {
         reportPlayer: "Player:", reportReason: "Reason:", reportMoney: "Money:",
         reportSuccess: "Success:", reportCorrect: "Correct:", reportWrong: "Wrong:",
         reportProps: "Properties:",
+        // Auction modal
+        auctionChoice: "HOW DO YOU WANT TO PROCEED?",
+        answerAlone: "📝 ANSWER ALONE",
+        auctionBtn: "🔨 AUCTION",
+        auctionDesc: (reward) => `Auction: others bid to answer. The winner gets up to +${reward}d. You get the money!`,
+        auctionLeading: "✅ You are leading!",
+        diffLabels: ["", "Easy (Level 1)", "Medium (Level 2)", "Hard (Level 3)"],
         // Status
         playerPrefix: "Player: ", teacherPrefix: "Teacher: ",
         statusActive: "ACTIVE", statusWaiting: "WAITING",
@@ -697,6 +704,13 @@ const TRANSLATIONS = {
         reportPlayer: "Играч:", reportReason: "Причина:", reportMoney: "Пари:",
         reportSuccess: "Успех:", reportCorrect: "Точни:", reportWrong: "Грешни:",
         reportProps: "Имоти:",
+        // Auction modal
+        auctionChoice: "KAKO САКАШ ДА ПРОДОЛЖИШ?",
+        answerAlone: "📝 ОДГОВОРИ САМ/А",
+        auctionBtn: "🔨 АУКЦИЈА",
+        auctionDesc: (reward) => `Аукција: другите нудат за одговор. Победникот добива до +${reward}d. Ти ги добиваш парите!`,
+        auctionLeading: "✅ Ти водиш!",
+        diffLabels: ["", "Лесна (Ниво 1)", "Средна (Ниво 2)", "Тешка (Ниво 3)"],
         // Status
         playerPrefix: "Играч: ", teacherPrefix: "Наставник: ",
         statusActive: "АКТИВНА", statusWaiting: "ЧЕКАЊЕ",
@@ -2793,6 +2807,7 @@ function switchDashTab(tabName) {
     const tab = document.getElementById('dash-tab-' + tabName);
     if (panel) { panel.style.display = 'block'; panel.classList.add('active'); }
     if (tab) tab.classList.add('active');
+    if (tabName === 'library') loadGlobalLibrary();
 }
 
 function openTeacherDash() {
@@ -3637,6 +3652,7 @@ function renderCustomTasksList(tasksObj) {
                 <div style="font-size:0.83rem;font-weight:600;color:#1e293b;word-break:break-word;">${escapeHtml(t.question)}</div>
                 <div style="font-size:0.75rem;color:#16a34a;margin-top:2px;">✅ ${escapeHtml(t.correct_answer)}</div>
             </div>
+            <button onclick="publishTaskToLibrary('${key}')" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#3b82f6;flex-shrink:0;" title="Publish to global library">📤</button>
             <button onclick="deleteCustomTask('${key}')" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:#94a3b8;flex-shrink:0;" title="Delete">🗑️</button>
         </div>`).join('');
 }
@@ -3646,6 +3662,90 @@ function syncCustomTasksFromData(data) {
     const raw = data?.customTasks || {};
     roomCustomTasks = Object.values(raw);
     renderCustomTasksList(raw);
+}
+
+// === PHASE 7.2: GLOBAL TASK LIBRARY ===
+
+let _globalLibraryCache = []; // cached for client-side search filter
+
+async function publishTaskToLibrary(fbKey) {
+    if (!activeDashRoomId) return;
+    const snap = await db.ref(`rooms/${activeDashRoomId}/customTasks/${fbKey}`).once('value');
+    const task = snap.val();
+    if (!task) { showError('Task not found.'); return; }
+    await db.ref('globalTaskLibrary').push({
+        question: task.question,
+        correct_answer: task.correct_answer,
+        options: task.options || [],
+        difficulty: task.difficulty || 1,
+        explanation: task.explanation || '',
+        creatorName: studentName || 'Teacher',
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        usageCount: 0
+    });
+    showSuccess('📚 Task published to the global library!');
+}
+
+async function loadGlobalLibrary() {
+    const el = document.getElementById('global-library-list');
+    if (!el) return;
+    el.innerHTML = '<p style="color:#94a3b8;font-size:0.82rem;text-align:center;padding:20px;">⏳ Loading…</p>';
+    const diff = parseInt(document.getElementById('lib-filter-diff')?.value || '0');
+    let ref = db.ref('globalTaskLibrary').orderByChild('createdAt').limitToLast(200);
+    const snap = await ref.once('value');
+    const raw = snap.val() || {};
+    let entries = Object.entries(raw);
+    if (diff > 0) entries = entries.filter(([, t]) => t.difficulty === diff);
+    entries.reverse(); // newest first
+    _globalLibraryCache = entries;
+    renderLibraryEntries(entries);
+}
+
+function filterLibraryDisplay() {
+    const q = (document.getElementById('lib-search')?.value || '').toLowerCase();
+    if (!q) { renderLibraryEntries(_globalLibraryCache); return; }
+    renderLibraryEntries(_globalLibraryCache.filter(([, t]) => t.question.toLowerCase().includes(q)));
+}
+
+function renderLibraryEntries(entries) {
+    const el = document.getElementById('global-library-list');
+    if (!el) return;
+    if (entries.length === 0) {
+        el.innerHTML = '<p style="color:#94a3b8;font-size:0.82rem;text-align:center;padding:20px;">No tasks found in the library.</p>';
+        return;
+    }
+    el.innerHTML = entries.map(([key, t]) => {
+        const diffColor = t.difficulty === 1 ? '#1e40af' : t.difficulty === 2 ? '#854d0e' : '#9d174d';
+        const diffBg   = t.difficulty === 1 ? '#dbeafe' : t.difficulty === 2 ? '#fef9c3' : '#fce7f3';
+        const usages = t.usageCount ? `· ${t.usageCount} uses` : '';
+        return `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;">
+            <span style="font-size:0.7rem;font-weight:800;background:${diffBg};color:${diffColor};padding:2px 7px;border-radius:12px;flex-shrink:0;">D${t.difficulty}</span>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:0.83rem;font-weight:600;color:#1e293b;word-break:break-word;">${escapeHtml(t.question)}</div>
+                <div style="font-size:0.75rem;color:#16a34a;margin-top:2px;">✅ ${escapeHtml(t.correct_answer)}</div>
+                <div style="font-size:0.7rem;color:#94a3b8;margin-top:2px;">by ${escapeHtml(t.creatorName || 'Teacher')} ${usages}</div>
+            </div>
+            <button onclick="importFromLibrary('${key}')" style="background:#3b82f6;border:none;color:white;font-size:0.72rem;font-weight:800;padding:5px 10px;border-radius:8px;cursor:pointer;flex-shrink:0;" title="Import into this room">📥 USE</button>
+        </div>`;
+    }).join('');
+}
+
+async function importFromLibrary(globalKey) {
+    if (!activeDashRoomId) { showError('Select a room first.'); return; }
+    const snap = await db.ref(`globalTaskLibrary/${globalKey}`).once('value');
+    const t = snap.val();
+    if (!t) { showError('Task not found in library.'); return; }
+    await db.ref(`rooms/${activeDashRoomId}/customTasks`).push({
+        question: t.question,
+        correct_answer: t.correct_answer,
+        options: t.options || [],
+        difficulty: t.difficulty || 1,
+        explanation: t.explanation || '',
+        isCustom: true,
+        fromGlobal: true
+    });
+    db.ref(`globalTaskLibrary/${globalKey}/usageCount`).transaction(n => (n || 0) + 1);
+    showSuccess('✅ Task imported into this room!');
 }
 
 // === PHASE 8.1: TEXT-TO-SPEECH ===
@@ -4910,7 +5010,8 @@ function offerAuctionChoice(category, difficulty) {
         overlay.id = 'auction-choice-overlay';
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;' +
             'background:rgba(0,0,0,0.82);z-index:9800;display:flex;justify-content:center;align-items:center;';
-        const diffLabel = ['', 'Easy (Level 1)', 'Medium (Level 2)', 'Hard (Level 3)'][difficulty] || '';
+        const _ta = TRANSLATIONS[currentLanguage];
+        const diffLabel = (_ta.diffLabels || ['', 'Easy (Level 1)', 'Medium (Level 2)', 'Hard (Level 3)'])[difficulty] || '';
         const reward = AUCTION_REWARDS[difficulty] || 300;
         overlay.innerHTML = `
             <div style="background:white;border-radius:24px;padding:30px 28px;width:420px;
@@ -4918,7 +5019,7 @@ function offerAuctionChoice(category, difficulty) {
                         border:3px solid #f59e0b;">
                 <div style="font-size:2rem;margin-bottom:8px;">🎯</div>
                 <h2 style="margin:0 0 6px 0;font-size:1.2rem;color:#1e293b;font-weight:900;">
-                    HOW DO YOU WANT TO PROCEED?
+                    ${_ta.auctionChoice}
                 </h2>
                 <p style="color:#64748b;font-size:0.83rem;margin:0 0 20px 0;font-weight:600;">
                     ${escapeHtml(category)} &middot; ${diffLabel}
@@ -4927,17 +5028,17 @@ function offerAuctionChoice(category, difficulty) {
                     <button id="choice-self" style="flex:1;padding:16px 8px;border:2px solid #3b82f6;
                         border-radius:16px;background:#eff6ff;color:#1d4ed8;font-weight:900;
                         cursor:pointer;font-size:0.92rem;">
-                        📝 ANSWER ALONE
+                        ${_ta.answerAlone}
                     </button>
                     <button id="choice-auction" style="flex:1;padding:16px 8px;border:none;
                         border-radius:16px;background:linear-gradient(135deg,#f59e0b,#b45309);
                         color:white;font-weight:900;cursor:pointer;font-size:0.92rem;
                         box-shadow:0 4px 12px rgba(245,158,11,0.4);">
-                        🔨 AUCTION
+                        ${_ta.auctionBtn}
                     </button>
                 </div>
                 <p style="margin:12px 0 0 0;font-size:0.72rem;color:#94a3b8;">
-                    Auction: others bid to answer. The winner gets up to +${reward}d. You get the money!
+                    ${_ta.auctionDesc(reward)}
                 </p>
             </div>`;
         document.body.appendChild(overlay);
@@ -4997,7 +5098,7 @@ function handleActiveAuction(auc) {
         const canAfford = myMoney > auc.currentBid + 100;
         setBidControlsEnabled(!isLeader && canAfford);
         const statusEl = document.getElementById('auction-my-bid-status');
-        if (statusEl) statusEl.innerText = isLeader ? '✅ You are leading!' : '';
+        if (statusEl) statusEl.innerText = isLeader ? TRANSLATIONS[currentLanguage].auctionLeading : '';
     }
 
     // Edge case: late client sees already-expired auction
@@ -5057,7 +5158,6 @@ async function handleResolvedAuction(auc) {
             log(`❌ ${players[winnerId] ? players[winnerId].name : 'Winner'} did not answer. Lost ${bidAmount}d. The seller receives ${sellerCut}d.`);
         }
 
-        await db.ref(`rooms/${roomId}/auction`).update({ resolved: true });
         await db.ref(`rooms/${roomId}/auction`).set(null);
 
     } else if (myPlayerId === sellerId) {
