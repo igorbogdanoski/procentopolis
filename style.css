@@ -338,7 +338,14 @@ body {
 .cell { 
     background-color: white; border-radius: 8px; display: flex; flex-direction: column; 
     justify-content: center; align-items: center; position: relative; border: 1px solid #bdc3c7; 
-    text-align: center; padding: 2px; transition: all 0.3s ease; 
+    text-align: center; padding: 2px; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.cell:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    z-index: 10;
 }
 
 .cell-name { font-size: 0.95rem; line-height: 1.1; margin-bottom: 4px; color: #2c3e50; z-index: 2; font-weight: bold; }
@@ -364,7 +371,17 @@ body {
 .owned-p6 { background-color: #e0f2f1 !important; border: 3px solid var(--p6-color) !important; }
 .owned-p7 { background-color: #fbe9e7 !important; border: 3px solid var(--p7-color) !important; }
 
-.active-cell { transform: scale(1.08); z-index: 50; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: 3px solid #e74c3c !important; }
+@keyframes activeCellPulse {
+    0% { transform: scale(1.08); box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); }
+    50% { transform: scale(1.12); box-shadow: 0 0 25px rgba(231, 76, 60, 0.7); }
+    100% { transform: scale(1.08); box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); }
+}
+
+.active-cell { 
+    animation: activeCellPulse 1.5s infinite ease-in-out;
+    z-index: 50; 
+    border: 3px solid #e74c3c !important; 
+}
 
 .token-choice { 
     font-size: 1.8rem; 
@@ -389,6 +406,13 @@ body {
     font-size: 18px; display: flex; align-items: center; justify-content: center;
     border-radius: 50%; border: 2px solid white;
     display: none; 
+}
+@keyframes tokenBounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-20px) scale(1.1); }
+}
+.token-bounce {
+    animation: tokenBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 #token-0 { background-color: var(--p0-color); }
 #token-1 { background-color: var(--p1-color); }

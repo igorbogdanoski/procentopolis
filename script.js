@@ -492,6 +492,7 @@ let canvas, ctx, isDrawing = false, lastX = 0, lastY = 0;
 let penColor = '#000000';
 let penWidth = 3;
 let diceRotationCounter = 0;
+let undoStack = [];
 let currentDifficultyLevel = 1;
 let correctStreak = 0;
 let wrongStreak = 0;
@@ -1886,6 +1887,10 @@ async function playTurnMulti(){
     }
 
     if(token) token.classList.remove('walking');
+    if(token) {
+        token.classList.add('token-bounce');
+        setTimeout(() => token.classList.remove('token-bounce'), 450);
+    }
 
     // Sync final position + powerups in one write
     db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ pos: p.pos, powerups: p.powerups });
@@ -3572,6 +3577,11 @@ function setupCanvas(){
     const widthSlider = document.getElementById('pen-width');
     if(widthSlider) widthSlider.oninput = (e) => penWidth = parseInt(e.target.value) || 3;
 
+    function saveState() {
+        if (undoStack.length >= 20) undoStack.shift();
+        undoStack.push(canvas.toDataURL());
+    }
+
     function gp(e){
         const r = canvas.getBoundingClientRect();
         let clientX, clientY;
@@ -3590,6 +3600,7 @@ function setupCanvas(){
     
     function st(e){
         if (e.target === canvas) e.preventDefault();
+        saveState();
         isDrawing=true; 
         const p=gp(e); 
         lastX=p.x; lastY=p.y;
@@ -3604,13 +3615,23 @@ function setupCanvas(){
         ctx.lineWidth = penWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+        // Eraser mode logic
+        if (penColor === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.lineWidth = penWidth * 2;
+        } else {
+            ctx.globalCompositeOperation = 'source-over';
+        }
         ctx.moveTo(lastX,lastY); 
         ctx.lineTo(p.x,p.y); 
         ctx.stroke(); 
         lastX=p.x; lastY=p.y;
     } 
     
-    function en(){ isDrawing = false; }
+    function en(){ 
+        isDrawing = false; 
+        ctx.globalCompositeOperation = 'source-over';
+    }
 
     if (!_canvasEventsAttached) {
         canvas.addEventListener('mousedown', st);
@@ -3619,10 +3640,27 @@ function setupCanvas(){
         canvas.addEventListener('touchstart', st, {passive:false});
         canvas.addEventListener('touchmove', mv, {passive:false});
         canvas.addEventListener('touchend', en);
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                undo();
+            }
+        });
         _canvasEventsAttached = true;
     }
 
     resizeCanvas();
+}
+
+function undo() {
+    if (undoStack.length === 0) return;
+    const dataUrl = undoStack.pop();
+    const img = new Image();
+    img.src = dataUrl;
+    img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+    };
 }
 
 function changeColor(c){ penColor = c; }
@@ -3831,7 +3869,7 @@ function openTradeModal() {
     const otherOwners = gameBoard.filter(c => c.owner !== null && c.owner !== myPlayerId && c.type === 'property');
     if (otherOwners.length === 0) { showError("No other player has a property to trade."); return; }
 
-    tradeState = { step: 1, myPropertyIndex: null, targetPlayerId: null, theirPropertyIndex: null, moneyAmount: 0, pendingOfferId: null };
+    tradeState = { step: 1, myProperties: [], targetPlayerId: null, theirProperties: [], moneyAmount: 0, pendingOfferId: null };
     showTradeStep(1);
     document.getElementById('trade-overlay').style.display = 'flex';
 }
@@ -3868,16 +3906,21 @@ function renderMyProperties() {
     const grid = document.getElementById('trade-my-props');
     const myProps = gameBoard.filter(c => c.owner === myPlayerId && c.type === 'property');
     grid.innerHTML = myProps.map(p => `
-        <div class="trade-prop-card ${tradeState.myPropertyIndex === p.index ? 'selected' : ''}" onclick="selectMyProp(${p.index})">
+        <div class="trade-prop-card ${tradeState.myProperties.includes(p.index) ? 'selected' : ''}" onclick="toggleMyTradeProp(${p.index})">
             <div class="prop-color-bar" style="background:${p.color}"></div>
             <div class="prop-name">${p.name}</div>
             <div class="prop-price">${p.price}d</div>
+            ${tradeState.myProperties.includes(p.index) ? '<div style="position:absolute; top:2px; right:4px; font-size:0.7rem;">✅</div>' : ''}
         </div>
     `).join('');
 }
 
-function selectMyProp(idx) {
-    tradeState.myPropertyIndex = idx;
+function toggleMyTradeProp(idx) {
+    if (tradeState.myProperties.includes(idx)) {
+        tradeState.myProperties = tradeState.myProperties.filter(id => id !== idx);
+    } else {
+        tradeState.myProperties.push(idx);
+    }
     renderMyProperties();
 }
 
@@ -3901,10 +3944,11 @@ function renderTargetPlayers() {
     if (tradeState.targetPlayerId !== null) {
         const theirProps = gameBoard.filter(c => c.owner === tradeState.targetPlayerId && c.type === 'property');
         propsDiv.innerHTML = theirProps.map(p => `
-            <div class="trade-prop-card ${tradeState.theirPropertyIndex === p.index ? 'selected' : ''}" onclick="selectTheirProp(${p.index})">
+            <div class="trade-prop-card ${tradeState.theirProperties.includes(p.index) ? 'selected' : ''}" onclick="toggleTheirTradeProp(${p.index})">
                 <div class="prop-color-bar" style="background:${p.color}"></div>
                 <div class="prop-name">${p.name}</div>
                 <div class="prop-price">${p.price}d</div>
+                ${tradeState.theirProperties.includes(p.index) ? '<div style="position:absolute; top:2px; right:4px; font-size:0.7rem;">✅</div>' : ''}
             </div>
         `).join('');
     } else {
@@ -3914,35 +3958,43 @@ function renderTargetPlayers() {
 
 function selectTradePlayer(pid) {
     tradeState.targetPlayerId = pid;
-    tradeState.theirPropertyIndex = null;
+    tradeState.theirProperties = [];
     renderTargetPlayers();
 }
 
-function selectTheirProp(idx) {
-    tradeState.theirPropertyIndex = idx;
+function toggleTheirTradeProp(idx) {
+    if (tradeState.theirProperties.includes(idx)) {
+        tradeState.theirProperties = tradeState.theirProperties.filter(id => id !== idx);
+    } else {
+        tradeState.theirProperties.push(idx);
+    }
     renderTargetPlayers();
 }
 
 function renderTradeSummary() {
-    const myProp = gameBoard[tradeState.myPropertyIndex];
-    const theirProp = gameBoard[tradeState.theirPropertyIndex];
+    const myProps = tradeState.myProperties.map(idx => gameBoard[idx]);
+    const theirProps = tradeState.theirProperties.map(idx => gameBoard[idx]);
     const targetName = escapeHtml(players[tradeState.targetPlayerId]?.name || 'Player');
 
+    const renderPropMini = (p) => `
+        <div style="padding:4px 8px; background:${p.color}22; border-radius:6px; border:1px solid ${p.color}; margin-top:2px; font-size:0.75rem; font-weight:700;">
+            ${p.name} (${p.price}d)
+        </div>
+    `;
+
     document.getElementById('trade-summary').innerHTML = `
-        <div style="display:flex; align-items:center; justify-content:center; gap:16px;">
-            <div style="text-align:center;">
-                <div style="font-size:0.7rem; color:#94a3b8;">YOU OFFER</div>
-                <div style="padding:8px; background:${myProp.color}22; border-radius:8px; border:2px solid ${myProp.color}; margin-top:4px;">
-                    <div style="font-weight:700; font-size:0.8rem;">${myProp.name}</div>
-                    <div style="font-size:0.7rem; color:#64748b;">${myProp.price}d</div>
+        <div style="display:flex; align-items:flex-start; justify-content:center; gap:16px;">
+            <div style="flex:1; text-align:center;">
+                <div style="font-size:0.7rem; color:#94a3b8; font-weight:800;">YOU OFFER</div>
+                <div style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">
+                    ${myProps.length > 0 ? myProps.map(renderPropMini).join('') : '<div style="font-size:0.7rem; color:#64748b;">(No properties)</div>'}
                 </div>
             </div>
-            <div style="font-size:1.5rem;">🔄</div>
-            <div style="text-align:center;">
-                <div style="font-size:0.7rem; color:#94a3b8;">WANT FROM ${targetName.toUpperCase()}</div>
-                <div style="padding:8px; background:${theirProp.color}22; border-radius:8px; border:2px solid ${theirProp.color}; margin-top:4px;">
-                    <div style="font-weight:700; font-size:0.8rem;">${theirProp.name}</div>
-                    <div style="font-size:0.7rem; color:#64748b;">${theirProp.price}d</div>
+            <div style="font-size:1.5rem; align-self:center;">🔄</div>
+            <div style="flex:1; text-align:center;">
+                <div style="font-size:0.7rem; color:#94a3b8; font-weight:800;">WANT FROM ${targetName.toUpperCase()}</div>
+                <div style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">
+                    ${theirProps.length > 0 ? theirProps.map(renderPropMini).join('') : '<div style="font-size:0.7rem; color:#64748b;">(No properties)</div>'}
                 </div>
             </div>
         </div>
@@ -3952,11 +4004,14 @@ function renderTradeSummary() {
 
 function tradeStepNext() {
     if (tradeState.step === 1) {
-        if (tradeState.myPropertyIndex === null) { showError("Select a property to offer!"); return; }
+        // Now allowed to offer NO property if only offering money
         showTradeStep(2);
     } else if (tradeState.step === 2) {
         if (tradeState.targetPlayerId === null) { showError("Select a player!"); return; }
-        if (tradeState.theirPropertyIndex === null) { showError("Select a property from the player!"); return; }
+        // Ensure at least one thing is being traded
+        if (tradeState.myProperties.length === 0 && tradeState.theirProperties.length === 0) {
+            showError("Select at least one property to trade!"); return;
+        }
         showTradeStep(3);
     }
 }
@@ -3976,8 +4031,8 @@ async function sendTradeOffer() {
     const offer = {
         from: myPlayerId,
         to: tradeState.targetPlayerId,
-        propertyOffered: tradeState.myPropertyIndex,
-        propertyWanted: tradeState.theirPropertyIndex,
+        myProperties: tradeState.myProperties || [],
+        theirProperties: tradeState.theirProperties || [],
         moneyOffered: money,
         status: 'pending',
         timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -4027,10 +4082,16 @@ function listenForTradeOffers() {
 
 function showIncomingTrade(offer) {
     const fromPlayer = players[offer.from];
-    const offeredProp = gameBoard[offer.propertyOffered];
-    const wantedProp = gameBoard[offer.propertyWanted];
+    const offeredProps = (offer.myProperties || []).map(idx => gameBoard[idx]);
+    const wantedProps = (offer.theirProperties || []).map(idx => gameBoard[idx]);
 
-    if (!fromPlayer || !offeredProp || !wantedProp) return;
+    if (!fromPlayer) return;
+
+    const renderPropMini = (p) => `
+        <div style="padding:4px 8px; background:${p.color}22; border-radius:6px; border:1px solid ${p.color}; margin-top:2px; font-size:0.75rem; font-weight:700;">
+            ${p.name}
+        </div>
+    `;
 
     const moneyText = offer.moneyOffered > 0 ? `<div style="margin-top:8px; font-weight:700; color:#f59e0b;">+ ${offer.moneyOffered}d</div>` : '';
 
@@ -4038,21 +4099,19 @@ function showIncomingTrade(offer) {
         <p style="font-size:0.9rem; color:#475569; margin-bottom:14px;">
             <strong>${escapeHtml(fromPlayer.name)}</strong> wants to trade with you!
         </p>
-        <div style="display:flex; align-items:center; justify-content:center; gap:16px;">
-            <div style="text-align:center;">
-                <div style="font-size:0.7rem; color:#94a3b8;">OFFERS YOU</div>
-                <div style="padding:8px; background:${offeredProp.color}22; border-radius:8px; border:2px solid ${offeredProp.color}; margin-top:4px;">
-                    <div style="font-weight:700; font-size:0.8rem;">${offeredProp.name}</div>
-                    <div style="font-size:0.7rem; color:#64748b;">${offeredProp.price}d</div>
+        <div style="display:flex; align-items:flex-start; justify-content:center; gap:16px;">
+            <div style="flex:1; text-align:center;">
+                <div style="font-size:0.7rem; color:#94a3b8; font-weight:800;">OFFERS YOU</div>
+                <div style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">
+                    ${offeredProps.length > 0 ? offeredProps.map(renderPropMini).join('') : '<div style="font-size:0.7rem; color:#64748b;">(No properties)</div>'}
                 </div>
                 ${moneyText}
             </div>
-            <div style="font-size:1.5rem;">🔄</div>
-            <div style="text-align:center;">
-                <div style="font-size:0.7rem; color:#94a3b8;">WANTS FROM YOU</div>
-                <div style="padding:8px; background:${wantedProp.color}22; border-radius:8px; border:2px solid ${wantedProp.color}; margin-top:4px;">
-                    <div style="font-weight:700; font-size:0.8rem;">${wantedProp.name}</div>
-                    <div style="font-size:0.7rem; color:#64748b;">${wantedProp.price}d</div>
+            <div style="font-size:1.5rem; align-self:center;">🔄</div>
+            <div style="flex:1; text-align:center;">
+                <div style="font-size:0.7rem; color:#94a3b8; font-weight:800;">WANTS FROM YOU</div>
+                <div style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">
+                    ${wantedProps.length > 0 ? wantedProps.map(renderPropMini).join('') : '<div style="font-size:0.7rem; color:#64748b;">(No properties)</div>'}
                 </div>
             </div>
         </div>
@@ -4080,27 +4139,35 @@ async function acceptTrade() {
         return;
     }
 
-    // Verify ownership is still valid
-    const offeredProp = gameBoard[offer.propertyOffered];
-    const wantedProp = gameBoard[offer.propertyWanted];
+    // Verify ownership is still valid for all properties
+    const offeredIndices = offer.myProperties || [];
+    const wantedIndices = offer.theirProperties || [];
 
-    if (!offeredProp || offeredProp.owner !== offer.from) {
-        showError("The bidder no longer owns that property.");
-        await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
-        document.getElementById('trade-incoming-overlay').style.display = 'none';
-        return;
+    for (const idx of offeredIndices) {
+        if (gameBoard[idx].owner !== offer.from) {
+            showError("The bidder no longer owns all offered properties.");
+            await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
+            document.getElementById('trade-incoming-overlay').style.display = 'none';
+            return;
+        }
     }
-    if (!wantedProp || wantedProp.owner !== offer.to) {
-        showError("You no longer own that property.");
-        await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
-        document.getElementById('trade-incoming-overlay').style.display = 'none';
-        return;
+    for (const idx of wantedIndices) {
+        if (gameBoard[idx].owner !== offer.to) {
+            showError("You no longer own all requested properties.");
+            await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
+            document.getElementById('trade-incoming-overlay').style.display = 'none';
+            return;
+        }
     }
 
     // Execute trade - swap properties
     const updates = {};
-    updates[`gameBoard/${offer.propertyOffered}/owner`] = offer.to;
-    updates[`gameBoard/${offer.propertyWanted}/owner`] = offer.from;
+    offeredIndices.forEach(idx => {
+        updates[`gameBoard/${idx}/owner`] = offer.to;
+    });
+    wantedIndices.forEach(idx => {
+        updates[`gameBoard/${idx}/owner`] = offer.from;
+    });
 
     // Money transfer - verify sender still has enough funds
     if (offer.moneyOffered > 0) {
@@ -4123,7 +4190,7 @@ async function acceptTrade() {
     document.getElementById('trade-incoming-overlay').style.display = 'none';
     AudioController.play('success');
     showSuccess("✅ Trading is finished!");
-    log(`🔄 Trade: ${offeredProp.name} ↔ ${wantedProp.name}`);
+    log(`🔄 Trade: ${offeredIndices.length} props ↔ ${wantedIndices.length} props`);
 }
 
 async function rejectTrade() {
