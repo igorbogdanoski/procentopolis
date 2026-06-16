@@ -391,25 +391,52 @@ function celebrateWithConfetti(duration = 3000) {
     }
 }
 
-// === PHASE 2: ACHIEVEMENT SYSTEM ===
+// === PHASE 6.2: ACHIEVEMENT SYSTEM (persistent) ===
 const achievements = {
-    firstProperty: { icon: '🏠', title: 'First property!', description: 'Bought your first property' },
-    perfectAnswer: { icon: '🎯', title: 'Perfect!', description: 'Answered correctly on the first try' },
-    streak3: { icon: '🔥', title: 'On fire!', description: '3 correct answers in a row' },
-    streak5: { icon: '⚡', title: 'Unstoppable!', description: '5 correct answers in a row' },
-    richPlayer: { icon: '💰', title: 'Rich player!', description: 'You have over 1500 denarii' },
-    shopMaster: { icon: '🛒', title: 'Shop Master!', description: 'Bought a power-up from the shop' },
-    speedster: { icon: '⚡', title: 'Speedster!', description: 'Answered in less than 10 seconds' },
-    comeback: { icon: '💪', title: 'Comeback!', description: 'Correct answer after a mistake' }
+    // in-session
+    firstProperty: { icon: '🏠', title: { en: 'First property!', mk: 'Прв имот!' }, description: { en: 'Bought your first property', mk: 'Купи го твојот прв имот' } },
+    perfectAnswer:  { icon: '🎯', title: { en: 'Perfect!', mk: 'Совршено!' }, description: { en: 'Correct on first try', mk: 'Точно на прв обид' } },
+    streak3:        { icon: '🔥', title: { en: 'On fire!', mk: 'Во огон!' }, description: { en: '3 correct in a row', mk: '3 точни по ред' } },
+    streak5:        { icon: '⚡', title: { en: 'Unstoppable!', mk: 'Незапирлив!' }, description: { en: '5 correct in a row', mk: '5 точни по ред' } },
+    richPlayer:     { icon: '💰', title: { en: 'Rich!', mk: 'Богат!' }, description: { en: 'Over 1500 denarii', mk: 'Над 1500 денари' } },
+    shopMaster:     { icon: '🛒', title: { en: 'Shop Master!', mk: 'Мајстор!' }, description: { en: 'Bought a power-up', mk: 'Купи бонус' } },
+    speedster:      { icon: '🚀', title: { en: 'Speedster!', mk: 'Брзинец!' }, description: { en: 'Answered in under 10s', mk: 'Одговори за под 10с' } },
+    comeback:       { icon: '💪', title: { en: 'Comeback!', mk: 'Враќање!' }, description: { en: 'Correct after a mistake', mk: 'Точно по грешка' } },
+    // cross-session
+    veteran:        { icon: '🎖️', title: { en: 'Veteran!', mk: 'Ветеран!' }, description: { en: 'Played 3 games', mk: 'Играл 3 игри' } },
+    champion:       { icon: '🏆', title: { en: 'Champion!', mk: 'Шампион!' }, description: { en: 'Won a game (most money)', mk: 'Победил (најмногу пари)' } },
+    mathematician:  { icon: '🧮', title: { en: 'Mathematician!', mk: 'Математичар!' }, description: { en: '20 correct answers total', mk: '20 точни одговори вкупно' } },
+    discountPro:    { icon: '🏷️', title: { en: 'Discount Pro!', mk: 'Попуст Про!' }, description: { en: '10 correct answers in one game', mk: '10 точни во една игра' } },
 };
 
-let unlockedAchievements = new Set();
+function _loadAchievements() {
+    try { return new Set(JSON.parse(localStorage.getItem('percentopolis_achievements') || '[]')); }
+    catch { return new Set(); }
+}
+function _saveAchievements(set) {
+    localStorage.setItem('percentopolis_achievements', JSON.stringify([...set]));
+}
+let unlockedAchievements = _loadAchievements();
+
+// Cross-session stats: { gamesPlayed, totalCorrect, gamesWon }
+function getAchievementStats() {
+    try { return JSON.parse(localStorage.getItem('percentopolis_astats') || '{}'); }
+    catch { return {}; }
+}
+function saveAchievementStats(s) {
+    localStorage.setItem('percentopolis_astats', JSON.stringify(s));
+}
 
 function unlockAchievement(achievementKey) {
     if (unlockedAchievements.has(achievementKey)) return;
 
     unlockedAchievements.add(achievementKey);
+    _saveAchievements(unlockedAchievements);
+    renderAchievementGallery();
     const achievement = achievements[achievementKey];
+    const lang = currentLanguage === 'mk' ? 'mk' : 'en';
+    const title = typeof achievement.title === 'object' ? achievement.title[lang] : achievement.title;
+    const desc  = typeof achievement.description === 'object' ? achievement.description[lang] : achievement.description;
 
     // Show achievement toast
     const toast = document.createElement('div');
@@ -417,8 +444,8 @@ function unlockAchievement(achievementKey) {
     toast.innerHTML = `
         <div class="achievement-icon">${achievement.icon}</div>
         <div class="achievement-content">
-            <div class="achievement-title">${achievement.title}</div>
-            <div class="achievement-description">${achievement.description}</div>
+            <div class="achievement-title">${title}</div>
+            <div class="achievement-description">${desc}</div>
         </div>
     `;
     document.body.appendChild(toast);
@@ -1269,6 +1296,26 @@ function renderXpBadge() {
         </div>`;
 }
 
+// === PHASE 6.2: Achievement gallery on homepage ===
+function renderAchievementGallery() {
+    const el = document.getElementById('achievement-gallery');
+    if (!el) return;
+    const earned = [...unlockedAchievements].filter(k => achievements[k]);
+    if (earned.length === 0) { el.style.display = 'none'; return; }
+    const isMk = currentLanguage === 'mk';
+    const label = isMk ? '🏅 ДОСТИГНУВАЊА:' : '🏅 ACHIEVEMENTS:';
+    el.style.display = 'block';
+    el.innerHTML = `<div style="font-weight:800;font-size:0.72rem;color:#2c3e50;margin-bottom:6px;">${label}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;">
+            ${earned.map(k => {
+                const a = achievements[k];
+                const lang = isMk ? 'mk' : 'en';
+                const t = typeof a.title === 'object' ? a.title[lang] : a.title;
+                return `<span title="${t}" style="font-size:1.35rem;cursor:default;" aria-label="${t}">${a.icon}</span>`;
+            }).join('')}
+        </div>`;
+}
+
 function renderAvatarLocks() {
     const lvl = getLevel();
     const isMk = currentLanguage === 'mk';
@@ -1839,6 +1886,11 @@ function handleRoomUpdate(snapshot) {
     if (data.lastEmoji && data.lastEmoji.timestamp > (Date.now() - 3000)) {
         showEmojiOnToken(data.lastEmoji.pid, data.lastEmoji.emoji);
     }
+
+    // PHASE 6.3: update live leaderboard overlay for students
+    if (currentRole !== 'teacher') {
+        renderLeaderboardOverlay(data);
+    }
 }
 
 function showEmojiOnToken(pid, emoji) {
@@ -2206,7 +2258,7 @@ async function updateMoneyMulti(pid, amt){
         // Use a transaction to prevent race conditions from stale local data.
         // The server applies the delta atomically instead of overwriting with a cached value.
         const moneyRef = db.ref(`rooms/${roomId}/players/${pid}/money`);
-        await moneyRef.transaction(currentMoney => (currentMoney || p.money) + amt);
+        await moneyRef.transaction(currentMoney => (currentMoney !== null ? currentMoney : p.money) + amt);
 
         // Achievement check uses local estimate (close enough for non-critical trigger)
         if (pid === myPlayerId && (p.money + amt) >= 1500 && p.money < 1500) {
@@ -2247,6 +2299,8 @@ async function showSellPropertyModal(pid, currentDebt) {
             btn.onclick = async () => {
                 // Update Firebase: remove owner
                 await db.ref(`rooms/${roomId}/gameBoard/${prop.index}`).update({ owner: null, buildings: 0 });
+                // Update local array immediately — prevents stale `remaining` check below
+                if (gameBoard[prop.index]) gameBoard[prop.index] = { ...gameBoard[prop.index], owner: null, buildings: 0 };
                 // Update local money
                 let p = players[pid];
                 p.money += sellValue;
@@ -2925,6 +2979,13 @@ function updateDashStats(data) {
     if (newGameBtn) newGameBtn.style.display = (data.status === 'ended') ? 'block' : 'none';
     const endGameBtn = document.getElementById('dash-endgame-btn');
     if (endGameBtn) endGameBtn.style.display = (data.status === 'playing' || data.status === 'paused') ? 'block' : 'none';
+    const lbBtn = document.getElementById('dash-leaderboard-btn');
+    if (lbBtn) {
+        lbBtn.style.display = (data.status === 'playing' || data.status === 'paused') ? 'block' : 'none';
+        _leaderboardOn = data.showLeaderboard || false;
+        lbBtn.style.background = _leaderboardOn ? '#0284c7' : '#0ea5e9';
+        lbBtn.textContent = _leaderboardOn ? '📊 HIDE RANKING' : '📊 LEADERBOARD';
+    }
 
     // Pause / Resume button
     let pauseBtn = document.getElementById('dash-pause-btn');
@@ -3313,6 +3374,69 @@ function endGameManually() {
     if (!activeDashRoomId) return;
     if (!confirm('Are you sure you want to end the game? All students will see the final report.')) return;
     db.ref(`rooms/${activeDashRoomId}`).update({ status: 'ended', endReason: 'The teacher finished the game.' });
+}
+
+// === PHASE 6.3: LIVE CLASS LEADERBOARD ===
+let _leaderboardOn = false;
+
+function toggleLeaderboard() {
+    if (!activeDashRoomId) return;
+    _leaderboardOn = !_leaderboardOn;
+    db.ref(`rooms/${activeDashRoomId}`).update({ showLeaderboard: _leaderboardOn });
+    const btn = document.getElementById('dash-leaderboard-btn');
+    if (btn) {
+        btn.style.background = _leaderboardOn ? '#0284c7' : '#0ea5e9';
+        btn.textContent = _leaderboardOn ? '📊 HIDE RANKING' : '📊 LEADERBOARD';
+    }
+}
+
+function renderLeaderboardOverlay(roomData) {
+    const overlay = document.getElementById('leaderboard-overlay');
+    const list    = document.getElementById('leaderboard-list');
+    if (!overlay || !list) return;
+
+    if (!roomData || !roomData.showLeaderboard) {
+        overlay.style.display = 'none';
+        return;
+    }
+    overlay.style.display = 'block';
+
+    const ps = roomData.players ? Object.values(roomData.players) : [];
+    const active = ps.filter(p => p && p.role !== 'teacher' && !p.isEliminated);
+    active.sort((a, b) => (b.money || 0) - (a.money || 0));
+
+    const isMk = currentLanguage === 'mk';
+    const medals = ['🥇','🥈','🥉'];
+    list.innerHTML = active.length === 0
+        ? `<p style="color:#94a3b8;font-size:0.85rem;text-align:center;">${isMk ? 'Нема играчи' : 'No players yet'}</p>`
+        : active.map((p, i) => {
+            const medal = medals[i] || `${i + 1}.`;
+            const isMe = myPlayerId !== null && myPlayerId >= 0 && players[myPlayerId] && players[myPlayerId].name === p.name;
+            const correct = p.correct || 0, wrong = p.wrong || 0;
+            const total = correct + wrong;
+            const pct = total > 0 ? Math.round(correct / total * 100) : '—';
+            return `<div style="background:${isMe ? '#1e3a5f' : '#1e293b'};border-radius:10px;padding:10px 12px;border:1px solid ${isMe ? '#0ea5e9' : '#334155'};">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:1.2rem;">${medal}</span>
+                    <span style="font-size:1.1rem;">${p.emoji || '👤'}</span>
+                    <span style="color:#f1f5f9;font-weight:700;font-size:0.88rem;flex:1;">${escapeHtml(p.name)}</span>
+                    <span style="color:#38bdf8;font-weight:800;font-size:0.9rem;">${p.money || 0}d</span>
+                </div>
+                <div style="margin-top:4px;font-size:0.72rem;color:#64748b;">✅ ${correct} &nbsp; ❌ ${wrong} &nbsp; 🎯 ${pct}%</div>
+            </div>`;
+        }).join('');
+}
+
+function closeLeaderboardOverlay() {
+    const overlay = document.getElementById('leaderboard-overlay');
+    if (overlay) overlay.style.display = 'none';
+    // Teacher: also turn it off in Firebase
+    if (myPlayerId === -1 && activeDashRoomId) {
+        db.ref(`rooms/${activeDashRoomId}`).update({ showLeaderboard: false });
+        _leaderboardOn = false;
+        const btn = document.getElementById('dash-leaderboard-btn');
+        if (btn) { btn.style.background = '#0ea5e9'; btn.textContent = '📊 LEADERBOARD'; }
+    }
 }
 
 async function resetRoomForNewGame() {
@@ -3817,6 +3941,42 @@ function triggerGameOver(r){
     const xpEarned = 20 + (studentCorrect * 10) + (successRate >= 70 ? 30 : successRate >= 40 ? 15 : 0);
     const xpResult = awardXP(xpEarned);
     const isMk = currentLanguage === 'mk';
+
+    // PHASE 6.2: update cross-session stats & check persistent achievements
+    const astats = getAchievementStats();
+    astats.gamesPlayed = (astats.gamesPlayed || 0) + 1;
+    astats.totalCorrect = (astats.totalCorrect || 0) + studentCorrect;
+    // Determine if this player won (most money among non-teacher, non-eliminated students)
+    const activePlayers = players.filter(pl => pl && pl.role !== 'teacher' && !pl.isEliminated);
+    const maxMoney = activePlayers.reduce((m, pl) => Math.max(m, pl.money || 0), 0);
+    const didWin = activePlayers.length > 1 && finalMoney >= maxMoney && finalMoney > 0;
+    if (didWin) astats.gamesWon = (astats.gamesWon || 0) + 1;
+    saveAchievementStats(astats);
+    if (astats.gamesPlayed >= 3) unlockAchievement('veteran');
+    if (astats.gamesWon >= 1) unlockAchievement('champion');
+    if (astats.totalCorrect >= 20) unlockAchievement('mathematician');
+    if (studentCorrect >= 10) unlockAchievement('discountPro');
+
+    // Build class ranking html for the game-over screen
+    const sortedPlayers = [...activePlayers].sort((a, b) => (b.money || 0) - (a.money || 0));
+    let classRankHtml = '';
+    if (sortedPlayers.length > 1) {
+        const rankLabel = isMk ? 'Класна листа:' : 'Class Ranking:';
+        classRankHtml = `<div style="margin-top:12px;border-top:1px solid #e2e8f0;padding-top:10px;">
+            <div style="font-weight:700;margin-bottom:6px;color:#374151;font-size:0.82rem;">🏆 ${rankLabel}</div>
+            ${sortedPlayers.map((pl, i) => {
+                const medals = ['🥇','🥈','🥉'];
+                const medal = medals[i] || `${i+1}.`;
+                const isMe = pl.name === studentName;
+                return `<div style="display:flex;align-items:center;gap:6px;padding:4px 7px;border-radius:6px;${isMe?'background:#eef2ff;font-weight:800;':''}font-size:0.82rem;">
+                    <span>${medal}</span>
+                    <span>${pl.emoji||'👤'} ${escapeHtml(pl.name)}</span>
+                    <span style="margin-left:auto;color:#475569;">${pl.money||0}d</span>
+                </div>`;
+            }).join('')}
+        </div>`;
+    }
+
     const xpHtml = `<div style="margin-top:10px;padding:10px 12px;background:#eef2ff;border-radius:10px;border:1px solid #c7d2fe;">
             <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.85rem;font-weight:800;color:#3730a3;">
                 <span>⭐ +${xpResult.earned} XP</span>
@@ -3849,6 +4009,7 @@ function triggerGameOver(r){
             <div><span style="color:#64748b;">Properties:</span> <span style="font-size:0.8rem;">${escapeHtml(propNames)}</span></div>
         </div>
         ${xpHtml}
+        ${classRankHtml}
         ${historyHtml}`;
     new QRCode(document.getElementById("qrcode"),{text:qrText,width:128,height:128});
 
@@ -5012,9 +5173,10 @@ function setLanguage(lang) {
     // Update Demo Question
     updateDemoQuestion();
 
-    // PHASE 6.1: refresh XP badge & avatar lock tooltips in the new language
+    // PHASE 6.1 & 6.2: refresh XP badge, avatar locks, achievement gallery in the new language
     if (typeof renderXpBadge === 'function') renderXpBadge();
     if (typeof renderAvatarLocks === 'function') renderAvatarLocks();
+    if (typeof renderAchievementGallery === 'function') renderAchievementGallery();
 }
 
 // Apply saved theme & language on load
@@ -5024,6 +5186,7 @@ if (localStorage.getItem('percentopolis_theme') === 'dark') {
 const savedLang = localStorage.getItem('percentopolis_lang') || 'en';
 setLanguage(savedLang);
 
-// PHASE 6.1: initialise XP badge & avatar locks on load
+// PHASE 6.1 & 6.2: initialise XP badge, avatar locks, achievement gallery on load
 renderXpBadge();
 renderAvatarLocks();
+renderAchievementGallery();

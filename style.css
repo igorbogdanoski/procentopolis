@@ -1164,6 +1164,13 @@ button.loading::after {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.1); }
 }
+/* === PHASE 6.3: LIVE LEADERBOARD OVERLAY === */
+#leaderboard-overlay {
+    transition: opacity 0.2s;
+}
+#leaderboard-overlay::-webkit-scrollbar { width: 5px; }
+#leaderboard-overlay::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
 /* Teacher dashboard reopen button hover effect */
 #teacher-dash-btn-fixed button:hover {
     transform: translateY(-2px);

@@ -25,10 +25,11 @@ This plan outlines the professional overhaul of ProcentOpolis to transform it in
 - **5.1 Dynamic Difficulty Algorithm**: Real-time difficulty tuning per student, with per-question-type mastery tracking (not just global streaks).
 - **5.2 Smart Hints**: After 2 consecutive mistakes on the same task type, proactively show step-by-step guidance / visual percentage breakdown instead of just rejecting the answer.
 
-## Phase 6: Meta-game & Retention - IN PROGRESS 📈
+## Phase 6: Meta-game & Retention - COMPLETED ✅
+
 - **6.1 XP & Cosmetics**: ✅ Persistent XP + leveling (localStorage); XP awarded per finished game (participation + correct answers + mastery bonus); avatar cosmetics unlock by level with locked-state UI and level/progress badge on homepage.
-- **6.2 Achievements System**: Digital badges for specific feats (e.g. "10 flawless rounds", "Discount Specialist").
-- **6.3 Leaderboards**: Optional class-level ranking (teacher-toggleable) for healthy competition.
+- **6.2 Achievements System**: ✅ Persistent achievements (localStorage); 12 achievements including cross-session feats (Veteran, Champion, Mathematician, Discount Pro); in-game toasts with i18n; homepage achievement gallery shown to students.
+- **6.3 Leaderboards**: ✅ Teacher-toggleable live class ranking overlay (Firebase-synced, dark panel); class ranking shown in student game-over report; teacher dashboard "📊 LEADERBOARD" button shows/hides real-time ranking for all students.
 
 ## Phase 7: Teacher-Generated Content (UGC) - PLANNED ✍️
 - **7.1 Custom Task Creator**: Teachers author their own text problems / thematic sets aligned to curriculum.

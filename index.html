@@ -99,6 +99,7 @@
 
                     <div id="student-only-fields">
                         <div id="xp-badge" style="margin-bottom:12px;"></div>
+                        <div id="achievement-gallery" style="display:none; margin-bottom:12px; padding:10px 12px; background:#fffbeb; border-radius:12px; border:1px solid #fde68a;"></div>
                         <label id="ui-avatar-label" style="display:block; font-weight:800; margin-bottom:10px; color:#2c3e50; font-size:0.8rem;">🚀 CHOOSE YOUR AVATAR:</label>
                         <div id="token-selector" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; justify-content:center;">
                             <button onclick="selectToken('🚀', this)" data-emoji="🚀" class="token-choice active">🚀</button>
@@ -276,6 +277,7 @@
                     <button id="dash-start-btn" style="display:none; background:#10b981; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;">START</button>
                     <button id="dash-newgame-btn" style="display:none; background:#f59e0b; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="resetRoomForNewGame()">🔄 NEW GAME</button>
                     <button id="dash-endgame-btn" style="display:none; background:#ef4444; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="endGameManually()">⏹️ END GAME</button>
+                    <button id="dash-leaderboard-btn" style="display:none; background:#0ea5e9; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="toggleLeaderboard()">📊 LEADERBOARD</button>
                     <button onclick="closeTeacherDash()" style="background:#f1f5f9; border:none; border-radius:8px; padding:8px 14px; color:#475569; font-weight:bold; cursor:pointer; font-size:0.8rem;">CLOSE</button>
                 </div>
             </div>
@@ -526,6 +528,15 @@
             <p style="margin-top:15px; font-size:0.65rem; color:#94a3b8; font-weight:600;">Procentopolis &copy; Igor Bogdanoski</p>
         </div>
     </div>
+</div>
+
+<!-- PHASE 6.3: LIVE CLASS LEADERBOARD OVERLAY -->
+<div id="leaderboard-overlay" style="display:none; position:fixed; top:0; right:0; bottom:0; width:min(340px,90vw); background:rgba(15,23,42,0.96); z-index:9900; padding:20px; overflow-y:auto; box-shadow:-6px 0 30px rgba(0,0,0,0.4); border-left:3px solid #0ea5e9;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <h3 style="color:#f0f9ff; font-size:1.1rem; margin:0; font-weight:900;">📊 CLASS RANKING</h3>
+        <button onclick="closeLeaderboardOverlay()" style="background:#1e293b; border:none; color:#94a3b8; font-size:1.2rem; cursor:pointer; padding:4px 10px; border-radius:8px;">✕</button>
+    </div>
+    <div id="leaderboard-list" style="display:flex; flex-direction:column; gap:8px;"></div>
 </div>
 
 <!-- TRADE MODAL -->
