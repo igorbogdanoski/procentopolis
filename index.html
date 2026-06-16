@@ -51,6 +51,7 @@
                 <button onclick="setLanguage('mk')" id="lang-mk" class="lang-btn" style="padding:5px 10px; border:none; border-radius:8px; cursor:pointer; font-weight:800; font-size:0.7rem; transition:all 0.2s;">МКД</button>
             </div>
             <button onclick="toggleTheme()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;" title="Toggle Light/Dark Mode">🌓</button>
+            <button onclick="toggleHighContrast()" id="hc-btn" style="background:none; border:none; font-size:1.3rem; cursor:pointer;" title="Toggle High Contrast">◑</button>
         </div>
         
         <div class="login-info" id="login-info-panel">
@@ -323,6 +324,7 @@
                         <button class="dash-tab active" onclick="switchDashTab('players')" id="dash-tab-players">👥 Students</button>
                         <button class="dash-tab" onclick="switchDashTab('live')" id="dash-tab-live">🎮 Live Status</button>
                         <button class="dash-tab" onclick="switchDashTab('analytics')" id="dash-tab-analytics">📊 Analytics</button>
+                        <button class="dash-tab" onclick="switchDashTab('tasks')" id="dash-tab-tasks">✍️ Tasks</button>
                         <button class="dash-tab" onclick="switchDashTab('report')" id="dash-tab-report">📋 Report</button>
                     </div>
 
@@ -441,7 +443,30 @@
                         </div>
                     </div>
 
-                    <!-- TAB 4: End-of-Game Report -->
+                    <!-- TAB 5: Custom Tasks (Phase 7.1) -->
+                    <div id="dash-panel-tasks" class="dash-tab-panel" style="display:none;">
+                        <div style="background:#f0fdf4; padding:14px 16px; border-radius:12px; border:1px solid #bbf7d0; margin-bottom:14px;">
+                            <p style="font-size:0.8rem; color:#166534; margin:0 0 10px; font-weight:700;">✍️ ADD CUSTOM QUESTION — appears in CHANCE &amp; Jail escape</p>
+                            <input type="text" id="ct-question" placeholder="Question text…" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #86efac; font-size:0.85rem; margin-bottom:6px; box-sizing:border-box;">
+                            <input type="text" id="ct-answer" placeholder="Correct answer (number or short text)" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #86efac; font-size:0.85rem; margin-bottom:6px; box-sizing:border-box;">
+                            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
+                                <input type="text" id="ct-opt1" placeholder="Wrong option 1" style="padding:7px; border-radius:8px; border:1px solid #d1fae5; font-size:0.8rem;">
+                                <input type="text" id="ct-opt2" placeholder="Wrong option 2" style="padding:7px; border-radius:8px; border:1px solid #d1fae5; font-size:0.8rem;">
+                                <input type="text" id="ct-opt3" placeholder="Wrong option 3" style="padding:7px; border-radius:8px; border:1px solid #d1fae5; font-size:0.8rem;">
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <select id="ct-diff" style="padding:7px 10px; border-radius:8px; border:1px solid #86efac; font-size:0.8rem; font-weight:700;">
+                                    <option value="1">D1 — Easy</option>
+                                    <option value="2" selected>D2 — Medium</option>
+                                    <option value="3">D3 — Hard</option>
+                                </select>
+                                <button onclick="addCustomTask()" style="flex:1; padding:8px 16px; background:#16a34a; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; font-size:0.85rem;">➕ ADD TASK</button>
+                            </div>
+                        </div>
+                        <div id="custom-tasks-list" style="display:flex; flex-direction:column; gap:6px; max-height:300px; overflow-y:auto;"></div>
+                    </div>
+
+                    <!-- TAB 6: End-of-Game Report -->
                     <div id="dash-panel-report" class="dash-tab-panel" style="display:none;">
                         <div id="dash-report-content" style="padding:4px 0;">
                             <p style="color:#94a3b8;text-align:center;padding:40px 20px;">
@@ -458,9 +483,12 @@
 <!-- Question Modal -->
 <div id="question-modal" class="modal-overlay">
     <div class="modal-content">
-        <div class="modal-header" style="background:var(--primary-color); color:white; padding:15px; font-weight:bold; display:flex; justify-content:space-between;">
+        <div class="modal-header" style="background:var(--primary-color); color:white; padding:15px; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
             <span id="modal-category">Problem</span>
-            <span onclick="closeModal()" style="cursor:pointer; font-size:1.5rem;">&times;</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button id="tts-btn" onclick="speakQuestion()" title="Read aloud (TTS)" style="background:rgba(255,255,255,0.2); border:none; border-radius:8px; padding:4px 10px; cursor:pointer; font-size:1.1rem; color:white;">🔊</button>
+                <span onclick="closeModal()" style="cursor:pointer; font-size:1.5rem;">&times;</span>
+            </div>
         </div>
         <div class="modal-body">
             <div class="question-side">

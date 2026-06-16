@@ -1757,6 +1757,8 @@ function handleRoomUpdate(snapshot) {
     window.roomGameDuration = data.gameDuration || GAME_DURATION;
     players = data.players || [];
     gameBoard = data.gameBoard || [];
+    // PHASE 7.1: sync custom tasks for students
+    roomCustomTasks = data.customTasks ? Object.values(data.customTasks) : [];
     currentPlayerIndex = data.currentPlayerIndex || 0;
 
     // If auction is active but seller disconnected/eliminated, auto-resolve with no winner
@@ -2859,6 +2861,7 @@ function switchDashRoom(rid) {
         const data = snapshot.val();
         if (!data) return;
         updateDashStats(data);
+        syncCustomTasksFromData(data); // PHASE 7.1: sync custom tasks list in dashboard
     });
 
     // Live answers feed listener
@@ -3479,6 +3482,96 @@ async function resetRoomForNewGame() {
     showSuccess('🔄 New round! Students will receive a notification.');
 }
 
+// === PHASE 7.1: CUSTOM TASK CREATOR ===
+let roomCustomTasks = []; // populated from Firebase room data
+
+function addCustomTask() {
+    if (!activeDashRoomId) { showError('Select a room first.'); return; }
+    const q    = (document.getElementById('ct-question')?.value || '').trim();
+    const ans  = (document.getElementById('ct-answer')?.value || '').trim();
+    const opt1 = (document.getElementById('ct-opt1')?.value || '').trim();
+    const opt2 = (document.getElementById('ct-opt2')?.value || '').trim();
+    const opt3 = (document.getElementById('ct-opt3')?.value || '').trim();
+    const diff = parseInt(document.getElementById('ct-diff')?.value || '2', 10);
+
+    if (!q || !ans) { showError('Question and correct answer are required.'); return; }
+
+    const wrongOpts = [opt1, opt2, opt3].filter(o => o.length > 0);
+    const task = {
+        id: `custom_${Date.now()}`,
+        question: q,
+        correct_answer: ans,
+        options: wrongOpts.length > 0 ? [...wrongOpts, ans].sort(() => Math.random() - 0.5) : [],
+        difficulty: diff,
+        isCustom: true,
+        explanation: ''
+    };
+
+    db.ref(`rooms/${activeDashRoomId}/customTasks`).push(task).then(() => {
+        ['ct-question','ct-answer','ct-opt1','ct-opt2','ct-opt3'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        showSuccess('✅ Task added!');
+    });
+}
+
+function deleteCustomTask(fbKey) {
+    if (!activeDashRoomId) return;
+    db.ref(`rooms/${activeDashRoomId}/customTasks/${fbKey}`).remove();
+}
+
+function renderCustomTasksList(tasksObj) {
+    const el = document.getElementById('custom-tasks-list');
+    if (!el) return;
+    const entries = Object.entries(tasksObj || {});
+    if (entries.length === 0) {
+        el.innerHTML = '<p style="color:#94a3b8;font-size:0.82rem;text-align:center;padding:20px;">No custom tasks yet.</p>';
+        return;
+    }
+    el.innerHTML = entries.map(([key, t]) => `
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;">
+            <span style="font-size:0.7rem;font-weight:800;background:${t.difficulty===1?'#dbeafe':t.difficulty===2?'#fef9c3':'#fce7f3'};color:${t.difficulty===1?'#1e40af':t.difficulty===2?'#854d0e':'#9d174d'};padding:2px 7px;border-radius:12px;flex-shrink:0;">D${t.difficulty}</span>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:0.83rem;font-weight:600;color:#1e293b;word-break:break-word;">${escapeHtml(t.question)}</div>
+                <div style="font-size:0.75rem;color:#16a34a;margin-top:2px;">✅ ${escapeHtml(t.correct_answer)}</div>
+            </div>
+            <button onclick="deleteCustomTask('${key}')" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:#94a3b8;flex-shrink:0;" title="Delete">🗑️</button>
+        </div>`).join('');
+}
+
+// Listen for custom tasks on active room update (called from dashboard room listener)
+function syncCustomTasksFromData(data) {
+    const raw = data?.customTasks || {};
+    roomCustomTasks = Object.values(raw);
+    renderCustomTasksList(raw);
+}
+
+// === PHASE 8.1: TEXT-TO-SPEECH ===
+function speakQuestion() {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const text = document.getElementById('question-text')?.innerText || '';
+    if (!text) return;
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = currentLanguage === 'mk' ? 'mk-MK' : 'en-US';
+    utt.rate = 0.9;
+    window.speechSynthesis.speak(utt);
+}
+
+// Auto-speak when question is shown (if enabled)
+function autoSpeakIfEnabled() {
+    if (localStorage.getItem('percentopolis_autospeak') === '1') speakQuestion();
+}
+
+// === PHASE 8.2: HIGH CONTRAST ===
+function toggleHighContrast() {
+    const isHC = document.body.classList.toggle('high-contrast');
+    localStorage.setItem('percentopolis_hc', isHC ? '1' : '0');
+    const btn = document.getElementById('hc-btn');
+    if (btn) btn.style.opacity = isHC ? '1' : '0.5';
+}
+
 function buyItem(type,cost) {
     if(myPlayerId === -1) return;
     const p=players[myPlayerId];
@@ -3522,6 +3615,12 @@ function getUniqueTask(diff){
     else if (baseDiff === 2) finalDiff = r < 0.85 ? 2 : r < 0.95 ? 1 : 3;
     else                     finalDiff = r < 0.90 ? 3 : 2;
 
+    // PHASE 7.1: 30% chance to use a custom task (if teacher added any at this difficulty)
+    const customPool = roomCustomTasks.filter(t => t.difficulty === finalDiff);
+    if (customPool.length > 0 && Math.random() < 0.30) {
+        return customPool[Math.floor(Math.random() * customPool.length)];
+    }
+
     let filtered = allTasks.filter(t => t.difficulty === finalDiff && !usedQuestionIds.includes(t.id));
     if(filtered.length === 0){
         // Only reset used IDs for the picked difficulty to avoid repeating other difficulties early
@@ -3559,6 +3658,9 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty, cel
         const ic=document.getElementById('input-answer-container'); ic.style.display='none';
         const fa=document.getElementById('feedback-area'); fa.innerText='';
         currentTaskData = { q, ans, expl, hint };
+
+        // PHASE 8.1: Auto-speak question text if TTS is enabled
+        autoSpeakIfEnabled();
 
         // PHASE 5.2: Smart Hints — if the student keeps missing this task type, guide proactively
         const qType = classifyQuestion(q).label;
@@ -5179,9 +5281,14 @@ function setLanguage(lang) {
     if (typeof renderAchievementGallery === 'function') renderAchievementGallery();
 }
 
-// Apply saved theme & language on load
+// Apply saved theme, high-contrast & language on load
 if (localStorage.getItem('percentopolis_theme') === 'dark') {
     document.body.classList.add('dark-theme');
+}
+if (localStorage.getItem('percentopolis_hc') === '1') {
+    document.body.classList.add('high-contrast');
+    const hcBtn = document.getElementById('hc-btn');
+    if (hcBtn) hcBtn.style.opacity = '1';
 }
 const savedLang = localStorage.getItem('percentopolis_lang') || 'en';
 setLanguage(savedLang);

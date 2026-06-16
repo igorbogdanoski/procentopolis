@@ -1886,3 +1886,34 @@ body.dark-theme .lang-selector { background: rgba(0,0,0,0.2); }
         bottom: 5px !important;
     }
 }
+
+/* === PHASE 8.2: HIGH CONTRAST MODE === */
+body.high-contrast {
+    --primary-color: #000080;
+    --border-color: #000000;
+    filter: contrast(1.25);
+}
+body.high-contrast .cell,
+body.high-contrast .card-view,
+body.high-contrast .modal-content,
+body.high-contrast .modal-mini,
+body.high-contrast .setup-card,
+body.high-contrast .stat-item {
+    border: 2px solid #000 !important;
+}
+body.high-contrast .option-btn,
+body.high-contrast .action-btn {
+    border: 2px solid #000 !important;
+    font-weight: 900 !important;
+}
+body.high-contrast .board-cell-label,
+body.high-contrast #question-text {
+    color: #000 !important;
+    font-weight: 800 !important;
+}
+body.high-contrast .achievement-toast {
+    border: 3px solid #000 !important;
+}
+/* HC button active state */
+#hc-btn { opacity: 0.45; transition: opacity 0.2s; }
+#hc-btn:hover { opacity: 0.9; }
