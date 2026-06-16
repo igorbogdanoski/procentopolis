@@ -6,6 +6,9 @@
     <meta name="author" content="Igor Bogdanoski">
     <meta name="description" content="Procentopolis - An educational math game for learning percentages through fun property trading and strategic gameplay.">
     <meta name="keywords" content="math game, educational game, percentages, property trading, learning math, Procentopolis">
+    <meta name="theme-color" content="#4a90e2">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://percentopolis.web.app/og-image.png">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
@@ -40,6 +43,9 @@
 <div id="login-overlay">
     <div class="hero-glow"></div>
     <div class="login-container">
+        <!-- Theme Toggle -->
+        <button onclick="toggleTheme()" style="position:absolute; top:20px; right:20px; background:none; border:none; font-size:1.5rem; cursor:pointer; z-index:10010;" title="Toggle Light/Dark Mode">🌓</button>
+        
         <div class="login-info">
             <h2>📜 GAME INSTRUCTIONS</h2>
             <ul class="rules-list">

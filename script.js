@@ -27,6 +27,15 @@ const db = firebase.database();
 const auth = firebase.auth();
 let currentUserUid = null;
 
+// PWA: Service Worker Registration
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('SW Registered!', reg))
+            .catch(err => console.log('SW Registration failed:', err));
+    });
+}
+
 // Sign in anonymously on page load
 auth.signInAnonymously().catch(err => {
     console.error('Firebase Auth error:', err);
@@ -4624,4 +4633,15 @@ function sendBroadcast() {
     db.ref("rooms/" + roomId + "/broadcast").set({ msg: msg, time: getServerTime() });
     input.value = '';
     showSuccess('Message broadcasted!');
+}
+
+function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark-theme');
+    localStorage.setItem('percentopolis_theme', isDark ? 'dark' : 'light');
+    showSuccess(`${isDark ? 'Dark' : 'Light'} mode activated!`);
+}
+
+// Apply saved theme on load
+if (localStorage.getItem('percentopolis_theme') === 'dark') {
+    document.body.classList.add('dark-theme');
 }

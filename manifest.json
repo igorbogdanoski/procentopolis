@@ -1,0 +1,17 @@
+{
+  "name": "ProcentOpolis",
+  "short_name": "ProcentOpolis",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4a90e2",
+  "description": "Educational math game about percentages",
+  "icons": [
+    {
+      "src": "https://percentopolis.web.app/og-image.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
