@@ -615,6 +615,7 @@ let currentDifficultyLevel = 1;
 let correctStreak = 0;
 let wrongStreak = 0;
 let typeWrongStreak = {};
+let typeMastery = {};
 let currentTaskData = null;
 let turnRemainingTime = 30;
 let myTokenEmoji = "👤";
@@ -1943,6 +1944,7 @@ function initMultiplayerGame() {
     correctStreak = 0;
     wrongStreak = 0;
     typeWrongStreak = {};
+    typeMastery = {};
     AudioController.init();
     document.getElementById('player-display-name').innerText = (currentRole === 'teacher' ? 'Teacher: ' : 'Player: ') + studentName;
     document.getElementById('login-overlay').style.display = 'none';
@@ -3297,6 +3299,15 @@ function buyItem(type,cost) {
     triggerCelebration('shopPurchase');
 }
 
+// PHASE 5.1: per-question-type mastery accuracy (null until enough samples)
+function typeAccuracy(label){
+    const m = typeMastery[label];
+    if(!m) return null;
+    const total = m.correct + m.wrong;
+    if(total < 2) return null;
+    return m.correct / total;
+}
+
 function getUniqueTask(diff){
     let baseDiff = diff || 1;
 
@@ -3438,10 +3449,16 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty, cel
                 updates.streak = p.streak;
                 typeWrongStreak[qType] = 0;
 
-                // Adaptive difficulty: 3 correct in a row → bump up level
+                // PHASE 5.1: record per-type mastery
+                if (!typeMastery[qType]) typeMastery[qType] = { correct: 0, wrong: 0 };
+                typeMastery[qType].correct++;
+
+                // Adaptive difficulty: bump up only when mastery of the current type is demonstrated
                 correctStreak++;
                 wrongStreak = 0;
-                if (correctStreak >= 3) {
+                const acc = typeAccuracy(qType);
+                const masteredType = acc === null || acc >= 0.6;
+                if ((correctStreak >= 3 && masteredType) || correctStreak >= 5) {
                     if (currentDifficultyLevel < 3) {
                         currentDifficultyLevel++;
                         showSuccess(`🔼 Difficulty increased to level ${currentDifficultyLevel}!`);
@@ -3476,15 +3493,21 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty, cel
                 updates.streak = 0;
                 typeWrongStreak[qType] = (typeWrongStreak[qType] || 0) + 1;
 
+                // PHASE 5.1: record per-type mastery
+                if (!typeMastery[qType]) typeMastery[qType] = { correct: 0, wrong: 0 };
+                typeMastery[qType].wrong++;
+
                 // Heatmap tracking: Record error for the cell
                 if (cellIndex !== undefined && cellIndex !== null) {
                     db.ref(`rooms/${roomId}/cellErrors/${cellIndex}`).transaction(count => (count || 0) + 1);
                 }
 
-                // Adaptive difficulty: 3 wrong in a row → drop level
+                // Adaptive difficulty: drop on 3 wrong, or faster (2) if this type is weak
                 wrongStreak++;
                 correctStreak = 0;
-                if (wrongStreak >= 3) {
+                const wAcc = typeAccuracy(qType);
+                const weakType = wAcc !== null && wAcc <= 0.34;
+                if (wrongStreak >= 3 || (wrongStreak >= 2 && weakType)) {
                     if (currentDifficultyLevel > 1) {
                         currentDifficultyLevel--;
                         showSuccess(`🔽 Difficulty decreased to level ${currentDifficultyLevel}.`);
