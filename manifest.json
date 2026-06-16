@@ -12,6 +12,12 @@
   "screenshots": [],
   "icons": [
     {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
       "src": "https://percentopolis.web.app/og-image.png",
       "sizes": "512x512",
       "type": "image/png",
