@@ -31,10 +31,10 @@ This plan outlines the professional overhaul of ProcentOpolis to transform it in
 - **6.2 Achievements System**: ✅ Persistent achievements (localStorage); 12 achievements including cross-session feats (Veteran, Champion, Mathematician, Discount Pro); in-game toasts with i18n; homepage achievement gallery shown to students.
 - **6.3 Leaderboards**: ✅ Teacher-toggleable live class ranking overlay (Firebase-synced, dark panel); class ranking shown in student game-over report; teacher dashboard "📊 LEADERBOARD" button shows/hides real-time ranking for all students.
 
-## Phase 7: Teacher-Generated Content (UGC) - IN PROGRESS ✍️
+## Phase 7: Teacher-Generated Content (UGC) - COMPLETED ✅
 
-- **7.1 Custom Task Creator**: ✅ Teacher adds custom questions (text, answer, up to 3 wrong options, difficulty D1/D2/D3) via "✍️ Tasks" tab in dashboard. Tasks stored in Firebase under `rooms/${roomId}/customTasks`; students receive them live. Injected at 30% rate into CHANCE and Jail-escape question pool (`getUniqueTask`).
-- **7.2 Sharing Library**: PLANNED — requires global Firebase paths and persistent teacher accounts; deferred.
+- **7.1 Custom Task Creator**: ✅ Teacher adds custom questions (text, answer, up to 3 wrong options, difficulty D1/D2/D3) via "✍️ Tasks" tab in dashboard. Tasks stored in Firebase under `rooms/${roomId}/customTasks`; students receive them live. Injected at 30% rate into CHANCE and Jail-escape question pool (`getUniqueTask`). Each task has a 📤 Publish button.
+- **7.2 Sharing Library**: ✅ Global task library at `/globalTaskLibrary` in Firebase. Teachers publish tasks from their room (📤 button), browse/search/filter the shared library in the "📚 Library" dashboard tab, and import tasks with one click (📥 USE). Usage count tracked per task. Firebase rules validate all writes.
 
 ## Phase 8: Advanced Accessibility (a11y) - COMPLETED ♿
 
@@ -42,4 +42,4 @@ This plan outlines the professional overhaul of ProcentOpolis to transform it in
 - **8.2 Visual Adjustments**: ✅ High-contrast mode (◑ button in top bar) boosts contrast via CSS filter + forced borders; persists in localStorage.
 
 ## Status: PRODUCTION READY 🚀
-Phases 1-4 implemented without compromise. Phase 5 in active development.
+All Phases 1-8 implemented. Full i18n (MK/EN), adaptive learning, achievements, leaderboard, custom tasks + global library, TTS, high contrast.
