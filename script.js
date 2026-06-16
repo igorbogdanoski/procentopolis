@@ -618,7 +618,65 @@ const TRANSLATIONS = {
         // Status
         playerPrefix: "Player: ", teacherPrefix: "Teacher: ",
         statusActive: "ACTIVE", statusWaiting: "WAITING",
-        waitingLabel: "Waiting"
+        waitingLabel: "Waiting",
+        // Teacher Dashboard
+        dashMyRooms: "🏫 MY ROOMS",
+        dashRoomHint: "Select a room for details",
+        dashCreateNew: "+ CREATE NEW",
+        dashDeleteAll: "🗑️ DELETE ALL",
+        dashBack: "⬅️ BACK",
+        dashMainPanel: "MAIN PANEL",
+        dashSelectRoom: "Select a room from the left",
+        dashReportBtn: "📥 REPORT",
+        dashAllRoomsBtn: "📱 ALL ROOMS",
+        dashStartBtn: "START",
+        dashNewGameBtn: "🔄 NEW GAME",
+        dashEndGameBtn: "⏹️ END GAME",
+        dashLeaderboardBtn: "📊 LEADERBOARD",
+        dashCloseBtn: "CLOSE",
+        dashStatStudents: "Students",
+        dashStatCorrect: "Correct",
+        dashStatSuccess: "Success",
+        tabStudents: "👥 Students",
+        tabLive: "🎮 Live Status",
+        tabAnalytics: "📊 Analytics",
+        tabTasks: "✍️ Tasks",
+        tabLibrary: "📚 Library",
+        tabReport: "📋 Report",
+        dashBroadcastPlaceholder: "Broadcast a message to all students...",
+        dashSendBtn: "📢 SEND",
+        thStudent: "STUDENT",
+        thWealth: "WEALTH",
+        thCorrectWrong: "CORRECT / WRONG",
+        thActivity: "ACTIVITY",
+        thStatus: "STATUS",
+        dashNoStudents: "No active students",
+        dashNoStudentsHint: "Waiting for students to join with the code.",
+        dashNoRooms: "No rooms created",
+        dashNoRoomsHint: "Create your first room to start tracking student progress.",
+        dashNoTasks: "No custom tasks yet.",
+        dashNoAnswers: "No answers yet.",
+        dashReportPending: "📋 The report is available after the game ends.",
+        dashLiveHeader: "🎮 Live Status",
+        dashTimeLeft: "⏱️ REMAINING",
+        dashCurrentPlayer: "👤 CURRENT PLAYER",
+        dashMoves: "🎯 MOVES",
+        dashTurnLabel: "⏲️ TURN",
+        dashMoneyDist: "💰 Money Distribution",
+        dashLiveAnswers: "📝 Live Answers",
+        dashOwnedProps: "🏘️ Owned Properties",
+        dashQDifficulty: "📊 Question Difficulty",
+        dashHeatmapTitle: "🔥 Board Error Heatmap",
+        dashHeatmapDesc: "Properties where students struggle most (incorrect answers).",
+        dashAddTaskLabel: "✍️ ADD CUSTOM QUESTION — appears in CHANCE & Jail escape",
+        dashGridStudents: "STUDENTS",
+        dashGridSuccess: "SUCCESS RATE",
+        dashGridDetails: "DETAILS ➡️",
+        dashInProgress: "🟢 IN PROGRESS",
+        dashOverview: "OVERVIEW OF ALL ROOMS",
+        dashRoomPrefix: "ROOM:",
+        dashCreateRoomTitle: "CREATE NEW ROOM",
+        dashEndGameConfirm: "Are you sure you want to end the game?"
     },
     mk: {
         goal: "Цел:", goalDesc: "Собери најголемо богатство!",
@@ -705,7 +763,7 @@ const TRANSLATIONS = {
         reportSuccess: "Успех:", reportCorrect: "Точни:", reportWrong: "Грешни:",
         reportProps: "Имоти:",
         // Auction modal
-        auctionChoice: "KAKO САКАШ ДА ПРОДОЛЖИШ?",
+        auctionChoice: "КАКО САКАШ ДА ПРОДОЛЖИШ?",
         answerAlone: "📝 ОДГОВОРИ САМ/А",
         auctionBtn: "🔨 АУКЦИЈА",
         auctionDesc: (reward) => `Аукција: другите нудат за одговор. Победникот добива до +${reward}d. Ти ги добиваш парите!`,
@@ -714,7 +772,65 @@ const TRANSLATIONS = {
         // Status
         playerPrefix: "Играч: ", teacherPrefix: "Наставник: ",
         statusActive: "АКТИВНА", statusWaiting: "ЧЕКАЊЕ",
-        waitingLabel: "Чекање"
+        waitingLabel: "Чекање",
+        // Teacher Dashboard
+        dashMyRooms: "🏫 МОИТЕ СОБИ",
+        dashRoomHint: "Избери соба за детали",
+        dashCreateNew: "+ КРЕИРАЈ НОВА",
+        dashDeleteAll: "🗑️ ИЗБРИШИ СЕ",
+        dashBack: "⬅️ НАЗАД",
+        dashMainPanel: "ГЛАВНА ТАБЛА",
+        dashSelectRoom: "Избери соба од лево",
+        dashReportBtn: "📥 ИЗВЕШТАЈ",
+        dashAllRoomsBtn: "📱 СЕ СОБИ",
+        dashStartBtn: "СТАРТ",
+        dashNewGameBtn: "🔄 НОВА ИГРА",
+        dashEndGameBtn: "⏹️ ЗАВРШИ",
+        dashLeaderboardBtn: "📊 РАНГИРАЊЕ",
+        dashCloseBtn: "ЗАТВОРИ",
+        dashStatStudents: "Ученици",
+        dashStatCorrect: "Точни",
+        dashStatSuccess: "Успех",
+        tabStudents: "👥 Ученици",
+        tabLive: "🎮 Живо",
+        tabAnalytics: "📊 Аналитика",
+        tabTasks: "✍️ Задачи",
+        tabLibrary: "📚 Библиотека",
+        tabReport: "📋 Извештај",
+        dashBroadcastPlaceholder: "Прати порака до сите ученици...",
+        dashSendBtn: "📢 ПРАТИ",
+        thStudent: "УЧЕНИК",
+        thWealth: "БОГАТСТВО",
+        thCorrectWrong: "ТОЧНИ / ГРЕШНИ",
+        thActivity: "АКТИВНОСТ",
+        thStatus: "СТАТУС",
+        dashNoStudents: "Нема активни ученици",
+        dashNoStudentsHint: "Чекање на ученици да се приклучат со кодот.",
+        dashNoRooms: "Нема креирани соби",
+        dashNoRoomsHint: "Креирај ја прва соба за да го следиш напредокот на учениците.",
+        dashNoTasks: "Нема прилагодени задачи.",
+        dashNoAnswers: "Нема одговори.",
+        dashReportPending: "📋 Извештајот е достапен по завршување на играта.",
+        dashLiveHeader: "🎮 Живо",
+        dashTimeLeft: "⏱️ ПРЕОСТАНАТО",
+        dashCurrentPlayer: "👤 ТЕКОВЕН ИГРАЧ",
+        dashMoves: "🎯 ПОТЕЗИ",
+        dashTurnLabel: "⏲️ РЕД",
+        dashMoneyDist: "💰 Распределба на пари",
+        dashLiveAnswers: "📝 Одговори во живо",
+        dashOwnedProps: "🏘️ Поседувани имоти",
+        dashQDifficulty: "📊 Тежина на прашања",
+        dashHeatmapTitle: "🔥 Термална карта на грешки",
+        dashHeatmapDesc: "Имоти каде учениците грешат најмногу (неточни одговори).",
+        dashAddTaskLabel: "✍️ ДОДАЈ ПРИЛАГОДЕНО ПРАШАЊЕ — се појавува во ШАНСА и Бегство од затвор",
+        dashGridStudents: "УЧЕНИЦИ",
+        dashGridSuccess: "УСПЕШНОСТ",
+        dashGridDetails: "ДЕТАЛИ ➡️",
+        dashInProgress: "🟢 ВО ТЕК",
+        dashOverview: "ПРЕГЛЕД НА СЕ СОБИ",
+        dashRoomPrefix: "СОБА:",
+        dashCreateRoomTitle: "КРЕИРАЈ НОВА СОБА",
+        dashEndGameConfirm: "Дали сигурно сакаш да ја завршиш играта?"
     }
 };
 
@@ -1362,6 +1478,14 @@ window.onload = () => {
             localStorage.setItem('percentopolis_autospeak', asToggle.checked ? '1' : '0');
         };
     }
+
+    // ESC key closes teacher dashboard
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('teacher-modal');
+            if (modal && modal.style.display !== 'none') closeTeacherDash();
+        }
+    });
 };
 
 // === PHASE 6.1: XP, LEVELS & COSMETIC UNLOCKS ===
@@ -2835,11 +2959,12 @@ function openTeacherDash() {
 
     if (myRooms.length === 0) {
         // Show empty state with create room prompt
+        const _tdr = TRANSLATIONS[currentLanguage];
         list.innerHTML = `
             <div style="padding:40px 20px; text-align:center; color:#94a3b8;">
                 <div style="font-size:3rem; margin-bottom:15px;">📚</div>
-                <h3 style="color:#475569; margin:0 0 10px 0;">No rooms created</h3>
-                <p style="font-size:0.8rem; margin:0; line-height:1.5;">Create your first room to start<br>tracking student progress.</p>
+                <h3 style="color:#475569; margin:0 0 10px 0;">${_tdr.dashNoRooms}</h3>
+                <p style="font-size:0.8rem; margin:0; line-height:1.5;">${_tdr.dashNoRoomsHint}</p>
             </div>
         `;
         document.getElementById('teacher-modal').style.display = 'flex';
@@ -2865,7 +2990,7 @@ function openTeacherDash() {
         // Quick status preview
         db.ref(`rooms/${rid}/status`).once('value', s => {
             const statusEl = document.getElementById(`dash-status-${rid}`);
-            if (statusEl) statusEl.innerText = s.val() === 'playing' ? '🟢 IN PROGRESS' : '🟡 WAITING';
+            if (statusEl) statusEl.innerText = s.val() === 'playing' ? TRANSLATIONS[currentLanguage].dashInProgress : TRANSLATIONS[currentLanguage].statusWaiting;
         });
     });
 
@@ -2899,7 +3024,7 @@ function showCreateRoomInterface() {
     document.getElementById('dash-back-to-list').style.display = 'none';
 
     // Update UI
-    document.getElementById('dash-active-room-title').innerText = 'CREATE NEW ROOM';
+    document.getElementById('dash-active-room-title').innerText = TRANSLATIONS[currentLanguage].dashCreateRoomTitle;
     document.getElementById('dash-start-btn').style.display = 'none';
     document.getElementById('dash-download-btn').style.display = 'none';
 
@@ -2988,7 +3113,7 @@ function switchDashRoom(rid) {
         el.style.borderColor = isSelected ? '#3b82f6' : 'rgba(255,255,255,0.1)';
     });
 
-    document.getElementById('dash-active-room-title').innerText = `ROOM: ${rid}`;
+    document.getElementById('dash-active-room-title').innerText = `${TRANSLATIONS[currentLanguage].dashRoomPrefix} ${rid}`;
 
     dashRoomListener = db.ref(`rooms/${rid}`).on('value', snapshot => {
         const data = snapshot.val();
@@ -3019,7 +3144,7 @@ function toggleGridView(showGrid) {
         grid.style.display = 'grid';
         create.style.display = 'none';
         backBtn.style.display = 'block';
-        title.innerText = "OVERVIEW OF ALL ROOMS";
+        title.innerText = TRANSLATIONS[currentLanguage].dashOverview;
         renderDashGrid();
     } else {
         // Clean up grid listeners when switching back to single view
@@ -3032,7 +3157,7 @@ function toggleGridView(showGrid) {
         grid.style.display = 'none';
         create.style.display = 'none';
         backBtn.style.display = 'none';
-        if (activeDashRoomId) title.innerText = `ROOM: ${activeDashRoomId}`;
+        if (activeDashRoomId) title.innerText = `${TRANSLATIONS[currentLanguage].dashRoomPrefix} ${activeDashRoomId}`;
     }
 }
 
@@ -3051,6 +3176,7 @@ function renderDashGrid() {
     myRooms.forEach(rid => {
         const card = document.createElement('div');
         card.style.cssText = "background:white; border-radius:15px; padding:20px; border:1px solid #e2e8f0; box-shadow:0 4px 6px rgba(0,0,0,0.02); cursor:pointer;";
+        const _tg = TRANSLATIONS[currentLanguage];
         card.innerHTML = `
             <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
                 <h3 style="margin:0; font-size:1.5rem; font-weight:900;">${rid}</h3>
@@ -3058,15 +3184,15 @@ function renderDashGrid() {
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div style="background:#f8fafc; padding:10px; border-radius:10px; text-align:center;">
-                    <div style="font-size:0.7rem; color:#64748b;">STUDENTS</div>
+                    <div style="font-size:0.7rem; color:#64748b;">${_tg.dashGridStudents}</div>
                     <div id="grid-players-${rid}" style="font-size:1.2rem; font-weight:bold;">0</div>
                 </div>
                 <div style="background:#f8fafc; padding:10px; border-radius:10px; text-align:center;">
-                    <div style="font-size:0.7rem; color:#64748b;">SUCCESS RATE</div>
+                    <div style="font-size:0.7rem; color:#64748b;">${_tg.dashGridSuccess}</div>
                     <div id="grid-success-${rid}" style="font-size:1.2rem; font-weight:bold;">0%</div>
                 </div>
             </div>
-            <button onclick="event.stopPropagation(); switchDashRoom('${rid}')" style="width:100%; margin-top:15px; padding:10px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">DETAILS ➡️</button>
+            <button onclick="event.stopPropagation(); switchDashRoom('${rid}')" style="width:100%; margin-top:15px; padding:10px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">${_tg.dashGridDetails}</button>
         `;
         card.onclick = () => switchDashRoom(rid);
         container.appendChild(card);
@@ -3509,7 +3635,7 @@ function downloadRoomReport() {
 
 function endGameManually() {
     if (!activeDashRoomId) return;
-    if (!confirm('Are you sure you want to end the game? All students will see the final report.')) return;
+    if (!confirm(TRANSLATIONS[currentLanguage].dashEndGameConfirm)) return;
     db.ref(`rooms/${activeDashRoomId}`).update({ status: 'ended', endReason: 'The teacher finished the game.' });
 }
 
@@ -3664,7 +3790,7 @@ function renderCustomTasksList(tasksObj) {
     if (!el) return;
     const entries = Object.entries(tasksObj || {});
     if (entries.length === 0) {
-        el.innerHTML = '<p style="color:#94a3b8;font-size:0.82rem;text-align:center;padding:20px;">No custom tasks yet.</p>';
+        el.innerHTML = `<p style="color:#94a3b8;font-size:0.82rem;text-align:center;padding:20px;">${TRANSLATIONS[currentLanguage].dashNoTasks}</p>`;
         return;
     }
     el.innerHTML = entries.map(([key, t]) => `
@@ -4515,7 +4641,7 @@ function renderLiveFeed(snap) {
     snap.forEach(child => entries.push(child.val()));
     entries.reverse(); // newest first
     if (entries.length === 0) {
-        feed.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:20px;">No answers yet.</p>';
+        feed.innerHTML = `<p style="color:#94a3b8;text-align:center;padding:20px;">${TRANSLATIONS[currentLanguage].dashNoAnswers}</p>`;
         return;
     }
     feed.innerHTML = entries.map(e => {
@@ -5497,6 +5623,53 @@ function setLanguage(lang) {
             <button class="action-btn btn-pass" style="margin-top:20px; width:100%;" onclick="document.getElementById('shop-modal').style.display='none'">${t.shopClose}</button>
         </div>`;
     }
+
+    // Teacher Dashboard static elements
+    const _td = t;
+    if(document.getElementById('dash-sidebar-title')) document.getElementById('dash-sidebar-title').innerText = _td.dashMyRooms;
+    if(document.getElementById('dash-sidebar-hint')) document.getElementById('dash-sidebar-hint').innerText = _td.dashRoomHint;
+    if(document.getElementById('dash-create-new-btn')) document.getElementById('dash-create-new-btn').innerText = _td.dashCreateNew;
+    if(document.getElementById('dash-delete-all-btn')) document.getElementById('dash-delete-all-btn').innerText = _td.dashDeleteAll;
+    if(document.getElementById('dash-back-to-list')) document.getElementById('dash-back-to-list').innerText = _td.dashBack;
+    if(document.getElementById('dash-download-btn')) document.getElementById('dash-download-btn').innerText = _td.dashReportBtn;
+    if(document.getElementById('dash-grid-view-btn')) document.getElementById('dash-grid-view-btn').innerText = _td.dashAllRoomsBtn;
+    if(document.getElementById('dash-start-btn')) document.getElementById('dash-start-btn').innerText = _td.dashStartBtn;
+    if(document.getElementById('dash-newgame-btn')) document.getElementById('dash-newgame-btn').innerText = _td.dashNewGameBtn;
+    if(document.getElementById('dash-endgame-btn')) document.getElementById('dash-endgame-btn').innerText = _td.dashEndGameBtn;
+    if(document.getElementById('dash-leaderboard-btn')) document.getElementById('dash-leaderboard-btn').innerText = _td.dashLeaderboardBtn;
+    if(document.getElementById('dash-close-btn')) document.getElementById('dash-close-btn').innerText = _td.dashCloseBtn;
+    if(document.getElementById('dash-stat-students-label')) document.getElementById('dash-stat-students-label').innerText = _td.dashStatStudents;
+    if(document.getElementById('dash-stat-correct-label')) document.getElementById('dash-stat-correct-label').innerText = _td.dashStatCorrect;
+    if(document.getElementById('dash-stat-success-label')) document.getElementById('dash-stat-success-label').innerText = _td.dashStatSuccess;
+    if(document.getElementById('dash-tab-players')) document.getElementById('dash-tab-players').innerText = _td.tabStudents;
+    if(document.getElementById('dash-tab-live')) document.getElementById('dash-tab-live').innerText = _td.tabLive;
+    if(document.getElementById('dash-tab-analytics')) document.getElementById('dash-tab-analytics').innerText = _td.tabAnalytics;
+    if(document.getElementById('dash-tab-tasks')) document.getElementById('dash-tab-tasks').innerText = _td.tabTasks;
+    if(document.getElementById('dash-tab-library')) document.getElementById('dash-tab-library').innerText = _td.tabLibrary;
+    if(document.getElementById('dash-tab-report')) document.getElementById('dash-tab-report').innerText = _td.tabReport;
+    if(document.getElementById('teacher-broadcast-input')) document.getElementById('teacher-broadcast-input').placeholder = _td.dashBroadcastPlaceholder;
+    if(document.getElementById('dash-send-btn')) document.getElementById('dash-send-btn').innerText = _td.dashSendBtn;
+    if(document.getElementById('dash-th-student')) document.getElementById('dash-th-student').innerText = _td.thStudent;
+    if(document.getElementById('dash-th-wealth')) document.getElementById('dash-th-wealth').innerText = _td.thWealth;
+    if(document.getElementById('dash-th-correct-wrong')) document.getElementById('dash-th-correct-wrong').innerText = _td.thCorrectWrong;
+    if(document.getElementById('dash-th-activity')) document.getElementById('dash-th-activity').innerText = _td.thActivity;
+    if(document.getElementById('dash-th-status')) document.getElementById('dash-th-status').innerText = _td.thStatus;
+    if(document.getElementById('dash-empty-title')) document.getElementById('dash-empty-title').innerText = _td.dashNoStudents;
+    if(document.getElementById('dash-empty-hint')) document.getElementById('dash-empty-hint').innerText = _td.dashNoStudentsHint;
+    if(document.getElementById('dash-live-header')) document.getElementById('dash-live-header').innerText = _td.dashLiveHeader;
+    if(document.getElementById('dash-label-remaining')) document.getElementById('dash-label-remaining').innerText = _td.dashTimeLeft;
+    if(document.getElementById('dash-label-current-player')) document.getElementById('dash-label-current-player').innerText = _td.dashCurrentPlayer;
+    if(document.getElementById('dash-label-moves')) document.getElementById('dash-label-moves').innerText = _td.dashMoves;
+    if(document.getElementById('dash-label-turn')) document.getElementById('dash-label-turn').innerText = _td.dashTurnLabel;
+    if(document.getElementById('dash-money-dist-title')) document.getElementById('dash-money-dist-title').innerText = _td.dashMoneyDist;
+    if(document.getElementById('dash-live-answers-title')) document.getElementById('dash-live-answers-title').innerText = _td.dashLiveAnswers;
+    if(document.getElementById('dash-no-answers')) document.getElementById('dash-no-answers').innerText = _td.dashNoAnswers;
+    if(document.getElementById('dash-owned-props-title')) document.getElementById('dash-owned-props-title').innerText = _td.dashOwnedProps;
+    if(document.getElementById('dash-q-diff-title')) document.getElementById('dash-q-diff-title').innerText = _td.dashQDifficulty;
+    if(document.getElementById('dash-heatmap-title')) document.getElementById('dash-heatmap-title').innerText = _td.dashHeatmapTitle;
+    if(document.getElementById('dash-heatmap-desc')) document.getElementById('dash-heatmap-desc').innerText = _td.dashHeatmapDesc;
+    if(document.getElementById('dash-add-task-label')) document.getElementById('dash-add-task-label').innerText = _td.dashAddTaskLabel;
+    if(document.getElementById('dash-report-pending')) document.getElementById('dash-report-pending').innerText = _td.dashReportPending;
 
     // In-game dynamic elements (if they exist in the DOM)
     if(document.querySelector('.trade-btn-label')) document.querySelectorAll('.trade-btn-label').forEach(el => el.innerText = t.trade);

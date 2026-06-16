@@ -288,15 +288,15 @@
         <!-- Sidebar for Room Selection -->
         <div id="teacher-sidebar">
             <div style="padding:25px; border-bottom:1px solid rgba(255,255,255,0.1);">
-                <h3 style="margin:0; font-size:1.1rem; letter-spacing:1px;">🏫 MY ROOMS</h3>
-                <p style="margin:5px 0 0 0; font-size:0.7rem; color:#94a3b8;">Select a room for details</p>
+                <h3 id="dash-sidebar-title" style="margin:0; font-size:1.1rem; letter-spacing:1px;">🏫 MY ROOMS</h3>
+                <p id="dash-sidebar-hint" style="margin:5px 0 0 0; font-size:0.7rem; color:#94a3b8;">Select a room for details</p>
             </div>
             <div id="dash-rooms-list" style="flex:1; overflow-y:auto; padding:15px;">
                 <!-- Room buttons will be injected here -->
             </div>
             <div style="padding:20px; background:rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:10px;">
-                <button onclick="showCreateRoomInterface()" style="width:100%; padding:10px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">+ CREATE NEW</button>
-                <button onclick="clearAllMyRooms()" style="width:100%; padding:8px; background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid #ef4444; border-radius:8px; font-size:0.75rem; font-weight:bold; cursor:pointer;">🗑️ DELETE ALL</button>
+                <button id="dash-create-new-btn" onclick="showCreateRoomInterface()" style="width:100%; padding:10px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">+ CREATE NEW</button>
+                <button id="dash-delete-all-btn" onclick="clearAllMyRooms()" style="width:100%; padding:8px; background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid #ef4444; border-radius:8px; font-size:0.75rem; font-weight:bold; cursor:pointer;">🗑️ DELETE ALL</button>
             </div>
         </div>
 
@@ -317,7 +317,7 @@
                     <button id="dash-newgame-btn" style="display:none; background:#f59e0b; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="resetRoomForNewGame()">🔄 NEW GAME</button>
                     <button id="dash-endgame-btn" style="display:none; background:#ef4444; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="endGameManually()">⏹️ END GAME</button>
                     <button id="dash-leaderboard-btn" style="display:none; background:#0ea5e9; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="toggleLeaderboard()">📊 LEADERBOARD</button>
-                    <button onclick="closeTeacherDash()" style="background:#f1f5f9; border:none; border-radius:8px; padding:8px 14px; color:#475569; font-weight:bold; cursor:pointer; font-size:0.8rem;">CLOSE</button>
+                    <button id="dash-close-btn" onclick="closeTeacherDash()" style="background:#f1f5f9; border:none; border-radius:8px; padding:8px 14px; color:#475569; font-weight:bold; cursor:pointer; font-size:0.8rem;">CLOSE</button>
                 </div>
             </div>
             
@@ -337,21 +337,21 @@
                         <div class="dash-stat-card">
                             <span class="dash-stat-icon">👥</span>
                             <div>
-                                <div class="dash-stat-label">Students</div>
+                                <div id="dash-stat-students-label" class="dash-stat-label">Students</div>
                                 <div class="dash-stat-value" id="dash-player-count">0</div>
                             </div>
                         </div>
                         <div class="dash-stat-card">
                             <span class="dash-stat-icon">✅</span>
                             <div>
-                                <div class="dash-stat-label">Correct</div>
+                                <div id="dash-stat-correct-label" class="dash-stat-label">Correct</div>
                                 <div class="dash-stat-value" style="color:#10b981;" id="dash-total-correct">0</div>
                             </div>
                         </div>
                         <div class="dash-stat-card">
                             <span class="dash-stat-icon">📈</span>
                             <div>
-                                <div class="dash-stat-label">Success</div>
+                                <div id="dash-stat-success-label" class="dash-stat-label">Success</div>
                                 <div class="dash-stat-value" style="color:#3b82f6;" id="dash-avg-success">0%</div>
                             </div>
                         </div>
@@ -371,17 +371,17 @@
                     <div id="dash-panel-players" class="dash-tab-panel active">
                         <div style="margin-bottom:15px; display:flex; gap:10px; background:#fff7ed; padding:15px; border-radius:12px; border:1px solid #ffedd5;">
                             <input type="text" id="teacher-broadcast-input" placeholder="Broadcast a message to all students..." style="flex:1; padding:10px; border-radius:8px; border:1px solid #fed7aa; font-size:0.9rem;">
-                            <button onclick="sendBroadcast()" style="padding:10px 20px; background:#f59e0b; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer;">📢 SEND</button>
+                            <button id="dash-send-btn" onclick="sendBroadcast()" style="padding:10px 20px; background:#f59e0b; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer;">📢 SEND</button>
                         </div>
                         <div style="background:white; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.03); border:1px solid #e2e8f0; overflow:hidden;">
                             <table style="width:100%; border-collapse: collapse; text-align:left;">
                                 <thead style="background:#f1f5f9;">
                                     <tr>
-                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">STUDENT</th>
-                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">WEALTH</th>
-                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">CORRECT / WRONG</th>
-                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">ACTIVITY</th>
-                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">STATUS</th>
+                                        <th id="dash-th-student" style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">STUDENT</th>
+                                        <th id="dash-th-wealth" style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">WEALTH</th>
+                                        <th id="dash-th-correct-wrong" style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">CORRECT / WRONG</th>
+                                        <th id="dash-th-activity" style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">ACTIVITY</th>
+                                        <th id="dash-th-status" style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">STATUS</th>
                                     </tr>
                                 </thead>
                                 <tbody id="teacher-stats-tbody">
@@ -390,8 +390,8 @@
                             </table>
                             <div id="dash-empty-state" style="padding:60px; text-align:center; color:#94a3b8;">
                                 <div style="font-size:3rem; margin-bottom:15px;">🕵️‍♂️</div>
-                                <h3 style="margin:0 0 5px 0;">No active students</h3>
-                                <p style="margin:0; font-size:0.85rem;">Waiting for students to join with the code.</p>
+                                <h3 id="dash-empty-title" style="margin:0 0 5px 0;">No active students</h3>
+                                <p id="dash-empty-hint" style="margin:0; font-size:0.85rem;">Waiting for students to join with the code.</p>
                             </div>
                         </div>
                     </div>
@@ -401,24 +401,22 @@
                         <div id="dash-viz-panel">
                             <!-- Live Game Status -->
                             <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius:15px; padding:18px; margin-bottom:16px; color:white;">
-                                <h3 style="margin:0 0 12px 0; font-size:1rem; display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:1.2rem;">🎮</span> Live Status
-                                </h3>
+                                <h3 id="dash-live-header" style="margin:0 0 12px 0; font-size:1rem; display:flex; align-items:center; gap:8px;">🎮 Live Status</h3>
                                 <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;">
                                     <div style="background:rgba(255,255,255,0.15); padding:12px; border-radius:10px;">
-                                        <div style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">⏱️ REMAINING</div>
+                                        <div id="dash-label-remaining" style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">⏱️ REMAINING</div>
                                         <div id="dash-viz-time-left" style="font-size:1.3rem; font-weight:900;">--:--</div>
                                     </div>
                                     <div style="background:rgba(255,255,255,0.15); padding:12px; border-radius:10px;">
-                                        <div style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">👤 CURRENT PLAYER</div>
+                                        <div id="dash-label-current-player" style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">👤 CURRENT PLAYER</div>
                                         <div id="dash-viz-current-player" style="font-size:1.3rem; font-weight:900;">---</div>
                                     </div>
                                     <div style="background:rgba(255,255,255,0.15); padding:12px; border-radius:10px;">
-                                        <div style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">🎯 MOVES</div>
+                                        <div id="dash-label-moves" style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">🎯 MOVES</div>
                                         <div id="dash-viz-total-moves" style="font-size:1.3rem; font-weight:900;">0</div>
                                     </div>
                                     <div style="background:rgba(255,255,255,0.15); padding:12px; border-radius:10px;">
-                                        <div style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">⏲️ TURN</div>
+                                        <div id="dash-label-turn" style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">⏲️ TURN</div>
                                         <div id="dash-viz-turn-time" style="font-size:1.3rem; font-weight:900;">--s</div>
                                     </div>
                                 </div>
@@ -426,9 +424,7 @@
 
                             <!-- Money Distribution Chart -->
                             <div style="background:white; border-radius:15px; padding:18px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
-                                <h3 style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:1.2rem;">💰</span> Money Distribution
-                                </h3>
+                                <h3 id="dash-money-dist-title" style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">💰 Money Distribution</h3>
                                 <div id="dash-viz-money-chart" style="display:flex; flex-direction:column; gap:10px;">
                                     <!-- Money bars will be injected here -->
                                 </div>
@@ -436,11 +432,9 @@
 
                             <!-- Live Answers Feed -->
                             <div style="background:white; border-radius:15px; padding:18px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
-                                <h3 style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:1.2rem;">📝</span> Live Answers
-                                </h3>
+                                <h3 id="dash-live-answers-title" style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">📝 Live Answers</h3>
                                 <div id="dash-live-feed" style="max-height:320px; overflow-y:auto;">
-                                    <p style="color:#94a3b8;text-align:center;padding:20px;">No answers yet.</p>
+                                    <p id="dash-no-answers" style="color:#94a3b8;text-align:center;padding:20px;">No answers yet.</p>
                                 </div>
                             </div>
                         </div>
@@ -451,9 +445,7 @@
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                             <!-- Property Ownership -->
                             <div style="background:white; border-radius:15px; padding:18px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
-                                <h3 style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:1.2rem;">🏘️</span> Owned Properties
-                                </h3>
+                                <h3 id="dash-owned-props-title" style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">🏘️ Owned Properties</h3>
                                 <div id="dash-viz-properties" style="display:flex; flex-direction:column; gap:8px;">
                                     <!-- Property counts will be injected here -->
                                 </div>
@@ -461,9 +453,7 @@
 
                             <!-- Question Difficulty Breakdown -->
                             <div style="background:white; border-radius:15px; padding:18px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
-                                <h3 style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:1.2rem;">📊</span> Question Difficulty
-                                </h3>
+                                <h3 id="dash-q-diff-title" style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">📊 Question Difficulty</h3>
                                 <div id="dash-viz-difficulty" style="display:flex; flex-direction:column; gap:12px;">
                                     <!-- Difficulty stats will be injected here -->
                                 </div>
@@ -472,10 +462,8 @@
 
                         <!-- NEW: Board Error Heatmap -->
                         <div style="margin-top:16px; background:white; border-radius:15px; padding:18px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
-                            <h3 style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">
-                                <span style="font-size:1.2rem;">🔥</span> Board Error Heatmap
-                            </h3>
-                            <p style="font-size:0.75rem; color:#64748b; margin-bottom:15px;">Properties where students struggle most (incorrect answers).</p>
+                            <h3 id="dash-heatmap-title" style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">🔥 Board Error Heatmap</h3>
+                            <p id="dash-heatmap-desc" style="font-size:0.75rem; color:#64748b; margin-bottom:15px;">Properties where students struggle most (incorrect answers).</p>
                             <div id="dash-heatmap-container" style="display:grid; grid-template-columns: repeat(10, 1fr); gap:8px;">
                                 <!-- Heatmap cells injected here -->
                             </div>
@@ -485,7 +473,7 @@
                     <!-- TAB 5: Custom Tasks (Phase 7.1) -->
                     <div id="dash-panel-tasks" class="dash-tab-panel" style="display:none;">
                         <div style="background:#f0fdf4; padding:14px 16px; border-radius:12px; border:1px solid #bbf7d0; margin-bottom:14px;">
-                            <p style="font-size:0.8rem; color:#166534; margin:0 0 10px; font-weight:700;">✍️ ADD CUSTOM QUESTION — appears in CHANCE &amp; Jail escape</p>
+                            <p id="dash-add-task-label" style="font-size:0.8rem; color:#166534; margin:0 0 10px; font-weight:700;">✍️ ADD CUSTOM QUESTION — appears in CHANCE &amp; Jail escape</p>
                             <input type="text" id="ct-question" placeholder="Question text…" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #86efac; font-size:0.85rem; margin-bottom:6px; box-sizing:border-box;">
                             <input type="text" id="ct-answer" placeholder="Correct answer (number or short text)" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #86efac; font-size:0.85rem; margin-bottom:6px; box-sizing:border-box;">
                             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
@@ -526,9 +514,7 @@
                     <!-- TAB 7: End-of-Game Report -->
                     <div id="dash-panel-report" class="dash-tab-panel" style="display:none;">
                         <div id="dash-report-content" style="padding:4px 0;">
-                            <p style="color:#94a3b8;text-align:center;padding:40px 20px;">
-                                📋 The report is available after the game ends.
-                            </p>
+                            <p id="dash-report-pending" style="color:#94a3b8;text-align:center;padding:40px 20px;">📋 The report is available after the game ends.</p>
                         </div>
                     </div>
                 </div>
