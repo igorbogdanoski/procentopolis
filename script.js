@@ -4,7 +4,7 @@ const TOTAL_CELLS = 20;
 const MAX_PLAYERS = 8;          // max concurrent students per room
 const GAME_DURATION = 40 * 60;  // seconds (40 minutes)
 const TURN_LIMIT = 30;          // seconds per turn
-const START_MONEY = 1000;       // starting денари per student
+const START_MONEY = 1000;       // starting d per student
 const STEP_DELAY = 450;         // ms between movement animation steps
 const BASE_PRICE = 150;         // base property price (cell 0)
 const PRICE_STEP = 40;          // price increment per board cell
@@ -30,7 +30,7 @@ let currentUserUid = null;
 // Sign in anonymously on page load
 auth.signInAnonymously().catch(err => {
     console.error('Firebase Auth error:', err);
-    showError('Грешка при автентикација (' + err.code + '). Обновете ја страницата.');
+    showError('Authentication error (' + err.code + '). Please refresh the page.');
 });
 
 auth.onAuthStateChanged(user => {
@@ -42,12 +42,12 @@ auth.onAuthStateChanged(user => {
 
 // --- OFFLINE DETECTION ---
 window.addEventListener('offline', () => {
-    showError('⚠️ Нема интернет конекција. Играта е паузирана.');
+    showError('⚠️ No internet connection. Game paused.');
     document.querySelectorAll('button').forEach(b => b.disabled = true);
 });
 
 window.addEventListener('online', () => {
-    showSuccess('✅ Конекцијата е вратена!');
+    showSuccess('✅ Connection restored!');
     document.querySelectorAll('button').forEach(b => b.disabled = false);
 });
 
@@ -106,8 +106,8 @@ function showConfirmModal(message) {
             <div style="background:white;border-radius:20px;padding:30px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
                 <p style="font-size:1rem;font-weight:700;color:#1e293b;margin:0 0 20px 0;line-height:1.5;">${escapeHtml(message)}</p>
                 <div style="display:flex;gap:10px;">
-                    <button id="confirm-no" style="flex:1;padding:12px;border:2px solid #e2e8f0;border-radius:12px;background:white;font-weight:800;cursor:pointer;color:#475569;font-size:0.95rem;">НЕ</button>
-                    <button id="confirm-yes" style="flex:1;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;font-weight:800;cursor:pointer;font-size:0.95rem;">ДА</button>
+                    <button id="confirm-no" style="flex:1;padding:12px;border:2px solid #e2e8f0;border-radius:12px;background:white;font-weight:800;cursor:pointer;color:#475569;font-size:0.95rem;">NO</button>
+                    <button id="confirm-yes" style="flex:1;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;font-weight:800;cursor:pointer;font-size:0.95rem;">YES</button>
                 </div>
             </div>
         `;
@@ -123,13 +123,13 @@ db.ref('.info/connected').on('value', (snap) => {
     const wasOnline = isOnline;
     isOnline = snap.val() === true;
     if (!isOnline && wasOnline) {
-        showWarning('⚠️ Нема интернет конекција. Се обидувам да се поврзам...');
+        showWarning('⚠️ No internet connection. Trying to reconnect...');
         // Disable action buttons when offline
         document.querySelectorAll('#roll-btn, #shop-btn, #trade-btn, #buy-prop, #pay-rent').forEach(btn => {
             if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
         });
     } else if (isOnline && !wasOnline) {
-        showSuccess('✅ Конекцијата е вратена!');
+        showSuccess('✅ Connection restored!');
         document.querySelectorAll('#roll-btn, #shop-btn, #trade-btn').forEach(btn => {
             if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
         });
@@ -192,10 +192,10 @@ function sanitizeInput(input) {
 function validatePlayerName(name) {
     const sanitized = sanitizeInput(name);
     if (sanitized.length < 3) {
-        return { valid: false, error: 'Името мора да има минимум 3 карактери' };
+        return { valid: false, error: 'Name must have at least 3 characters' };
     }
     if (sanitized.length > 30) {
-        return { valid: false, error: 'Името мора да има максимум 30 карактери' };
+        return { valid: false, error: 'Name must have at most 30 characters' };
     }
     return { valid: true, sanitized };
 }
@@ -203,10 +203,10 @@ function validatePlayerName(name) {
 function validateRoomCode(code) {
     const sanitized = sanitizeInput(code).toUpperCase();
     if (sanitized.length < 3 || sanitized.length > 20) {
-        return { valid: false, error: 'Кодот мора да биде помеѓу 3 и 20 карактери' };
+        return { valid: false, error: 'Code must be between 3 and 20 characters' };
     }
     if (!/^[A-Z0-9\-]+$/.test(sanitized)) {
-        return { valid: false, error: 'Кодот може да содржи само букви, броеви и цртички' };
+        return { valid: false, error: 'Code can only contain letters, numbers and hyphens' };
     }
     return { valid: true, sanitized };
 }
@@ -216,97 +216,97 @@ let currentTutorialStep = 0;
 const tutorialSteps = [
     {
         icon: '🎮',
-        title: 'Добредојде во ПроцентОполис!',
-        subtitle: 'Најдобрата математичка игра',
-        content: `<p>Ова е образовна игра каде <strong>учиш проценти додека се забавуваш!</strong></p>
+        title: 'Welcome to Procentopolis!',
+        subtitle: 'The best math game',
+        content: `<p>This is an educational game where you <strong>learn percentages while having fun!</strong></p>
                   <div class="tutorial-highlight">
-                      <strong>🎯 ЦЕЛ:</strong> Собери најголемо богатство со решавање математички задачи!
+                      <strong>🎯 GOAL:</strong> Collect the greatest fortune by solving math problems!
                   </div>
-                  <p>Играта е слична на Монопол, но наместо пари користиш <strong>математички вештини</strong> за да станеш најбогат играч!</p>`
+                  <p>The game is similar to Monopoly, but instead of money, you use <strong>math skills</strong> to become the richest player!</p>`
     },
     {
         icon: '🎲',
-        title: 'Како да играш?',
-        subtitle: 'Основни правила',
-        content: `<p>Играта е едноставна:</p>
+        title: 'How to play?',
+        subtitle: 'Basic rules',
+        content: `<p>The game is simple:</p>
                   <ol style="line-height: 2; margin-left: 20px;">
-                      <li><strong>Фрли коцка</strong> со копчето "🎲 ФРЛИ"</li>
-                      <li><strong>Движи се</strong> по табла автоматски</li>
-                      <li><strong>Застани на поле</strong> и добиј задача</li>
-                      <li><strong>Реши задача</strong> за да купиш имот</li>
+                      <li><strong>Roll the dice</strong> with the "🎲 ROLL" button</li>
+                      <li><strong>Move</strong> around the board automatically</li>
+                      <li><strong>Land on a cell</strong> and get a problem</li>
+                      <li><strong>Solve the problem</strong> to buy property</li>
                   </ol>
                   <div class="tutorial-highlight">
-                      <strong>⏱️ ВАЖНО:</strong> Имаш <strong>30 секунди</strong> за секој потег!
+                      <strong>⏱️ IMPORTANT:</strong> You have <strong>30 seconds</strong> for each turn!
                   </div>`
     },
     {
         icon: '🏠',
-        title: 'Купување имоти',
-        subtitle: 'Градење на богатство',
-        content: `<p>Кога ќе застанеш на празно поле:</p>
+        title: 'Buying properties',
+        subtitle: 'Building wealth',
+        content: `<p>When you land on an empty cell:</p>
                   <div class="tutorial-highlight">
-                      <strong>✅ ТОЧЕН ОДГОВОР:</strong> Купуваш го имотот за полна цена<br>
-                      <strong>❌ ГРЕШКА:</strong> Го губиш имотот и се враќаш на старта
+                      <strong>✅ CORRECT ANSWER:</strong> You buy the property for full price<br>
+                      <strong>❌ MISTAKE:</strong> You lose the property and return to start
                   </div>
-                  <p style="margin-top: 20px;">Кога другите играчи ќе застанат на <strong>твој имот</strong>, тие мора да платат <strong>кирија!</strong></p>
-                  <p><strong>💰 Повеќе имоти = Поголемо богатство!</strong></p>`
+                  <p style="margin-top: 20px;">When other players land on <strong>your property</strong>, they must pay <strong>rent!</strong></p>
+                  <p><strong>💰 More properties = More wealth!</strong></p>`
     },
     {
         icon: '💸',
-        title: 'Плаќање кирија',
-        subtitle: 'Пресметување на рента',
-        content: `<p>Ако застанеш на туѓо поле, мора да платиш кирија!</p>
+        title: 'Paying rent',
+        subtitle: 'Calculating rent',
+        content: `<p>If you land on someone else's property, you must pay rent!</p>
                   <div class="tutorial-highlight">
-                      <strong>✅ ТОЧНО ПРЕСМЕТАШ:</strong> Плаќаш нормална кирија<br>
-                      <strong>❌ ПОГРЕШНО ПРЕСМЕТАШ:</strong> Плаќаш <strong>ДУПЛО!</strong> 😱
+                      <strong>✅ CALCULATE CORRECTLY:</strong> You pay normal rent<br>
+                      <strong>❌ CALCULATE WRONGLY:</strong> You pay <strong>DOUBLE!</strong> 😱
                   </div>
-                  <p style="margin-top: 20px;">Затоа внимавај и секогаш <strong>пресметај точно!</strong></p>`
+                  <p style="margin-top: 20px;">So be careful and always <strong>calculate correctly!</strong></p>`
     },
     {
         icon: '🛒',
-        title: 'Продавница за моќи',
-        subtitle: 'Стратешки предности',
-        content: `<p>Со копчето "🛒 ПРОДАВНИЦА" можеш да купиш <strong>специјални моќи:</strong></p>
+        title: 'Power-up Shop',
+        subtitle: 'Strategic advantages',
+        content: `<p>With the "🛒 SHOP" button you can buy <strong>special powers:</strong></p>
                   <ul style="line-height: 2; margin-left: 20px;">
-                      <li><strong>⚖️ Адвокат</strong> - Заштита од данок (300д)</li>
-                      <li><strong>🛡️ Златен Штит</strong> - Не плаќаш кирија (250д)</li>
-                      <li><strong>🚀 Нитро Коцка</strong> - Дупло фрлање (150д)</li>
-                      <li><strong>🕵️ Инсајдер</strong> - Имот за 1 денар (500д)</li>
+                      <li><strong>⚖️ Lawyer</strong> - Protection from tax (300d)</li>
+                      <li><strong>🛡️ Golden Shield</strong> - Don't pay rent (250d)</li>
+                      <li><strong>🚀 Nitro Dice</strong> - Double roll (150d)</li>
+                      <li><strong>🕵️ Insider</strong> - Property for 1 denar (500d)</li>
                   </ul>
                   <div class="tutorial-highlight">
-                      <strong>💡 СОВЕТ:</strong> Користи ги паметно за да победиш!
+                      <strong>💡 TIP:</strong> Use them wisely to win!
                   </div>`
     },
     {
         icon: '🎨',
-        title: 'Whiteboard помош',
-        subtitle: 'Цртај и пресметувај',
-        content: `<p>За секоја задача имаш <strong>whiteboard</strong> каде можеш:</p>
+        title: 'Whiteboard help',
+        subtitle: 'Draw and calculate',
+        content: `<p>For every problem you have a <strong>whiteboard</strong> where you can:</p>
                   <ul style="line-height: 2; margin-left: 20px;">
-                      <li>✏️ Да црташ и пресметуваш</li>
-                      <li>🎨 Да користиш различни бои</li>
-                      <li>🖼️ Да бараш визуелна помош (hint)</li>
+                      <li>✏️ Draw and calculate</li>
+                      <li>🎨 Use different colors</li>
+                      <li>🖼️ Ask for a visual hint</li>
                   </ul>
                   <div class="tutorial-highlight">
-                      <strong>🎨 СОВЕТ:</strong> Користи го whiteboard за да не грешиш!
+                      <strong>🎨 TIP:</strong> Use the whiteboard to avoid mistakes!
                   </div>`
     },
     {
         icon: '🏆',
-        title: 'Подготвен си!',
-        subtitle: 'Време е да играш',
+        title: 'You are ready!',
+        subtitle: 'Time to play',
         content: `<p style="font-size: 1.2rem; text-align: center; margin: 30px 0;">
-                      <strong>🎉 Одлично! Сега знаеш сè!</strong>
+                      <strong>🎉 Great! Now you know everything!</strong>
                   </p>
                   <div class="tutorial-highlight">
-                      <strong>🎯 ЗАПОМНИ:</strong><br>
-                      • Решавај точно за да купуваш имоти<br>
-                      • Внимавај на времето (30 секунди)<br>
-                      • Користи ги моќите паметно<br>
-                      • Забавувај се и учи! 📚
+                      <strong>🎯 REMEMBER:</strong><br>
+                      • Solve correctly to buy properties<br>
+                      • Watch the time (30 seconds)<br>
+                      • Use powers wisely<br>
+                      • Have fun and learn! 📚
                   </div>
                   <p style="text-align: center; margin-top: 25px; font-size: 1.1rem;">
-                      <strong>Среќно! 🚀</strong>
+                      <strong>Good luck! 🚀</strong>
                   </p>`
     }
 ];
@@ -327,15 +327,15 @@ function renderTutorialStep() {
     document.getElementById('tutorial-title').innerText = step.title;
     document.getElementById('tutorial-subtitle').innerText = step.subtitle;
     document.getElementById('tutorial-content').innerHTML = step.content;
-    document.getElementById('tutorial-progress').innerText = `Чекор ${currentTutorialStep + 1} од ${tutorialSteps.length}`;
+    document.getElementById('tutorial-progress').innerText = `Step ${currentTutorialStep + 1} of ${tutorialSteps.length}`;
 
     // Update button on last step
     const nextBtn = document.getElementById('tutorial-next-btn');
     if (currentTutorialStep === tutorialSteps.length - 1) {
-        nextBtn.innerText = '🚀 Започни игра!';
+        nextBtn.innerText = '🚀 Start Game!';
         nextBtn.className = 'tutorial-btn tutorial-btn-start';
     } else {
-        nextBtn.innerText = 'Следно →';
+        nextBtn.innerText = 'Next →';
         nextBtn.className = 'tutorial-btn tutorial-btn-next';
     }
 }
@@ -350,7 +350,7 @@ function nextTutorialStep() {
 }
 
 function skipTutorial() {
-    showConfirmModal('Сигурен си дека сакаш да го прескокнеш упатството?').then(yes => {
+    showConfirmModal('Are you sure you want to skip the tutorial?').then(yes => {
         if (yes) completeTutorial();
     });
 }
@@ -358,7 +358,7 @@ function skipTutorial() {
 function completeTutorial() {
     localStorage.setItem('percentopolis_tutorial_completed', 'true');
     document.getElementById('tutorial-overlay').style.display = 'none';
-    showSuccess('✅ Добредојде во играта! Среќно! 🎮');
+    showSuccess('✅ Welcome to the game! Good luck! 🎮');
 }
 
 // === PHASE 2: CONFETTI CELEBRATION SYSTEM ===
@@ -384,14 +384,14 @@ function celebrateWithConfetti(duration = 3000) {
 
 // === PHASE 2: ACHIEVEMENT SYSTEM ===
 const achievements = {
-    firstProperty: { icon: '🏠', title: 'Прв имот!', description: 'Купи го првиот имот' },
-    perfectAnswer: { icon: '🎯', title: 'Совршено!', description: 'Одговори точно на прв обид' },
-    streak3: { icon: '🔥', title: 'Во оган!', description: '3 точни одговори по ред' },
-    streak5: { icon: '⚡', title: 'Непобедлив!', description: '5 точни одговори по ред' },
-    richPlayer: { icon: '💰', title: 'Богат играч!', description: 'Имаш над 1500 денари' },
-    shopMaster: { icon: '🛒', title: 'Шопинг мајстор!', description: 'Купи моќ од продавницата' },
-    speedster: { icon: '⚡', title: 'Брзинец!', description: 'Одговори за помалку од 10 секунди' },
-    comeback: { icon: '💪', title: 'Враќање!', description: 'Точен одговор после грешка' }
+    firstProperty: { icon: '🏠', title: 'First property!', description: 'Bought your first property' },
+    perfectAnswer: { icon: '🎯', title: 'Perfect!', description: 'Answered correctly on the first try' },
+    streak3: { icon: '🔥', title: 'On fire!', description: '3 correct answers in a row' },
+    streak5: { icon: '⚡', title: 'Unstoppable!', description: '5 correct answers in a row' },
+    richPlayer: { icon: '💰', title: 'Rich player!', description: 'You have over 1500 denarii' },
+    shopMaster: { icon: '🛒', title: 'Shop Master!', description: 'Bought a power-up from the shop' },
+    speedster: { icon: '⚡', title: 'Speedster!', description: 'Answered in less than 10 seconds' },
+    comeback: { icon: '💪', title: 'Comeback!', description: 'Correct answer after a mistake' }
 };
 
 let unlockedAchievements = new Set();
@@ -484,6 +484,7 @@ let usedQuestionIds = [], remainingTime = GAME_DURATION, players = [], currentPl
 let myPlayerId = null;
 let roomId = null;
 let isCreator = false;
+let lastBroadcastTime = null;
 let timerInterval, turnTimerInterval, localTurnTicker;
 let gameOverTriggered = false;
 let knownGameVersion = 1;
@@ -547,18 +548,18 @@ for(let i=0;i<220;i++){
     let finalOptions = opts.slice(0, 3);
     finalOptions.push(cs);
     
-    let hint=`💡 Размисли: ${rate}% од ${base} е исто што и дел од него. Подели го ${base} на 100 еднакви делови и земи ${rate} од нив.`;
-    if(rate===25) hint="💡 Совет: 25% е исто што и една четвртина (четврт дел од бројот).";
-    if(rate===50) hint="💡 Совет: 50% е половина од бројот.";
-    if(rate===10) hint="💡 Совет: 10% е десетти дел од бројот.";
-    if(rate===75) hint="💡 Совет: 75% се три четвртини од бројот (пресметај 25% па помножи со 3).";
+    let hint=`💡 Think: ${rate}% of ${base} is a part of it. Divide ${base} into 100 equal parts and take ${rate} of them.`;
+    if(rate===25) hint="💡 Tip: 25% is the same as one quarter (a fourth part of the number).";
+    if(rate===50) hint="💡 Tip: 50% is half of the number.";
+    if(rate===10) hint="💡 Tip: 10% is a tenth of the number.";
+    if(rate===75) hint="💡 Tip: 75% is three quarters of the number (calculate 25% then multiply by 3).";
     
-    let expl=`💡 Постапка: ${rate}% од ${base} се пресметува како (${rate} ÷ 100) × ${base} = ${cs}.`;
+    let expl=`💡 Procedure: ${rate}% of ${base} is calculated as (${rate} ÷ 100) × ${base} = ${cs}.`;
     
     allTasks.push({
         id:100+i,
         difficulty:diff,
-        question:`Пресметај ${rate}% од ${base}.`,
+        question:`Calculate ${rate}% of ${base}.`,
         correct_answer:cs,
         options:shuffleArray(finalOptions),
         raw:{rate,base},
@@ -567,7 +568,7 @@ for(let i=0;i<220;i++){
     });
 }
 
-// TYPE 2: INCREASE — "Зголеми Y за X%"  (D1-2, 80 tasks, ids 320-399)
+// TYPE 2: INCREASE — "Increase Y by X%"  (D1-2, 80 tasks, ids 320-399)
 {
 const increaseParams = [
     [10,100],[20,200],[25,400],[50,100],[10,200],[20,500],[25,80],[50,200],
@@ -589,17 +590,17 @@ increaseParams.forEach(([X, Y], i) => {
     allTasks.push({
         id: 320 + i,
         difficulty: i < 15 ? 1 : 2,
-        question: `Зголеми ${Y} за ${X}%.`,
+        question: `Increase ${Y} by ${X}%.`,
         correct_answer: ans,
         options: shuffleArray([ans, fmt(Y+X), fmt((Y*X)/10+Y), partOnly].filter((v,idx,a)=>a.indexOf(v)===idx)).slice(0, 4),
         raw: { rate: X, base: Y },
-        explanation: `${Y} + ${X}% од ${Y} = ${Y} + ${partOnly} = ${ans}`,
-        hint: `💡 Прво пресметај ${X}% од ${Y}, па додај го на ${Y}.`
+        explanation: `${Y} + ${X}% of ${Y} = ${Y} + ${partOnly} = ${ans}`,
+        hint: `💡 First calculate ${X}% of ${Y}, then add it to ${Y}.`
     });
 });
 }
 
-// TYPE 3: DECREASE — "Намали Y за X%"  (D1-2, 80 tasks, ids 400-479)
+// TYPE 3: DECREASE — "Decrease Y by X%"  (D1-2, 80 tasks, ids 400-479)
 {
 const decreaseParams = [
     [10,100],[20,200],[25,400],[50,100],[10,200],[20,500],[25,80],[50,200],
@@ -621,17 +622,17 @@ decreaseParams.forEach(([X, Y], i) => {
     allTasks.push({
         id: 400 + i,
         difficulty: i < 15 ? 1 : 2,
-        question: `Намали ${Y} за ${X}%.`,
+        question: `Decrease ${Y} by ${X}%.`,
         correct_answer: ans,
         options: shuffleArray([ans, fmt(Y-X), partOnly, fmt(result*2)].filter((v,idx,a)=>a.indexOf(v)===idx)).slice(0, 4),
         raw: { rate: X, base: Y },
-        explanation: `${Y} - ${X}% од ${Y} = ${Y} - ${partOnly} = ${ans}`,
-        hint: `💡 Прво пресметај ${X}% од ${Y}, па одземи од ${Y}.`
+        explanation: `${Y} - ${X}% of ${Y} = ${Y} - ${partOnly} = ${ans}`,
+        hint: `💡 First calculate ${X}% of ${Y}, then subtract it from ${Y}.`
     });
 });
 }
 
-// TYPE 4: FIND RATE — "Колку % е A од B?"  (D2, 50 tasks, ids 480-529)
+// TYPE 4: FIND RATE — "What % is A of B?"  (D2, 50 tasks, ids 480-529)
 {
 const rateParams = [
     [10,100],[20,200],[50,100],[25,400],[15,300],[30,150],[40,200],[60,300],
@@ -648,17 +649,17 @@ rateParams.forEach(([A, B], i) => {
     allTasks.push({
         id: 480 + i,
         difficulty: 2,
-        question: `Колку проценти е ${A} од ${B}?`,
+        question: `What percentage is ${A} of ${B}?`,
         correct_answer: ans,
         options: shuffleArray([ans, fmt(A/B), fmt((B/A)*100), fmt(A*B/100)].filter((v,idx,a)=>a.indexOf(v)===idx)).slice(0, 4),
         raw: { rate: result, base: B },
         explanation: `(${A} ÷ ${B}) × 100 = ${ans}%`,
-        hint: `💡 Подели го малиот број со големиот, па помножи со 100.`
+        hint: `💡 Divide the small number by the large one, then multiply by 100.`
     });
 });
 }
 
-// TYPE 5: FIND BASE — "A е X% од кој број?"  (D2-3, 40 tasks, ids 530-569)
+// TYPE 5: FIND BASE — "A is X% of what number?"  (D2-3, 40 tasks, ids 530-569)
 {
 const baseParams = [
     [10,100],[20,50],[25,50],[50,50],[30,60],[40,80],[15,30],[5,100],
@@ -674,17 +675,17 @@ baseParams.forEach(([X, A], i) => {
     allTasks.push({
         id: 530 + i,
         difficulty: i < 20 ? 2 : 3,
-        question: `${A} е ${X}% од кој број?`,
+        question: `${A} is ${X}% of what number?`,
         correct_answer: ans,
         options: shuffleArray([ans, fmt(A*X), fmt(A*X/100), fmt(A/X)].filter((v,idx,a)=>a.indexOf(v)===idx)).slice(0, 4),
         raw: { rate: X, base: base },
         explanation: `${A} ÷ (${X}÷100) = ${A} × (100÷${X}) = ${ans}`,
-        hint: `💡 Ако ${A} е ${X}%, целото (100%) е ${A}÷${X}×100.`
+        hint: `💡 If ${A} is ${X}%, the whole (100%) is ${A}÷${X}×100.`
     });
 });
 }
 
-// TYPE 6: INTEREST — "X% камата на Y за 1 год."  (D3, 30 tasks, ids 570-599)
+// TYPE 6: INTEREST — "X% interest on Y for 1 yr."  (D3, 30 tasks, ids 570-599)
 {
 const interestParams = [
     [5,200],[8,500],[10,300],[12,400],[6,500],[15,200],[20,300],[4,500],
@@ -698,17 +699,17 @@ interestParams.forEach(([X, Y], i) => {
     allTasks.push({
         id: 570 + i,
         difficulty: 3,
-        question: `Банката нуди ${X}% годишна камата. Ако депонираш ${Y}д, колку камата добиваш за 1 година?`,
+        question: `The bank offers ${X}% annual interest. If you deposit ${Y}d, how much interest do you receive in 1 year?`,
         correct_answer: ans,
         options: shuffleArray([ans, fmt(Y+X), fmt((Y*X)/10), fmt(Y+result)].filter((v,idx,a)=>a.indexOf(v)===idx)).slice(0, 4),
         raw: { rate: X, base: Y },
-        explanation: `Камата = ${Y} × (${X}÷100) = ${ans}д`,
-        hint: `💡 Камата = главница × каматна стапка ÷ 100.`
+        explanation: `Interest = ${Y} × (${X}÷100) = ${ans}d`,
+        hint: `💡 Interest = principal × interest rate ÷ 100.`
     });
 });
 }
 
-// TYPE 7: MARKUP/TAX — "Цена Y + X% данок"  (D3, 30 tasks, ids 600-629)
+// TYPE 7: MARKUP/TAX — "Price Y + X% tax"  (D3, 30 tasks, ids 600-629)
 {
 const markupParams = [
     [10,200],[20,150],[5,400],[15,300],[8,500],[25,200],[18,250],[12,400],
@@ -723,19 +724,19 @@ markupParams.forEach(([X, Y], i) => {
     allTasks.push({
         id: 600 + i,
         difficulty: 3,
-        question: `Производ чини ${Y}д. Кон него се додава ${X}% данок. Колку изнесува крајната цена?`,
+        question: `Product costs ${Y}d. To it, ${X}% tax is added. What is the final price?`,
         correct_answer: ans,
         options: shuffleArray([ans, fmt(taxOnly), fmt(Y+X), fmt(taxOnly*2+Y)].filter((v,idx,a)=>a.indexOf(v)===idx)).slice(0, 4),
         raw: { rate: X, base: Y },
-        explanation: `${Y} + ${X}% од ${Y} = ${Y} + ${fmt(taxOnly)} = ${ans}д`,
-        hint: `💡 Прво пресметај го данокот (${X}% од ${Y}), па додај го на цената.`
+        explanation: `${Y} + ${X}% of ${Y} = ${Y} + ${fmt(taxOnly)} = ${ans}d`,
+        hint: `💡 First calculate the tax (${X}% of ${Y}), then add it to the price.`
     });
 });
 }
 
-// TYPE 8: STORE DISCOUNT — "Артикл чини Y₌. Попуст X%. Финална цена / заштеда?"  (D3, 35 tasks, ids 630-664)
+// TYPE 8: STORE DISCOUNT — "Item costs Y. Discount X%. Final price / savings?"  (D3, 35 tasks, ids 630-664)
 {
-const shopItems = ['телевизор','лаптоп','патики','мобилен телефон','јакна','велосипед','слушалки','таблет','фотоапарат','рачен часовник','играчка конзола'];
+const shopItems = ['TV','laptop','sneakers','mobile phone','jacket','bicycle','headphones','tablet','camera','watch','game console'];
 const discountParams = [
     [10,200],[20,300],[25,400],[15,600],[30,500],[5,800],[10,1000],[20,250],[25,800],[15,400],
     [30,600],[10,500],[20,400],[25,200],[40,500],[10,300],[20,500],[15,200],[30,400],[5,600],
@@ -755,20 +756,20 @@ discountParams.forEach(([X, Y], i) => {
         id: 630 + i,
         difficulty: 3,
         question: askFinal
-            ? `Во продавница ${item} чини ${Y}₌. На попуст е сведен за ${X}%. Колку ќе платиш?`
-            : `${item} чини ${Y}₌ и е на попуст од ${X}%. Колку денари заштедуваш?`,
+            ? `In the shop, a ${item} costs ${Y}d. It is discounted by ${X}%. How much will you pay?`
+            : `A ${item} costs ${Y}d and is on a ${X}% discount. How many denarii do you save?`,
         correct_answer: ans,
         options: shuffleArray([ans, wrong1, wrong2, wrong3].filter((v,idx,a)=>a.indexOf(v)===idx&&parseFloat(v)>0)).slice(0,4),
         raw: { rate: X, base: Y },
         explanation: askFinal
-            ? `Попуст: ${X}% од ${Y} = ${fmt(savings)}₌. Финална цена: ${Y} − ${fmt(savings)} = ${ans}₌`
-            : `Заштеда: ${X}% од ${Y} = (${X}÷100) × ${Y} = ${ans}₌`,
-        hint: `💡 Пресметај ${X}% од ${Y} (попустот), па ${askFinal ? 'одземи го од оригиналната цена' : 'тоа е заштедата'}.`
+            ? `Discount: ${X}% of ${Y} = ${fmt(savings)}d. Final price: ${Y} − ${fmt(savings)} = ${ans}d`
+            : `Savings: ${X}% of ${Y} = (${X}÷100) × ${Y} = ${ans}d`,
+        hint: `💡 Calculate ${X}% of ${Y} (the discount), then ${askFinal ? 'subtract it from the original price' : 'that is the savings'}.`
     });
 });
 }
 
-// TYPE 9: SALARY / DEDUCTIONS — "Бруто плата Y₌, придонеси X%. Колку е нето?"  (D3, 35 tasks, ids 665-699)
+// TYPE 9: SALARY / DEDUCTIONS — "Gross salary Y, deductions X%. What is net?"  (D3, 35 tasks, ids 665-699)
 {
 const salaryParams = [
     [10,2000],[20,3000],[15,4000],[25,2400],[10,3500],[20,2500],[15,3000],[25,4000],[10,5000],[20,4500],
@@ -784,20 +785,20 @@ salaryParams.forEach(([X, Y], i) => {
     const wrong2 = fmt(Y - X);
     const wrong3 = fmt(net / 2);
     const contexts = [
-        `Работник со бруто плата ${Y}₌ плаќа ${X}% придонеси за социјално осигурување.`,
-        `Месечна плата изнесува ${Y}₌. Државата задржува ${X}% данок на доход.`,
-        `Бруто заработка е ${Y}₌. Работодавачот одбива ${X}% за здравствено осигурување.`,
-        `Плата пред одбивки: ${Y}₌. Вкупни одбивки: ${X}%.`
+        `A worker with a gross salary of ${Y}d pays ${X}% social security contributions.`,
+        `Monthly salary is ${Y}d. The state deducts ${X}% income tax.`,
+        `Gross earnings are ${Y}d. The employer deducts ${X}% for health insurance.`,
+        `Salary before deductions: ${Y}d. Total deductions: ${X}%.`
     ];
     allTasks.push({
         id: 665 + i,
         difficulty: 3,
-        question: contexts[i % contexts.length] + ` Колку е нето платата (во рака)?`,
+        question: contexts[i % contexts.length] + ` What is the net salary (take-home pay)?`,
         correct_answer: ans,
         options: shuffleArray([ans, wrong1, wrong2, wrong3].filter((v,idx,a)=>a.indexOf(v)===idx&&parseFloat(v)>0)).slice(0,4),
         raw: { rate: X, base: Y },
-        explanation: `Одбивки: ${X}% од ${Y} = ${fmt(deduction)}₌. Нето: ${Y} − ${fmt(deduction)} = ${ans}₌`,
-        hint: `💡 Пресметај ${X}% од ${Y} (одбивките), па одземи ги од бруто платата.`
+        explanation: `Deductions: ${X}% of ${Y} = ${fmt(deduction)}d. Net: ${Y} − ${fmt(deduction)} = ${ans}d`,
+        hint: `💡 Calculate ${X}% of ${Y} (the deductions), then subtract them from the gross salary.`
     });
 });
 }
@@ -811,28 +812,28 @@ function buildContextualQuestion(eventType, ctx) {
     const fl = n => String(Math.floor(n));
 
     if (eventType === 'bonus') {
-        const Y = ctx.money;
+        const Y = Math.max(0, ctx.money);
         const X = ctx.pct || 15; // pct pre-selected at call site for consistency
         const ans = fl(Y * X / 100);
         return {
-            question: `Имаш ${Y}д. Поминувајќи низ СТАРТ добиваш ${X}% бонус. Колку денари добиваш?`,
+            question: `You have ${Y}d. Passing through START you get a ${X}% bonus. How many denarii do you get?`,
             correct_answer: ans, difficulty: 1,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X), String(Math.floor(Y*X/100)+1)]),
-            explanation: `${X}% од ${Y} = (${X}÷100)×${Y} = ${ans}д`,
-            hint: `💡 Подели ${Y} со 100, па помножи со ${X}.`
+            explanation: `${X}% of ${Y} = (${X}÷100)×${Y} = ${ans}d`,
+            hint: `💡 Divide ${Y} by 100, then multiply by ${X}.`
         };
     }
     if (eventType === 'tax') {
-        const Y = ctx.money, X = 10;
+        const Y = Math.max(0, ctx.money), X = 10;
         const taxAmt = Math.floor(Y * X / 100);
         const remaining = Y - taxAmt;
         const ans = String(remaining);
         return {
-            question: `Имаш ${Y}д. Данокот е ${X}%. Колку ти ОСТАНУВААТ пари по плаќањето?`,
+            question: `You have ${Y}d. The tax is ${X}%. How much money do you have LEFT after paying?`,
             correct_answer: ans, difficulty: 2,
             options: buildOpts(ans, [String(taxAmt), String(Y + taxAmt), fl(Y - X), fl(Y * X / 10)]),
-            explanation: `Данок = ${X}% од ${Y} = ${taxAmt}д. Останува: ${Y} − ${taxAmt} = ${ans}д`,
-            hint: `💡 Прво пресметај 10% (= ${taxAmt}д), па одземи го од ${Y}д.`
+            explanation: `Tax = ${X}% of ${Y} = ${taxAmt}d. Remaining: ${Y} − ${taxAmt} = ${ans}d`,
+            hint: `💡 First calculate 10% (= ${taxAmt}d), then subtract it from ${Y}d.`
         };
     }
     if (eventType === 'buy') {
@@ -847,11 +848,11 @@ function buildContextualQuestion(eventType, ctx) {
             const newRent = rentAmt + increase;
             const ans = String(newRent);
             return {
-                question: `Ако го купиш „${name}", кириjата е ${rentAmt}д. Следниот месец кириjата расте за ${R}%. Колку е новата кирија?`,
+                question: `If you buy "${name}", the rent is ${rentAmt}d. Next month the rent increases by ${R}%. What is the new rent?`,
                 correct_answer: ans, difficulty: 3,
                 options: buildOpts(ans, [String(rentAmt + R), String(rentAmt * 2), String(increase), String(Math.floor(rentAmt * 1.5))]),
-                explanation: `${rentAmt} + ${R}% = ${rentAmt} + ${increase} = ${ans}д`,
-                hint: `💡 Прво пресметај ${R}% од ${rentAmt}д (= ${increase}д), па додај го на ${rentAmt}д.`
+                explanation: `${rentAmt} + ${R}% = ${rentAmt} + ${increase} = ${ans}d`,
+                hint: `💡 First calculate ${R}% of ${rentAmt}d (= ${increase}d), then add it to ${rentAmt}d.`
             };
         }
         if (diff === 2) {
@@ -859,21 +860,21 @@ function buildContextualQuestion(eventType, ctx) {
             const total = Y + rentAmt;
             const ans = String(total);
             return {
-                question: `Имотот „${name}" чини ${Y}д. Провизијата при купување е ${X}% од цената. Колку платиш ВКУПНО?`,
+                question: `The property "${name}" costs ${Y}d. The commission when buying is ${X}% of the price. How much do you pay TOTAL?`,
                 correct_answer: ans, difficulty: 2,
                 options: buildOpts(ans, [String(Y + X), String(rentAmt), String(Y * 2), String(Math.floor(Y * 1.1))]),
-                explanation: `${Y} + ${X}% од ${Y} = ${Y} + ${rentAmt} = ${ans}д`,
-                hint: `💡 Прво пресметај ја провизијата (${X}% од ${Y}), па додај ја на цената.`
+                explanation: `${Y} + ${X}% of ${Y} = ${Y} + ${rentAmt} = ${ans}d`,
+                hint: `💡 First calculate the commission (${X}% of ${Y}), then add it to the price.`
             };
         }
         // D1: basic "X% of price"
         const ans = String(rentAmt);
         return {
-            question: `Имотот „${name}" чини ${Y}д. Кириjата е ${X}% од цената. Колку е кириjата?`,
+            question: `The property "${name}" costs ${Y}d. The rent is ${X}% of the price. How much is the rent?`,
             correct_answer: ans, difficulty: 1,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X*10), fl(rentAmt*2)]),
-            explanation: `${X}% кирија од цена ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
-            hint: `💡 ${X}% = ${X}÷100. Помножи го тоа со цената ${Y}д.`
+            explanation: `${X}% rent of price ${Y}d = (${X}÷100)×${Y} = ${ans}d`,
+            hint: `💡 ${X}% = ${X}÷100. Multiply that by the price ${Y}d.`
         };
     }
     if (eventType === 'rent') {
@@ -889,11 +890,11 @@ function buildContextualQuestion(eventType, ctx) {
             const ans = String(newRent);
             const dbl = String(rentAmt * 2);
             return {
-                question: `Плаќаш кирија ${rentAmt}д за „${name}". Ако кириjата порасне за ${R}%, колку ќе изнесува новата кирија?`,
+                question: `You pay rent ${rentAmt}d for "${name}". If the rent increases by ${R}%, what will be the new rent?`,
                 correct_answer: ans, difficulty: 3,
                 options: buildOpts(ans, [String(rentAmt + R), dbl, String(increase), String(Math.floor(rentAmt * 1.5))]),
-                explanation: `${rentAmt} + ${R}% = ${rentAmt} + ${increase} = ${ans}д`,
-                hint: `💡 Прво пресметај ${R}% од ${rentAmt}д, па додај го на ${rentAmt}д.`
+                explanation: `${rentAmt} + ${R}% = ${rentAmt} + ${increase} = ${ans}d`,
+                hint: `💡 First calculate ${R}% of ${rentAmt}d, then add it to ${rentAmt}d.`
             };
         }
         if (diff === 2) {
@@ -901,22 +902,22 @@ function buildContextualQuestion(eventType, ctx) {
             const increased = Math.floor(rentAmt * 1.2);
             const ans = String(increased);
             return {
-                question: `Плаќаш кирија ${rentAmt}д за „${name}". Сопственикот изгради зграда — кириjата расте за 20%. Колку е новата кирија?`,
+                question: `You pay rent ${rentAmt}d for "${name}". The owner built a building — the rent increases by 20%. What is the new rent?`,
                 correct_answer: ans, difficulty: 2,
                 options: buildOpts(ans, [String(rentAmt + 20), String(rentAmt * 2), String(Math.floor(rentAmt * 1.5)), String(rentAmt - Math.floor(rentAmt * 0.2))]),
-                explanation: `${rentAmt} + 20% = ${rentAmt} + ${Math.floor(rentAmt * 0.2)} = ${ans}д`,
-                hint: `💡 Зголеми ${rentAmt} за 20%: ${rentAmt} + (20%×${rentAmt}).`
+                explanation: `${rentAmt} + 20% = ${rentAmt} + ${Math.floor(rentAmt * 0.2)} = ${ans}d`,
+                hint: `💡 Increase ${rentAmt} by 20%: ${rentAmt} + (20%×${rentAmt}).`
             };
         }
         // D1: standard
         const ans = String(rentAmt);
         const dbl = String(rentAmt * 2);
         return {
-            question: `„${name}" чини ${Y}д. Кириjата е ${X}% од цената. Колку денари плаќаш кирија?`,
+            question: `"${name}" costs ${Y}d. The rent is ${X}% of the price. How many denarii do you pay in rent?`,
             correct_answer: ans, difficulty: 1,
             options: buildOpts(ans, [dbl, fl((Y*X)/10), fl(Y+X), fl(Y/X)]),
-            explanation: `${X}% од ${Y} = (${X}÷100)×${Y} = ${ans}д`,
-            hint: `💡 Кириjата = цена × (процент ÷ 100).`
+            explanation: `${X}% of ${Y} = (${X}÷100)×${Y} = ${ans}d`,
+            hint: `💡 Rent = price × (percentage ÷ 100).`
         };
     }
     if (eventType === 'build') {
@@ -924,29 +925,29 @@ function buildContextualQuestion(eventType, ctx) {
         const X = ctx.pct || 40; // pct pre-selected at call site so button and question match
         const ans = fl(Y * X / 100);
         const hints = {
-            30: '💡 30% = 3/10. Подели со 10 па помножи со 3.',
-            35: '💡 35% = 10% + 25%. Пресметај ги одделно па собери.',
-            40: '💡 40% = 2/5. Подели со 5 па помножи со 2.',
-            45: '💡 45% = 50% − 5%. Земи половина, па одземи 5%.',
-            50: '💡 50% = половина. Подели со 2.'
+            30: '💡 30% = 3/10. Divide by 10 then multiply by 3.',
+            35: '💡 35% = 10% + 25%. Calculate separately then add.',
+            40: '💡 40% = 2/5. Divide by 5 then multiply by 2.',
+            45: '💡 45% = 50% − 5%. Take half, then subtract 5%.',
+            50: '💡 50% = half. Divide by 2.'
         };
         return {
-            question: `Градбата чини ${X}% од цената на имотот (${Y}д). Колку плаќаш за градба?`,
+            question: `The building costs ${X}% of the property price (${Y}d). How much do you pay for the building?`,
             correct_answer: ans, difficulty: 3,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(parseFloat(ans)+Y), fl(Y*(100-X)/100)]),
-            explanation: `${X}% од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
-            hint: hints[X] || `💡 Пресметај ${X}% од ${Y}д.`
+            explanation: `${X}% of ${Y}d = (${X}÷100)×${Y} = ${ans}d`,
+            hint: hints[X] || `💡 Calculate ${X}% of ${Y}d.`
         };
     }
     if (eventType === 'loan') {
         const Y = 1500, X = [6, 8, 12][Math.floor(Math.random()*3)];
         const ans = fl(Y * X / 100);
         return {
-            question: `Зел/а си кредит од ${Y}д. Банката наплаќа ${X}% годишна камата. Колку камата плаќаш за 1 година?`,
+            question: `You took a loan of ${Y}d. The bank charges ${X}% annual interest. How much interest do you pay for 1 year?`,
             correct_answer: ans, difficulty: 3,
             options: buildOpts(ans, [fl(Y+X), fl((Y*X)/10), fl(Y/X*10), fl(parseFloat(ans)*2)]),
-            explanation: `${X}% камата од ${Y}д = (${X}÷100)×${Y} = ${ans}д`,
-            hint: `💡 Камата = главница × (каматна стапка ÷ 100).`
+            explanation: `${X}% interest of ${Y}d = (${X}÷100)×${Y} = ${ans}d`,
+            hint: `💡 Interest = principal × (interest rate ÷ 100).`
         };
     }
     // Fallback
@@ -983,10 +984,10 @@ function createRoomData(diffLevel, teacherName, duration) {
     };
 }
 const boardConfig = [
-    {name:"СТАРТ",type:"start",color:"#ecf0f1"}, {name:"Улица Децимала",type:"property",group:"south",color:"#3498db"}, {name:"Парк на Дропки",type:"property",group:"south",color:"#3498db"}, {name:"Плоштад 10%",type:"property",group:"south",color:"#3498db"}, {name:"Булевар Еуклид",type:"property",group:"south",color:"#3498db"},
-    {name:"ЗАТВОР / ОДМОР",type:"jail",color:"#7f8c8d"}, {name:"Авенија Алгебра",type:"property",group:"east",color:"#27ae60"}, {name:"Њутн Маало",type:"property",group:"east",color:"#27ae60"}, {name:"Пазар за Проценти",type:"property",group:"east",color:"#27ae60"}, {name:"Кула на Питагора",type:"property",group:"east",color:"#27ae60"},
-    {name:"ШАНСА",type:"chance",color:"#f39c12"}, {name:"Банка за Камати",type:"property",group:"north",color:"#e74c3c"}, {name:"Гаус Хајтс",type:"property",group:"north",color:"#e74c3c"}, {name:"Статистичка Зона",type:"property",group:"north",color:"#e74c3c"}, {name:"Финансиски Центар",type:"property",group:"north",color:"#e74c3c"},
-    {name:"ДАНОК",type:"tax",color:"#34495e"}, {name:"Кружен Тек 'Пи'",type:"property",group:"west",color:"#f1c40f"}, {name:"Лимит Лејн",type:"property",group:"west",color:"#f1c40f"}, {name:"Вектор Вју",type:"property",group:"west",color:"#f1c40f"}, {name:"Матрица Маркет",type:"property",group:"west",color:"#f1c40f"}
+    {name:"START",type:"start",color:"#ecf0f1"}, {name:"Decimal Street",type:"property",group:"south",color:"#3498db"}, {name:"Fraction Park",type:"property",group:"south",color:"#3498db"}, {name:"10% Square",type:"property",group:"south",color:"#3498db"}, {name:"Euclid Boulevard",type:"property",group:"south",color:"#3498db"},
+    {name:"JAIL / REST",type:"jail",color:"#7f8c8d"}, {name:"Algebra Avenue",type:"property",group:"east",color:"#27ae60"}, {name:"Newton Neighborhood",type:"property",group:"east",color:"#27ae60"}, {name:"Percent Market",type:"property",group:"east",color:"#27ae60"}, {name:"Pythagoras Tower",type:"property",group:"east",color:"#27ae60"},
+    {name:"CHANCE",type:"chance",color:"#f39c12"}, {name:"Interest Bank",type:"property",group:"north",color:"#e74c3c"}, {name:"Gauss Heights",type:"property",group:"north",color:"#e74c3c"}, {name:"Statistical Zone",type:"property",group:"north",color:"#e74c3c"}, {name:"Financial Center",type:"property",group:"north",color:"#e74c3c"},
+    {name:"TAX",type:"tax",color:"#34495e"}, {name:"Pi Roundabout",type:"property",group:"west",color:"#f1c40f"}, {name:"Limit Lane",type:"property",group:"west",color:"#f1c40f"}, {name:"Vector View",type:"property",group:"west",color:"#f1c40f"}, {name:"Matrix Market",type:"property",group:"west",color:"#f1c40f"}
 ];
 
 // --- AUDIO ---
@@ -1020,6 +1021,35 @@ function triggerConfetti() {
 
 // --- LOBBY LOGIC ---
 let currentRole = 'student';
+
+// --- QUICK PRACTICE DEMO ---
+let currentDemoAnswer = 20;
+function checkDemoAnswer() {
+    const input = document.getElementById('demo-input');
+    const feedback = document.getElementById('demo-feedback');
+    const userVal = parseFloat(input.value);
+
+    if (userVal === currentDemoAnswer) {
+        feedback.style.color = '#059669';
+        feedback.innerText = '✅ PERFECT! You are ready!';
+        triggerConfetti();
+        AudioController.play('success');
+        
+        // Generate new simple question after 2 seconds
+        setTimeout(() => {
+            const base = [40, 60, 80, 100, 120, 200][Math.floor(Math.random() * 6)];
+            const rate = [10, 20, 25, 50][Math.floor(Math.random() * 4)];
+            currentDemoAnswer = (base * rate) / 100;
+            document.getElementById('demo-question').innerText = `Calculate ${rate}% of ${base}:`;
+            input.value = '';
+            feedback.innerText = '';
+        }, 2000);
+    } else {
+        feedback.style.color = '#dc2626';
+        feedback.innerText = '❌ Try again!';
+        AudioController.play('failure');
+    }
+}
 
 window.onload = () => {
     document.getElementById('player-name-input').oninput = checkLoginValid;
@@ -1057,15 +1087,15 @@ function checkLoginValid() {
     // Validate name
     let nameValid = true;
     if (nameVal.length === 0) {
-        nameError.innerText = '❌ Внесете име';
+        nameError.innerText = '❌ Enter name';
         nameError.style.display = 'block';
         nameValid = false;
     } else if (nameVal.length < 3) {
-        nameError.innerText = '❌ Името мора да има минимум 3 карактери';
+        nameError.innerText = '❌ Name must have at least 3 characters';
         nameError.style.display = 'block';
         nameValid = false;
     } else if (nameVal.length > 30) {
-        nameError.innerText = '❌ Името мора да има максимум 30 карактери';
+        nameError.innerText = '❌ Name must have maximum 30 characters';
         nameError.style.display = 'block';
         nameValid = false;
     } else {
@@ -1076,11 +1106,11 @@ function checkLoginValid() {
     let roomValid = true;
     if (currentRole === 'student') {
         if (roomVal.length === 0) {
-            roomError.innerText = '❌ Внесете код на соба';
+            roomError.innerText = '❌ Enter room code';
             roomError.style.display = 'block';
             roomValid = false;
         } else if (roomVal.length < 3) {
-            roomError.innerText = '❌ Кодот мора да има минимум 3 карактери';
+            roomError.innerText = '❌ Code must have at least 3 characters';
             roomError.style.display = 'block';
             roomValid = false;
         } else {
@@ -1100,7 +1130,7 @@ function openTeacherDashDirectly() {
     studentName = document.getElementById('player-name-input').value.trim();
 
     if (studentName.length < 3) {
-        showError('❌ Внесете валидно име (минимум 3 карактери)');
+        showError('❌ Enter a valid name (minimum 3 characters)');
         return;
     }
 
@@ -1156,7 +1186,7 @@ let _roomsListListener = null;
 
 function fetchAvailableRooms() {
     const list = document.getElementById('available-rooms-list');
-    list.innerHTML = '<p style="font-size:0.7rem; color:#94a3b8;">Се вчитуваат активни соби...</p>';
+    list.innerHTML = '<p style="font-size:0.7rem; color:#94a3b8;">Loading active rooms...</p>';
 
     // Detach previous listener if any
     if (_roomsListListener) {
@@ -1167,7 +1197,7 @@ function fetchAvailableRooms() {
         const rooms = snapshot.val();
         list.innerHTML = '';
         if (!rooms) {
-            list.innerHTML = '<p style="font-size:0.7rem; color:#94a3b8;">Нема активни соби.</p>';
+            list.innerHTML = '<p style="font-size:0.7rem; color:#94a3b8;">No active rooms.</p>';
             return;
         }
 
@@ -1188,7 +1218,7 @@ function fetchAvailableRooms() {
         });
 
         if (count === 0) {
-            list.innerHTML = '<p style="font-size:0.7rem; color:#94a3b8;">Нема соби кои чекаат играчи.</p>';
+            list.innerHTML = '<p style="font-size:0.7rem; color:#94a3b8;">No rooms waiting for players.</p>';
         }
     });
 }
@@ -1209,7 +1239,7 @@ async function joinRoom() {
             waited += 200;
         }
         if (!currentUserUid) {
-            showError('Грешка при поврзување. Обновете ја страницата.');
+            showError('Connection error. Refresh the page.');
             return;
         }
     }
@@ -1217,7 +1247,7 @@ async function joinRoom() {
     const nameValidation = validatePlayerName(document.getElementById('player-name-input').value);
     if (!nameValidation.valid) { showError(nameValidation.error); return; }
     studentName = nameValidation.sanitized;
-    studentOdd = (currentRole === 'teacher') ? "Наставник" : sanitizeInput(document.getElementById('player-odd-input').value);
+    studentOdd = (currentRole === 'teacher') ? "Teacher" : sanitizeInput(document.getElementById('player-odd-input').value);
 
     if (currentRole === 'student') {
         const roomValidation = validateRoomCode(document.getElementById('room-id-input').value);
@@ -1229,7 +1259,7 @@ async function joinRoom() {
     }
 
     stopFetchingRooms(); // stop live room list listener once player joins
-    showLoader('Се поврзувам...', 'Влегувам во соба ' + roomId);
+    showLoader('Connecting...', 'Entering room ' + roomId);
     document.getElementById('auth-section').style.display = 'none';
     document.getElementById('lobby-section').style.display = 'block';
     document.getElementById('current-room-display').innerText = roomId;
@@ -1275,7 +1305,7 @@ async function joinRoom() {
                 if (existingPid !== -1) {
                     myPlayerId = existingPid;
                     const pData = currentPlayers[existingPid];
-                    // Re-activate if marked eliminated by НОВА ИГРА reset
+                    // Re-activate if marked eliminated by NEW GAME reset
                     if (pData.isEliminated) {
                         db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ isEliminated: false });
                     }
@@ -1283,7 +1313,7 @@ async function joinRoom() {
                     studentWrong = pData.wrong || 0;
                 } else {
                     if (currentPlayers.length >= MAX_PLAYERS) {
-                        showError("Собата е полна!");
+                        showError("Room is full!");
                         setTimeout(() => location.reload(), 2000);
                         return;
                     }
@@ -1304,7 +1334,7 @@ async function joinRoom() {
                         return arr;
                     });
                     if (!txResult.committed) {
-                        showError("Собата е полна! Обиди се повторно.");
+                        showError("Room is full! Try again.");
                         hideLoader();
                         return;
                     }
@@ -1312,7 +1342,7 @@ async function joinRoom() {
                     const joined = committedArr.find(p => p && p.uid === currentUserUid);
                     myPlayerId = joined ? joined.id : -1;
                     if (myPlayerId === -1) {
-                        showError("Грешка при придружување. Обиди се повторно.");
+                        showError("Error joining. Try again.");
                         hideLoader();
                         return;
                     }
@@ -1343,7 +1373,7 @@ function showTeacherRoomList() {
     const container = document.getElementById('teacher-rooms-list');
     if (!container) return;
     
-    container.innerHTML = '<p style="font-size:0.7rem; color:#64748b; margin-top:10px;">ВАШИ АКТИВНИ СОБИ:</p>';
+    container.innerHTML = '<p style="font-size:0.7rem; color:#64748b; margin-top:10px;">YOUR ACTIVE ROOMS:</p>';
     myRooms.forEach(rid => {
         const btn = document.createElement('button');
         btn.innerText = rid;
@@ -1365,6 +1395,21 @@ function handleRoomUpdate(snapshot) {
     const data = snapshot.val();
     if (!data) return;
 
+    // Handle Teacher Broadcast
+    if (data.broadcast && data.broadcast.time !== window.lastBroadcastTime) {
+        window.lastBroadcastTime = data.broadcast.time;
+        const banner = document.getElementById('broadcast-banner');
+        const msg = document.getElementById('broadcast-msg');
+        if (banner && msg) {
+            msg.innerText = "📣 TEACHER: " + data.broadcast.msg;
+            banner.style.top = "0";
+            AudioController.play('step');
+            setTimeout(() => {
+                banner.style.top = "-100px";
+            }, 8000);
+        }
+    }
+
     // Detect teacher "New Game" reset: gameVersion incremented while we were in a finished game
     const incomingVersion = data.gameVersion || 1;
     if (incomingVersion > knownGameVersion && gameOverTriggered) {
@@ -1374,7 +1419,7 @@ function handleRoomUpdate(snapshot) {
         studentCorrect = 0; studentWrong = 0; myTurnCount = 0;
         questionHistory = []; usedQuestionIds = [];
         isRolling = false;
-        // Re-activate this player's slot (НОВА ИГРА marks played-out students as eliminated)
+        // Re-activate this player's slot (NEW GAME marks played-out students as eliminated)
         if (currentRole === 'student' && myPlayerId >= 0) {
             db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ isEliminated: false });
         }
@@ -1398,7 +1443,7 @@ function handleRoomUpdate(snapshot) {
         document.getElementById('lobby-section').style.display = 'block';
         renderBoard();
         updateLobbyUI();
-        showSuccess('🔄 Наставникот започна нова игра! Чекај го стартот...');
+        showSuccess('🔄 The teacher started a new game! Wait for the start...');
         // Fall through so the rest of handleRoomUpdate syncs the waiting state normally
     } else if (incomingVersion > knownGameVersion) {
         knownGameVersion = incomingVersion;
@@ -1408,10 +1453,10 @@ function handleRoomUpdate(snapshot) {
     if (data.status === 'ended' && !gameOverTriggered) {
         const inLobby = document.getElementById('login-overlay').style.display !== 'none';
         if (inLobby) {
-            showError('⛔ Оваа соба е веќе завршена. Внесете нов код за да се придружите на нова соба.');
+            showError('⛔ This room is already finished. Enter a new code to join a new room.');
             return;
         }
-        triggerGameOver(data.endReason || 'Играта е завршена.');
+        triggerGameOver(data.endReason || 'The game is finished.');
         return;
     }
 
@@ -1449,7 +1494,7 @@ function handleRoomUpdate(snapshot) {
 
                 if (remainingTime <= 0) {
                     clearInterval(window.mainGameTicker);
-                    triggerGameOver("Времето истече!");
+                    triggerGameOver("Time is up!");
                 }
             }, 1000);
         }
@@ -1466,7 +1511,7 @@ function handleRoomUpdate(snapshot) {
         // Ensure turnStartTime is valid and from the server
         if (!data.turnStartTime || data.turnStartTime <= 0 || data.turnStartTime > serverTimeNow + 60000) {
             const timerEl = document.getElementById('turn-timer');
-            if(timerEl) timerEl.innerText = `Подготовка...`;
+            if(timerEl) timerEl.innerText = `Preparing...`;
             return;
         }
 
@@ -1478,7 +1523,7 @@ function handleRoomUpdate(snapshot) {
 
         const timerEl = document.getElementById('turn-timer');
         if(timerEl) {
-            timerEl.innerText = `Потег: ${displayTime}s`;
+            timerEl.innerText = `Turn: ${displayTime}s`;
             if (displayTime <= 5) { timerEl.style.color = '#ef4444'; timerEl.style.fontWeight = '900'; timerEl.style.animation = 'pulse 0.5s ease-in-out infinite'; }
             else if (displayTime <= 10) { timerEl.style.color = '#f59e0b'; timerEl.style.fontWeight = 'bold'; timerEl.style.animation = ''; }
             else { timerEl.style.color = '#3498db'; timerEl.style.fontWeight = 'bold'; timerEl.style.animation = ''; }
@@ -1488,7 +1533,7 @@ function handleRoomUpdate(snapshot) {
         // This prevents new player from auto-skipping when they see old turnStartTime
         if (turnRemainingTime === 0 && elapsed >= 30 && elapsed < 35 && currentPlayerIndex === myPlayerId && !isRolling && currentRole !== 'teacher') {
             clearInterval(localTurnTicker);
-            log("Времето истече! Потегот се префрла.");
+            log("Time is up! The turn is passed.");
             endTurnMulti();
         }
     };
@@ -1518,7 +1563,7 @@ function handleRoomUpdate(snapshot) {
             pauseOverlay = document.createElement('div');
             pauseOverlay.id = 'pause-overlay';
             pauseOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);z-index:9000;display:flex;align-items:center;justify-content:center;';
-            pauseOverlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:2rem 3rem;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.3);"><div style="font-size:3.5rem;">⏸️</div><h2 style="margin:0.5rem 0;color:#1e293b;">Игра паузирана</h2><p style="color:#64748b;margin:0;">Наставникот ја паузираше играта. Чекај...</p></div>';
+            pauseOverlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:2rem 3rem;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.3);"><div style="font-size:3.5rem;">⏸️</div><h2 style="margin:0.5rem 0;color:#1e293b;">Game paused</h2><p style="color:#64748b;margin:0;">The teacher paused the game. Wait...</p></div>';
             document.body.appendChild(pauseOverlay);
         }
         const rollBtn = document.getElementById('roll-btn');
@@ -1540,7 +1585,7 @@ function handleRoomUpdate(snapshot) {
             remainingTime = Math.max(0, Math.floor((data.gameEndTime - getServerTime()) / 1000));
         }
         if (remainingTime <= 0 && !gameOverTriggered) {
-            triggerGameOver("Времето истече!");
+            triggerGameOver("Time is up!");
         }
     }
 
@@ -1610,21 +1655,21 @@ function updateLobbyUI() {
 
 async function createMultipleRooms() {
     const count = parseInt(document.getElementById('multi-room-count').value) || 1;
-    const name = document.getElementById('player-name-input').value.trim() || "Наставник";
+    const name = document.getElementById('player-name-input').value.trim() || "Teacher";
     const diffLevel = document.getElementById('room-difficulty-select').value;
 
     const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
 
     // If there are many old rooms, ask to clear them
     if (myRooms.length > 0) {
-        const clearOld = await showConfirmModal("Имате веќе креирано соби. Дали сакате прво да ги ИЗБРИШЕТЕ старите?");
+        const clearOld = await showConfirmModal("You already have rooms created. Do you want to DELETE the old ones first?");
         if (clearOld) {
             myRooms.length = 0;
             localStorage.setItem('percentopolis_teacher_rooms', "[]");
         }
     }
 
-    showSuccess(`⏳ Креирам ${count} нови соби...`);
+    showSuccess(`⏳ Creating ${count} new rooms...`);
 
     for (let i = 1; i <= count; i++) {
         const newRoomId = (100 + i).toString();
@@ -1639,11 +1684,11 @@ async function createMultipleRooms() {
     localStorage.setItem('percentopolis_teacher_rooms', JSON.stringify(myRooms));
     showTeacherRoomList();
     if (document.getElementById('teacher-modal').style.display === 'flex') openTeacherDash();
-    showSuccess("✅ Собите се успешно креирани!");
+    showSuccess("✅ Rooms created successfully!");
 }
 
 async function clearAllMyRooms() {
-    const yes = await showConfirmModal("Дали сте сигурни дека сакате да ги избришете СИТЕ ваши соби од листата?");
+    const yes = await showConfirmModal("Are you sure you want to delete ALL your rooms from the list?");
     if (!yes) return;
     localStorage.setItem('percentopolis_teacher_rooms', "[]");
     if (dashRoomListener && activeDashRoomId) {
@@ -1656,14 +1701,14 @@ async function clearAllMyRooms() {
     gridListeners = {};
     activeDashRoomId = null;
     openTeacherDash();
-    showSuccess("✅ Листата е исчистена.");
+    showSuccess("✅ The list is cleared.");
 }
 
 async function startAllMyRooms() {
     const myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
     if (myRooms.length === 0) return;
     
-    const yes = await showConfirmModal(`Дали сте сигурни дека сакате да ги стартувате СИТЕ ${myRooms.length} соби одеднаш?`);
+    const yes = await showConfirmModal(`Are you sure you want to start ALL ${myRooms.length} rooms at once?`);
     if (!yes) return;
 
     for (const rid of myRooms) {
@@ -1688,13 +1733,13 @@ async function startAllMyRooms() {
             }
         }
     }
-    showSuccess("✅ Сите соби со играчи се стартувани!");
+    showSuccess("✅ All rooms with players are started!");
 }
 
 function requestStartGame() {
     if (!isCreator) return;
     if (players.filter(p => p && p.role === 'student').length === 0) {
-        showError("Потребен е барем еден ученик за да започне играта!");
+        showError("At least one student is required to start the game!");
         return;
     }
     
@@ -1705,7 +1750,7 @@ function requestStartGame() {
     }
 
     if (firstStudent >= players.length) {
-        showError("Нема активни ученици. Сите ученици се елиминирани или не се поврзани.");
+        showError("No active students. All students are eliminated or not connected.");
         return;
     }
 
@@ -1723,7 +1768,7 @@ function initMultiplayerGame() {
     correctStreak = 0;
     wrongStreak = 0;
     AudioController.init();
-    document.getElementById('player-display-name').innerText = (currentRole === 'teacher' ? 'Наставник: ' : 'Играч: ') + studentName;
+    document.getElementById('player-display-name').innerText = (currentRole === 'teacher' ? 'Teacher: ' : 'Player: ') + studentName;
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('game-wrapper').classList.remove('blur-filter');
     
@@ -1737,7 +1782,7 @@ function initMultiplayerGame() {
         const div = document.createElement('div');
         div.id = `stat-${p.id}`;
         div.className = 'player-stat';
-        div.innerHTML = `<span>${escapeHtml(p.name)}</span><span id="score-${p.id}">${p.money}д</span><div id="powerups-${p.id}" class="active-powerups"></div>`;
+        div.innerHTML = `<span>${escapeHtml(p.name)}</span><span id="score-${p.id}">${p.money}d</span><div id="powerups-${p.id}" class="active-powerups"></div>`;
         statsPanel.appendChild(div);
         
         const t = document.getElementById(`token-${p.id}`);
@@ -1810,7 +1855,7 @@ async function playTurnMulti(){
     if (!p) { isRolling = false; return; }
 
     if (p.jailTurns > 0) {
-        log(`⏳ ${p.name} е на одмор/затвор. Пропушта потег (Уште ${p.jailTurns}).`);
+        log(`⏳ ${p.name} is on vacation/jail. Skips a turn (Remaining ${p.jailTurns}).`);
         db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ jailTurns: p.jailTurns - 1 });
         endTurnMulti();
         return;
@@ -1820,13 +1865,13 @@ async function playTurnMulti(){
     if(token) token.classList.add('walking');
 
     const roll = await rollDiceAnimation();
-    log(`${p.name} фрли ${roll}.`);
+    log(`${p.name} rolled ${roll}.`);
     
     let steps = roll;
     if(p.powerups && p.powerups.nitro){
         steps *= 2;
         p.powerups.nitro = false;
-        log("🚀 НИТРО! Дупло движење!");
+        log("🚀 NITRO! Double movement!");
     }
 
     let passedStart = false;
@@ -1848,10 +1893,10 @@ async function playTurnMulti(){
     if(passedStart){
         const bonusPct = [10, 12, 15, 18, 20][Math.floor(Math.random() * 5)];
         const b = Math.floor(p.money * bonusPct / 100);
-        const auctionWon = await offerAuctionChoice("СТАРТ БОНУС", 1);
+        const auctionWon = await offerAuctionChoice("START BONUS", 1);
         if (!auctionWon) {
             const t = buildContextualQuestion('bonus', { money: p.money, pct: bonusPct });
-            const ok = await askQuestion("СТАРТ БОНУС", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
+            const ok = await askQuestion("START BONUS", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty, 0);
             if(ok && !p.isSpectator) await updateMoneyMulti(myPlayerId, b);
         }
     }
@@ -1874,16 +1919,16 @@ async function updateMoneyMulti(pid, amt){
     if (newMoney < 0 && pid === myPlayerId) {
         // Step 1: Offer Loan if available
         if (!p.hasLoan) {
-            log("⚠️ КРИЗА! Немаш доволно пари. Банката ти нуди КРЕДИТ.");
+            log("⚠️ CRISIS! You don't have enough money. The bank offers a LOAN.");
             const t = buildContextualQuestion('loan', {});
-            const ok = await askQuestion("🏦 БАНКАРСКИ КРЕДИТ", `Реши ја задачата за 1500д кредит, инаку ГУБИШ!\n\n${t.question}`, t.correct_answer, [], true, t.explanation, t.hint, t.difficulty);
+            const ok = await askQuestion("🏦 BANK LOAN", `Solve the task for 1500d loan, otherwise you LOSE!\n\n${t.question}`, t.correct_answer, [], true, t.explanation, t.hint, t.difficulty);
             
             if (ok) {
                 newMoney += 1500;
                 p.money = newMoney;
                 p.hasLoan = true;
                 await db.ref(`rooms/${roomId}/players/${pid}`).update({ money: newMoney, hasLoan: true });
-                log("✅ Кредитот е одобрен!");
+                log("✅ Loan approved!");
             }
         }
 
@@ -1891,7 +1936,7 @@ async function updateMoneyMulti(pid, amt){
         if (newMoney < 0) {
             const myProps = gameBoard.filter(c => c.owner === pid);
             if (myProps.length > 0) {
-                log("⚠️ Сè уште си во минус! Мора да продадеш имот за да преживееш.");
+                log("⚠️ Still in debt! You must sell property to survive.");
                 await showSellPropertyModal(pid, newMoney);
                 return; // Modal will handle further logic
             } else {
@@ -1899,9 +1944,9 @@ async function updateMoneyMulti(pid, amt){
                 db.ref(`rooms/${roomId}/players/${pid}`).update({ money: 0, isSpectator: true });
                 players[pid].money = 0;
                 players[pid].isSpectator = true;
-                showFloatingTextMulti('👁️ ГЛЕДАЧ', pid);
-                log(`💸 ${players[pid].name} е банкрутиран — продолжува како гледач!`);
-                showSuccess('💸 Банкрот! Продолжуваш како гледач. Одговарај на ШАНСА и ДАНОК прашања!');
+                showFloatingTextMulti('👁️ SPECTATOR', pid);
+                log(`💸 ${players[pid].name} is bankrupt — continues as a spectator!`);
+                showSuccess('💸 Bankrupt! You continue as a spectator. Answer CHANCE and TAX questions!');
                 return;
             }
         }
@@ -1935,8 +1980,8 @@ async function showSellPropertyModal(pid, currentDebt) {
         container.style.display = 'block';
         container.style.width = '500px';
         container.innerHTML = `
-            <h2 style="color:#e74c3c">🆘 ПРИНУДНА ПРОДАЖБА</h2>
-            <p>Ти фалат уште <b>${debt}д</b>. Продај некој од твоите имоти за 50% од цената.</p>
+            <h2 style="color:#e74c3c">🆘 FORCED SALE</h2>
+            <p>You are missing <b>${debt}d</b>. Sell some of your properties for 50% of the price.</p>
             <div id="sell-list" style="margin:20px 0; max-height:200px; overflow-y:auto; text-align:left;"></div>
         `;
 
@@ -1946,7 +1991,7 @@ async function showSellPropertyModal(pid, currentDebt) {
             const btn = document.createElement('button');
             btn.className = 'option-btn';
             btn.style.marginBottom = '10px';
-            btn.innerHTML = `🏙️ ${prop.name} (Земи ${sellValue}д)`;
+            btn.innerHTML = `🏙️ ${prop.name} (Get ${sellValue}d)`;
             btn.onclick = async () => {
                 // Update Firebase: remove owner
                 await db.ref(`rooms/${roomId}/gameBoard/${prop.index}`).update({ owner: null, buildings: 0 });
@@ -1955,7 +2000,7 @@ async function showSellPropertyModal(pid, currentDebt) {
                 p.money += sellValue;
                 await db.ref(`rooms/${roomId}/players/${pid}`).update({ money: p.money });
 
-                log(`💸 Го продаде ${prop.name} за ${sellValue}д.`);
+                log(`💸 Sold ${prop.name} for ${sellValue}d.`);
                 o.style.display = 'none';
 
                 // Recheck: if still in debt after this sale, open modal again for next property
@@ -1968,9 +2013,9 @@ async function showSellPropertyModal(pid, currentDebt) {
                         db.ref(`rooms/${roomId}/players/${pid}`).update({ money: 0, isSpectator: true });
                         players[pid].money = 0;
                         players[pid].isSpectator = true;
-                        showFloatingTextMulti('👁️ ГЛЕДАЧ', pid);
-                        log(`💸 ${players[pid].name} е банкрутиран — продолжува како гледач!`);
-                        showSuccess('💸 Банкрот! Продолжуваш како гледач. Одговарај на ШАНСА и ДАНОК прашања!');
+                        showFloatingTextMulti('👁️ SPECTATOR', pid);
+                        log(`💸 ${players[pid].name} is bankrupt — continues as a spectator!`);
+                        showSuccess('💸 Bankrupt! You continue as a spectator. Answer CHANCE and TAX questions!');
                         resolve();
                     }
                 } else {
@@ -1993,7 +2038,7 @@ function showFloatingTextMulti(amount, pid) {
         t.innerText = amount;
         t.style.color = '#9b59b6'; // Purple for rewards
     } else {
-        t.innerText=(amount>0?'+':'')+amount+'д'; t.style.color=amount>0?'#27ae60':'#e74c3c';
+        t.innerText=(amount>0?'+':'')+amount+'d'; t.style.color=amount>0?'#27ae60':'#e74c3c';
     }
     
     t.style.left=r.left+'px'; t.style.top=r.top+'px';
@@ -2022,9 +2067,9 @@ async function showLandingCardMulti(p, c){
         if(c.type === 'chance'){
             const amt = [150, 100, -50, -100, 200][Math.floor(Math.random() * 5)];
             const isPos = amt > 0;
-            o.innerHTML = `<div class="flip-card" id="cc"><div class="flip-card-inner"><div class="flip-card-front"><h1>❓</h1><h2>ШАНСА</h2></div><div class="flip-card-back"><h1>${isPos?'💰':'💸'}</h1><h2 style="color:${isPos?'green':'red'}">${isPos?'+':''}${amt}д</h2><button class="action-btn btn-build" id="btc" style="display:none;">${isPos?'Реши за да ДОБИЕШ':'Реши за да ИЗБЕГНЕШ'}</button></div></div></div>`;
+            o.innerHTML = `<div class="flip-card" id="cc"><div class="flip-card-inner"><div class="flip-card-front"><h1>❓</h1><h2>CHANCE</h2></div><div class="flip-card-back"><h1>${isPos?'💰':'💸'}</h1><h2 style="color:${isPos?'green':'red'}">${isPos?'+':''}${amt}d</h2><button class="action-btn btn-build" id="btc" style="display:none;">${isPos?'Solve to GET':'Solve to AVOID'}</button></div></div></div>`;
             // BUGFIX: Auto-resolve after 60s — prevents deadlock if student disconnects
-            // before clicking the card or the "Реши" button (isRolling=true blocks auto-skip)
+            // before clicking the card or the "Solve" button (isRolling=true blocks auto-skip)
             let chanceResolved = false;
             const chanceFallback = setTimeout(() => {
                 if (!chanceResolved) { chanceResolved = true; rc(); }
@@ -2040,10 +2085,10 @@ async function showLandingCardMulti(p, c){
                         // Scale CHANCE difficulty: adaptive per-student level, with turn count as floor
                         const turnBaseDiff = myTurnCount <= 3 ? 1 : myTurnCount <= 6 ? 2 : 3;
                         const chanceDiff = Math.max(turnBaseDiff, currentDifficultyLevel);
-                        const auctionWon = await offerAuctionChoice("ШАНСА", chanceDiff);
+                        const auctionWon = await offerAuctionChoice("CHANCE", chanceDiff);
                         if (!auctionWon) {
                             const t = getUniqueTask(chanceDiff);
-                            const ok = await askQuestion("ШАНСА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
+                            const ok = await askQuestion("CHANCE", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty, c.index);
                             if (!p.isSpectator) {
                                 if(ok) updateMoneyMulti(myPlayerId, isPos ? amt : 0);
                                 else if(!isPos) updateMoneyMulti(myPlayerId, amt);
@@ -2055,19 +2100,19 @@ async function showLandingCardMulti(p, c){
             };
         } else if(c.type === 'tax'){
             const tax = Math.floor(p.money * 0.1);
-            o.innerHTML = `<div class="card-view"><div class="card-header" style="background:#34495e">ДАНOК</div><div class="card-body"><p>Данечна инспекција! Реши ја задачата за да избегнеш 10% данок.</p><h2>Данок: 10%</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-tax-task">РЕШИ ЗАДАЧА</button>${p.powerups.lawyer?'<button class="action-btn btn-buy" id="use-lawyer">АДВОКАТ (⚖️)</button>':''}</div></div>`;
+            o.innerHTML = `<div class="card-view"><div class="card-header" style="background:#34495e">TAX</div><div class="card-body"><p>Tax inspection! Solve the task to avoid 10% tax.</p><h2>Tax: 10%</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-tax-task">SOLVE TASK</button>${p.powerups.lawyer?'<button class="action-btn btn-buy" id="use-lawyer">LAWYER (⚖️)</button>':''}</div></div>`;
             
             document.getElementById('pay-tax-task').onclick = async () => {
                 o.style.display = 'none';
-                const auctionWon = await offerAuctionChoice("ДАНOЧНА ИНСПЕКЦИЈА", 2);
+                const auctionWon = await offerAuctionChoice("TAX INSPECTION", 2);
                 if (!auctionWon) {
                     const t = buildContextualQuestion('tax', { money: p.money });
-                    const ok = await askQuestion("ДАНOЧНА ИНСПЕКЦИЈА", `Реши точно за да не платиш ${tax}д данок!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
+                    const ok = await askQuestion("TAX INSPECTION", `Solve correctly to not pay ${tax}d tax!\n\n${t.question}`, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty, c.index);
                     if(!ok && !p.isSpectator) {
                         await updateMoneyMulti(myPlayerId, -tax);
-                        log(`❌ Не ја реши задачата и плати ${tax}д данок.`);
+                        log(`❌ Did not solve the task and paid ${tax}d tax.`);
                     } else if (ok) {
-                        log(`✅ Ја реши задачата и го избегна данокот!`);
+                        log(`✅ Solved the task and avoided the tax!`);
                     }
                 }
                 resolve();
@@ -2076,7 +2121,7 @@ async function showLandingCardMulti(p, c){
             if(p.powerups.lawyer) document.getElementById('use-lawyer').onclick = () => {
                 p.powerups.lawyer = false;
                 db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
-                log("⚖️ Адвокатот те спаси од инспекција!");
+                log("⚖️ The lawyer saved you from inspection!");
                 rc();
             };
         } else if(c.type === 'jail'){
@@ -2085,23 +2130,23 @@ async function showLandingCardMulti(p, c){
             const jailDiff = Math.max(jailTurnBase, currentDifficultyLevel);
             const jailTask = getUniqueTask(jailDiff);
             o.innerHTML = `<div class="card-view">
-                <div class="card-header" style="background:#7f8c8d">⛓️ ЗАТВОР / ОДМОР</div>
+                <div class="card-header" style="background:#7f8c8d">⛓️ JAIL / REST</div>
                 <div class="card-body">
-                    <p style="font-size:0.9rem;">Седиш 1 потег. Но можеш да излезеш ВЕДНАШ ако решиш задача!</p>
+                    <p style="font-size:0.9rem;">You sit 1 turn. But you can get out IMMEDIATELY if you solve a task!</p>
                 </div>
                 <div class="card-actions">
-                    <button class="action-btn btn-buy" id="jail-escape">🔓 РЕШИ И ИЗЛЕЗИ</button>
-                    <button class="action-btn btn-pass" id="jail-ok">⏳ ОСТАНИ (1 потег)</button>
+                    <button class="action-btn btn-buy" id="jail-escape">🔓 SOLVE AND GET OUT</button>
+                    <button class="action-btn btn-pass" id="jail-ok">⏳ STAY (1 turn)</button>
                 </div>
             </div>`;
             document.getElementById('jail-escape').onclick = async () => {
                 o.style.display = 'none';
-                const ok = await askQuestion("🔓 БЕГСТВО ОД ЗАТВОР", jailTask.question, jailTask.correct_answer, jailTask.options, true, jailTask.explanation, jailTask.hint, jailTask.difficulty);
+                const ok = await askQuestion("🔓 JAIL ESCAPE", jailTask.question, jailTask.correct_answer, jailTask.options, true, jailTask.explanation, jailTask.hint, jailTask.difficulty, c.index);
                 if (ok) {
-                    log(`🔓 ${p.name} ја реши задачата и излезе од затвор!`);
+                    log(`🔓 ${p.name} solved the task and got out of jail!`);
                     // jailTurns stays 0 — player is free
                 } else {
-                    log(`⛓️ ${p.name} не ја реши задачата — останува 1 потег.`);
+                    log(`⛓️ ${p.name} did not solve the task — stays 1 turn.`);
                     db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ jailTurns: 1 });
                 }
                 rc();
@@ -2113,14 +2158,14 @@ async function showLandingCardMulti(p, c){
         } else if(c.type === 'property'){
             const rent = Math.floor(c.price * (c.rentPercent / 100));
             if(c.owner == null){ // Matches null and undefined
-                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><div class="card-row"><span>Цена:</span><span>${c.price}д</span></div><div class="card-row"><span>Кирија:</span><span>${rent}д</span></div></div><div class="card-actions"><button class="action-btn btn-buy" id="buy-prop">КУПИ (РEШИ ЗАДАЧА)</button><button class="action-btn btn-pass" id="pass-prop">ПОМИНУВАЈ</button></div></div>`;
+                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><div class="card-row"><span>Price:</span><span>${c.price}d</span></div><div class="card-row"><span>Rent:</span><span>${rent}d</span></div></div><div class="card-actions"><button class="action-btn btn-buy" id="buy-prop">BUY (SOLVE TASK)</button><button class="action-btn btn-pass" id="pass-prop">PASS</button></div></div>`;
                 document.getElementById('buy-prop').onclick = async () => {
                     o.style.display = 'none';
-                    const auctionWon = await offerAuctionChoice("КУПУВАЊЕ НА ИМОТ", c.difficulty);
+                    const auctionWon = await offerAuctionChoice("PROPERTY PURCHASE", c.difficulty);
                     if (!auctionWon) {
                         const isHard = c.difficulty === 3;
                         const t = buildContextualQuestion('buy', { price: c.price, rentPercent: c.rentPercent, name: c.name, difficulty: c.difficulty });
-                        const ok = await askQuestion("КУПУВАЊЕ", t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation, t.hint, t.difficulty);
+                        const ok = await askQuestion("PURCHASE", t.question, t.correct_answer, isHard ? [] : t.options, true, t.explanation, t.hint, t.difficulty, c.index);
                         if(ok){
                             let finalPrice = c.price;
                             if(p.powerups.bribe){ finalPrice = 1; p.powerups.bribe = false; }
@@ -2137,14 +2182,14 @@ async function showLandingCardMulti(p, c){
                 };
                 document.getElementById('pass-prop').onclick = () => rc();
             } else if(c.owner !== myPlayerId){
-                const ownerName = (players[c.owner] && players[c.owner].name) ? escapeHtml(players[c.owner].name) : "Противник";
-                const rescueBtn = p.rescueToken ? '<button class="action-btn btn-buy" id="use-rescue">🎁 ЖЕТОН (прескокни)</button>' : '';
-                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Сопственик: ${ownerName}</p><h2>Кирија: ${rent}д</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">ПЛАТИ</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">ШТИТ (🛡️)</button>':''}${rescueBtn}</div></div>`;
+                const ownerName = (players[c.owner] && players[c.owner].name) ? escapeHtml(players[c.owner].name) : "Opponent";
+                const rescueBtn = p.rescueToken ? '<button class="action-btn btn-buy" id="use-rescue">🎁 TOKEN (skip)</button>' : '';
+                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Owner: ${ownerName}</p><h2>Rent: ${rent}d</h2></div><div class="card-actions"><button class="action-btn btn-rent" id="pay-rent">PAY</button>${p.powerups.shield?'<button class="action-btn btn-buy" id="use-shield">SHIELD (🛡️)</button>':''}${rescueBtn}</div></div>`;
                 document.getElementById('pay-rent').onclick = async () => {
                     const t = buildContextualQuestion('rent', { price: c.price, rentPercent: c.rentPercent, name: c.name, rent, difficulty: c.difficulty });
                     // Hide the card overlay immediately
                     o.style.display = 'none';
-                    const ok = await askQuestion("КИРИЈА", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty);
+                    const ok = await askQuestion("RENT", t.question, t.correct_answer, t.options, true, t.explanation, t.hint, t.difficulty, c.index);
                     const finalRent = ok ? rent : rent * 2;
                     await updateMoneyMulti(myPlayerId, -finalRent);
                     updateMoneyMulti(c.owner, finalRent); // receiving money — safe without await
@@ -2157,7 +2202,7 @@ async function showLandingCardMulti(p, c){
                 };
                 if(p.rescueToken) document.getElementById('use-rescue').onclick = () => {
                     db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ rescueToken: false });
-                    log(`🎁 ${p.name} го искористи Спасовениот Жетон — кириjата е прескокната!`);
+                    log(`🎁 ${p.name} used the Rescue Token — the rent is skipped!`);
                     rc();
                 };
             } else {
@@ -2171,20 +2216,20 @@ async function showLandingCardMulti(p, c){
                 let buildActionHtml = '';
                 if (c.buildings < 3) {
                     if (ownsAll) {
-                        buildActionHtml = `<button class="action-btn btn-build" id="build-btn">ГРАДИ (${buildCost}д)</button>`;
+                        buildActionHtml = `<button class="action-btn btn-build" id="build-btn">BUILD (${buildCost}d)</button>`;
                     } else {
-                        buildActionHtml = `<p style="font-size:0.8rem; color:#e67e22;">⚠️ Потребен е монопол (сите од оваа боја) за градење.</p>`;
+                        buildActionHtml = `<p style="font-size:0.8rem; color:#e67e22;">⚠️ Monopoly required (all of this color) to build.</p>`;
                     }
                 }
 
-                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Твој имот</p></div><div class="card-actions">${buildActionHtml} <button class="action-btn btn-pass" id="pass-prop">ЗАТВОРИ</button></div></div>`;
+                o.innerHTML = `<div class="card-view"><div class="card-header" style="background:${c.color}">${c.name}</div><div class="card-body"><p>Your property</p></div><div class="card-actions">${buildActionHtml} <button class="action-btn btn-pass" id="pass-prop">CLOSE</button></div></div>`;
 
                 const bldBtn = document.getElementById('build-btn');
                 if(bldBtn) bldBtn.onclick = async () => {
                     const t = buildContextualQuestion('build', { price: c.price, pct: buildPct });
                     // Hide the card overlay immediately
                     o.style.display = 'none';
-                    const ok = await askQuestion("ГРАДЕЊЕ", t.question, t.correct_answer, [], true, t.explanation, t.hint, t.difficulty);
+                    const ok = await askQuestion("BUILDING", t.question, t.correct_answer, [], true, t.explanation, t.hint, t.difficulty, c.index);
                     if(ok){
                         db.ref(`rooms/${roomId}/gameBoard/${c.index}`).update({ buildings: c.buildings + 1, rentPercent: c.rentPercent + 15 });
                         await updateMoneyMulti(myPlayerId, -buildCost);
@@ -2205,6 +2250,11 @@ function endTurnMulti(){
     isRolling = false;
     if (players.length === 0) return;
 
+    // SECURITY FIX: Only the current player or teacher should be able to trigger the next turn
+    if (myPlayerId !== null && myPlayerId !== -1 && currentPlayerIndex !== myPlayerId) {
+        return; 
+    }
+
     // Catch-up check: grant rescue token if player's money ≤ 25% of active-player average
     if (myPlayerId !== null && myPlayerId >= 0 && currentPlayerIndex === myPlayerId) {
         const myP = players[myPlayerId];
@@ -2215,9 +2265,9 @@ function endTurnMulti(){
                 if (avg > 0 && myP.money <= avg * 0.25) {
                     db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ rescueToken: true });
                     players[myPlayerId].rescueToken = true;
-                    showSuccess('🎁 Спасовен Жетон! Ќе ја прескокнеш следната кирија.');
-                    showFloatingTextMulti('🎁 ЖЕТОН', myPlayerId);
-                    log(`🎁 ${myP.name} доби Спасовен Жетон!`);
+                    showSuccess('🎁 Rescue Token! You will skip the next rent.');
+                    showFloatingTextMulti('🎁 TOKEN', myPlayerId);
+                    log(`🎁 ${myP.name} got a Rescue Token!`);
                 }
             }
         }
@@ -2240,7 +2290,7 @@ function endTurnMulti(){
         });
     } else {
         // No valid player found — all students eliminated, end the game
-        if (!gameOverTriggered) triggerGameOver("Сите играчи се елиминирани!");
+        if (!gameOverTriggered) triggerGameOver("All players are eliminated!");
     }
 }
 
@@ -2254,7 +2304,7 @@ function updateUI(){
             else {
                 statEl.style.display = 'flex';
                 const scoreEl = document.getElementById(`score-${p.id}`);
-                if(scoreEl) scoreEl.innerText = `${p.money}д`;
+                if(scoreEl) scoreEl.innerText = `${p.money}d`;
                 
                 if(currentPlayerIndex === p.id) statEl.classList.add('active-turn');
                 else statEl.classList.remove('active-turn');
@@ -2347,8 +2397,8 @@ function openTeacherDash() {
         list.innerHTML = `
             <div style="padding:40px 20px; text-align:center; color:#94a3b8;">
                 <div style="font-size:3rem; margin-bottom:15px;">📚</div>
-                <h3 style="color:#475569; margin:0 0 10px 0;">Нема креирани соби</h3>
-                <p style="font-size:0.8rem; margin:0; line-height:1.5;">Креирајте ваша прва соба за да почнете<br>да следите напредок на учениците.</p>
+                <h3 style="color:#475569; margin:0 0 10px 0;">No rooms created</h3>
+                <p style="font-size:0.8rem; margin:0; line-height:1.5;">Create your first room to start<br>tracking student progress.</p>
             </div>
         `;
         document.getElementById('teacher-modal').style.display = 'flex';
@@ -2366,7 +2416,7 @@ function openTeacherDash() {
         `;
         btn.innerHTML = `
             <div style="font-weight:bold; font-size:0.9rem;">${rid}</div>
-            <div id="dash-status-${rid}" style="font-size:0.7rem; color:${rid === activeDashRoomId ? '#dbeafe' : '#94a3b8'};">Проверувам...</div>
+            <div id="dash-status-${rid}" style="font-size:0.7rem; color:${rid === activeDashRoomId ? '#dbeafe' : '#94a3b8'};">Checking...</div>
         `;
         btn.onclick = () => switchDashRoom(rid);
         list.appendChild(btn);
@@ -2374,7 +2424,7 @@ function openTeacherDash() {
         // Quick status preview
         db.ref(`rooms/${rid}/status`).once('value', s => {
             const statusEl = document.getElementById(`dash-status-${rid}`);
-            if (statusEl) statusEl.innerText = s.val() === 'playing' ? '🟢 ВО ТЕК' : '🟡 ЧЕКАЊЕ';
+            if (statusEl) statusEl.innerText = s.val() === 'playing' ? '🟢 IN PROGRESS' : '🟡 WAITING';
         });
     });
 
@@ -2408,7 +2458,7 @@ function showCreateRoomInterface() {
     document.getElementById('dash-back-to-list').style.display = 'none';
 
     // Update UI
-    document.getElementById('dash-active-room-title').innerText = 'КРЕИРАЈ НОВА СОБА';
+    document.getElementById('dash-active-room-title').innerText = 'CREATE NEW ROOM';
     document.getElementById('dash-start-btn').style.display = 'none';
     document.getElementById('dash-download-btn').style.display = 'none';
 
@@ -2425,38 +2475,38 @@ function showCreateRoomInterface() {
     container.style.display = 'block';
     container.innerHTML = `
         <div style="max-width:750px; margin:0 auto; padding:25px; background:white; border-radius:15px; box-shadow:0 4px 15px rgba(0,0,0,0.08);">
-            <h2 style="margin:0 0 8px 0; color:#1e293b; font-size:1.6rem;">✨ Креирај нова соба</h2>
-            <p style="color:#64748b; margin:0 0 20px 0; font-size:0.9rem;">Следната соба ќе биде: <strong style="color:#8b5cf6; font-size:1.1rem;">${nextRoomNum}</strong></p>
+            <h2 style="margin:0 0 8px 0; color:#1e293b; font-size:1.6rem;">✨ Create new room</h2>
+            <p style="color:#64748b; margin:0 0 20px 0; font-size:0.9rem;">The next room will be: <strong style="color:#8b5cf6; font-size:1.1rem;">${nextRoomNum}</strong></p>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
                 <div>
-                    <label style="display:block; font-weight:700; margin-bottom:6px; color:#475569; font-size:0.9rem;">📊 Тежина:</label>
+                    <label style="display:block; font-weight:700; margin-bottom:6px; color:#475569; font-size:0.9rem;">📊 Difficulty:</label>
                     <select id="new-room-difficulty" style="width:100%; padding:10px; border:2px solid #e2e8f0; border-radius:8px; font-size:0.95rem;">
-                        <option value="easy">ЛЕСНО</option>
-                        <option value="standard" selected>СТАНДАРДНО</option>
-                        <option value="hard">НАПРЕДНО</option>
+                        <option value="easy">EASY</option>
+                        <option value="standard" selected>STANDARD</option>
+                        <option value="hard">ADVANCED</option>
                     </select>
                 </div>
                 <div>
-                    <label style="display:block; font-weight:700; margin-bottom:6px; color:#475569; font-size:0.9rem;">⏱️ Траење на игра:</label>
+                    <label style="display:block; font-weight:700; margin-bottom:6px; color:#475569; font-size:0.9rem;">⏱️ Game Duration:</label>
                     <select id="new-room-duration" style="width:100%; padding:10px; border:2px solid #e2e8f0; border-radius:8px; font-size:0.95rem;">
-                        <option value="2400">40 мин (стандардно)</option>
-                        <option value="3600">60 мин</option>
-                        <option value="4800">80 мин (блок час)</option>
-                        <option value="5400">90 мин (блок час)</option>
+                        <option value="2400">40 min (standard)</option>
+                        <option value="3600">60 min</option>
+                        <option value="4800">80 min (block hour)</option>
+                        <option value="5400">90 min (block hour)</option>
                     </select>
                 </div>
             </div>
 
             <div style="display:flex; gap:10px; margin-bottom:20px;">
-                <button onclick="createSingleRoom()" style="flex:1; padding:14px; background:#8b5cf6; color:white; border:none; border-radius:10px; font-weight:800; cursor:pointer; font-size:0.95rem;">🚀 КРЕИРАЈ СОБА ${nextRoomNum}</button>
+                <button onclick="createSingleRoom()" style="flex:1; padding:14px; background:#8b5cf6; color:white; border:none; border-radius:10px; font-weight:800; cursor:pointer; font-size:0.95rem;">🚀 CREATE ROOM ${nextRoomNum}</button>
             </div>
 
             <div style="padding-top:20px; border-top:1px solid #e2e8f0;">
-                <p style="font-size:0.85rem; color:#64748b; margin:0 0 10px 0; font-weight:600;">Или креирај повеќе соби одеднаш:</p>
+                <p style="font-size:0.85rem; color:#64748b; margin:0 0 10px 0; font-weight:600;">Or create multiple rooms at once:</p>
                 <div style="display:flex; gap:10px; align-items:center;">
                     <input type="number" id="dash-multi-room-count" value="4" min="1" max="10" style="width:80px; padding:10px; border:2px solid #e2e8f0; border-radius:8px;">
-                    <button onclick="createMultipleRoomsFromDash()" style="flex:1; padding:11px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:700; cursor:pointer;">⚡ КРЕИРАЈ ПОВЕЌЕ</button>
+                    <button onclick="createMultipleRoomsFromDash()" style="flex:1; padding:11px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:700; cursor:pointer;">⚡ CREATE MULTIPLE</button>
                 </div>
             </div>
         </div>
@@ -2497,7 +2547,7 @@ function switchDashRoom(rid) {
         el.style.borderColor = isSelected ? '#3b82f6' : 'rgba(255,255,255,0.1)';
     });
 
-    document.getElementById('dash-active-room-title').innerText = `СОБА: ${rid}`;
+    document.getElementById('dash-active-room-title').innerText = `ROOM: ${rid}`;
 
     dashRoomListener = db.ref(`rooms/${rid}`).on('value', snapshot => {
         const data = snapshot.val();
@@ -2527,7 +2577,7 @@ function toggleGridView(showGrid) {
         grid.style.display = 'grid';
         create.style.display = 'none';
         backBtn.style.display = 'block';
-        title.innerText = "ПРЕГЛЕД НА СИТЕ СОБИ";
+        title.innerText = "OVERVIEW OF ALL ROOMS";
         renderDashGrid();
     } else {
         // Clean up grid listeners when switching back to single view
@@ -2540,7 +2590,7 @@ function toggleGridView(showGrid) {
         grid.style.display = 'none';
         create.style.display = 'none';
         backBtn.style.display = 'none';
-        if (activeDashRoomId) title.innerText = `СОБА: ${activeDashRoomId}`;
+        if (activeDashRoomId) title.innerText = `ROOM: ${activeDashRoomId}`;
     }
 }
 
@@ -2566,15 +2616,15 @@ function renderDashGrid() {
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div style="background:#f8fafc; padding:10px; border-radius:10px; text-align:center;">
-                    <div style="font-size:0.7rem; color:#64748b;">УЧЕНИЦИ</div>
+                    <div style="font-size:0.7rem; color:#64748b;">STUDENTS</div>
                     <div id="grid-players-${rid}" style="font-size:1.2rem; font-weight:bold;">0</div>
                 </div>
                 <div style="background:#f8fafc; padding:10px; border-radius:10px; text-align:center;">
-                    <div style="font-size:0.7rem; color:#64748b;">УСПЕШНОСТ</div>
+                    <div style="font-size:0.7rem; color:#64748b;">SUCCESS RATE</div>
                     <div id="grid-success-${rid}" style="font-size:1.2rem; font-weight:bold;">0%</div>
                 </div>
             </div>
-            <button onclick="event.stopPropagation(); switchDashRoom('${rid}')" style="width:100%; margin-top:15px; padding:10px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">ДЕТАЛИ ➡️</button>
+            <button onclick="event.stopPropagation(); switchDashRoom('${rid}')" style="width:100%; margin-top:15px; padding:10px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">DETAILS ➡️</button>
         `;
         card.onclick = () => switchDashRoom(rid);
         container.appendChild(card);
@@ -2590,7 +2640,7 @@ function renderDashGrid() {
             
             const statusEl = document.getElementById(`grid-status-${rid}`);
             if (statusEl) {
-                statusEl.innerText = data.status === 'playing' ? 'АКТИВНА' : 'ЧЕКАЊЕ';
+                statusEl.innerText = data.status === 'playing' ? 'ACTIVE' : 'WAITING';
                 statusEl.style.background = data.status === 'playing' ? '#dcfce7' : '#fef3c7';
                 statusEl.style.color = data.status === 'playing' ? '#166534' : '#92400e';
             }
@@ -2614,10 +2664,10 @@ function updateDashStats(data) {
     const startBtn = document.getElementById('dash-start-btn');
     const downloadBtn = document.getElementById('dash-download-btn');
 
-    statusText.innerText = data.status === 'playing' ? '🟢 Активна игра'
-        : data.status === 'paused'  ? '⏸️ Паузирана игра'
-        : data.status === 'ended'  ? '🔴 Играта е завршена — кликни НОВА ИГРА'
-        : '🟡 Во исчекување на ученици';
+    statusText.innerText = data.status === 'playing' ? '🟢 Active game'
+        : data.status === 'paused'  ? '⏸️ Paused game'
+        : data.status === 'ended'  ? '🔴 Game over — click NEW GAME'
+        : '🟡 Waiting for students';
     startBtn.style.display = (data.status === 'waiting') ? 'block' : 'none';
     const newGameBtn = document.getElementById('dash-newgame-btn');
     if (newGameBtn) newGameBtn.style.display = (data.status === 'ended') ? 'block' : 'none';
@@ -2634,11 +2684,11 @@ function updateDashStats(data) {
     }
     if (data.status === 'playing') {
         pauseBtn.style.display = 'block';
-        pauseBtn.textContent = '⏸️ ПАУЗА';
+        pauseBtn.textContent = '⏸️ PAUSE';
         pauseBtn.onclick = () => db.ref(`rooms/${activeDashRoomId}`).update({ status: 'paused' });
     } else if (data.status === 'paused') {
         pauseBtn.style.display = 'block';
-        pauseBtn.textContent = '▶️ ПРОДОЛЖИ';
+        pauseBtn.textContent = '▶️ RESUME';
         // Reset turnStartTime on resume so the current player gets a fresh 30-second turn.
         // Without this, the turn timer counts the pause duration as elapsed time →
         // can trigger auto-skip immediately after a long pause.
@@ -2713,9 +2763,9 @@ function updateDashStats(data) {
 
         // PHASE 2: Streak badge
         const streakBadge = (p.streak && p.streak >= 3) ?
-            `<span style="margin-left:8px; padding:3px 8px; background:#fbbf24; color:#78350f; border-radius:12px; font-size:0.65rem; font-weight:900;">🔥 ${p.streak} ПО РЕД</span>` : '';
+            `<span style="margin-left:8px; padding:3px 8px; background:#fbbf24; color:#78350f; border-radius:12px; font-size:0.65rem; font-weight:900;">🔥 ${p.streak} IN A ROW</span>` : '';
         const spectatorBadge = p.isSpectator ?
-            `<span style="margin-left:8px; padding:3px 8px; background:#e2e8f0; color:#475569; border-radius:12px; font-size:0.65rem; font-weight:900;">👁️ ГЛЕДАЧ</span>` : '';
+            `<span style="margin-left:8px; padding:3px 8px; background:#e2e8f0; color:#475569; border-radius:12px; font-size:0.65rem; font-weight:900;">👁️ SPECTATOR</span>` : '';
 
         tr.innerHTML = `
             <td style="padding:12px 14px;">
@@ -2723,9 +2773,9 @@ function updateDashStats(data) {
                 <div style="font-size:0.7rem; color:#64748b;">${escapeHtml(p.odd)}</div>
             </td>
             <td style="padding:12px 14px;">
-                <div style="font-weight:800; color:#2563eb; font-size:1rem;">${p.money}д</div>
+                <div style="font-weight:800; color:#2563eb; font-size:1rem;">${p.money}d</div>
                 <div style="font-size:0.65rem; color:#64748b; margin-top:2px;">
-                    ${p.money >= 1500 ? '💰 Богат' : p.money < 500 ? '⚠️ Криза' : '📊 Стабилен'}
+                    ${p.money >= 1500 ? '💰 Rich' : p.money < 500 ? '⚠️ Crisis' : '📊 Stable'}
                 </div>
             </td>
             <td style="padding:12px 14px;">
@@ -2743,7 +2793,7 @@ function updateDashStats(data) {
             </td>
             <td style="padding:12px 14px;">
                 <span style="padding:5px 12px; border-radius:16px; font-size:0.7rem; font-weight:800; background:${p.isThinking?'#fef3c7':'#dcfce7'}; color:${p.isThinking?'#92400e':'#166534'}; display:inline-block;">
-                    ${p.isThinking ? '🤔 РАЗМИСЛУВА' : '✅ ПОДГОТВЕН'}
+                    ${p.isThinking ? '🤔 THINKING' : '✅ READY'}
                 </span>
             </td>
         `;
@@ -2770,7 +2820,7 @@ function renderEndOfGameReport(data) {
     if (!container) return;
     const allPlayers = (data.players || []).filter(p => p && p.role !== 'teacher');
     if (allPlayers.length === 0) {
-        container.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:40px;">Нема податоци.</p>';
+        container.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:40px;">No data.</p>';
         return;
     }
 
@@ -2802,7 +2852,7 @@ function renderEndOfGameReport(data) {
     });
     const failList = Object.values(failMap).sort((a, b) => b.count - a.count).slice(0, 10);
     const failHtml = failList.length === 0
-        ? '<p style="color:#94a3b8;text-align:center;padding:20px;">Нема погрешни одговори! 🎉</p>'
+        ? '<p style="color:#94a3b8;text-align:center;padding:20px;">No wrong answers! 🎉</p>'
         : failList.map(f => `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:6px;background:#fef2f2;border-radius:8px;border-left:3px solid #ef4444;">
                 <span style="font-size:0.85rem;color:#374151;flex:1;">${escapeHtml(f.q)}</span>
                 <span style="color:#6b7280;font-size:0.8rem;white-space:nowrap;">→ ${escapeHtml(f.correctAns)}</span>
@@ -2812,17 +2862,17 @@ function renderEndOfGameReport(data) {
     container.innerHTML = `
         <div style="background:white;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border:1px solid #e2e8f0;overflow:hidden;margin-bottom:18px;">
             <div style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
-                <h3 style="margin:0;font-size:0.95rem;color:#1e293b;font-weight:700;">📊 Резултати по ученик</h3>
+                <h3 style="margin:0;font-size:0.95rem;color:#1e293b;font-weight:700;">📊 Results per student</h3>
             </div>
             <div style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;">
                 <thead style="background:#f1f5f9;">
                     <tr>
-                        <th style="padding:8px 14px;color:#475569;font-weight:700;font-size:0.72rem;text-align:left;">УЧЕНИК</th>
-                        <th style="padding:8px 14px;color:#10b981;font-weight:700;font-size:0.72rem;text-align:center;">ТОЧНИ</th>
-                        <th style="padding:8px 14px;color:#ef4444;font-weight:700;font-size:0.72rem;text-align:center;">ГРЕШНИ</th>
-                        <th style="padding:8px 14px;color:#475569;font-weight:700;font-size:0.72rem;text-align:center;">УСПЕХ</th>
-                        <th style="padding:8px 14px;color:#475569;font-weight:700;font-size:0.72rem;text-align:left;">ИМОТИ</th>
+                        <th style="padding:8px 14px;color:#475569;font-weight:700;font-size:0.72rem;text-align:left;">STUDENT</th>
+                        <th style="padding:8px 14px;color:#10b981;font-weight:700;font-size:0.72rem;text-align:center;">CORRECT</th>
+                        <th style="padding:8px 14px;color:#ef4444;font-weight:700;font-size:0.72rem;text-align:center;">WRONG</th>
+                        <th style="padding:8px 14px;color:#475569;font-weight:700;font-size:0.72rem;text-align:center;">SUCCESS</th>
+                        <th style="padding:8px 14px;color:#475569;font-weight:700;font-size:0.72rem;text-align:left;">PROPERTIES</th>
                     </tr>
                 </thead>
                 <tbody>${tableRows}</tbody>
@@ -2831,7 +2881,7 @@ function renderEndOfGameReport(data) {
         </div>
         <div style="background:white;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border:1px solid #e2e8f0;overflow:hidden;">
             <div style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
-                <h3 style="margin:0;font-size:0.95rem;color:#1e293b;font-weight:700;">❌ Најчесто погрешни прашања</h3>
+                <h3 style="margin:0;font-size:0.95rem;color:#1e293b;font-weight:700;">❌ Most frequently failed questions</h3>
             </div>
             <div style="padding:14px;">${failHtml}</div>
         </div>`;
@@ -2844,7 +2894,7 @@ function updateDashVisualizations(data, players) {
     const remainingMs = Math.max(0, gameEndTime - serverTime);
     const remainingMin = Math.floor(remainingMs / 60000);
     const remainingSec = Math.floor((remainingMs % 60000) / 1000);
-    document.getElementById('dash-viz-time-left').innerText = data.status === 'playing' ? `${remainingMin}:${remainingSec.toString().padStart(2, '0')}` : 'Чекање';
+    document.getElementById('dash-viz-time-left').innerText = data.status === 'playing' ? `${remainingMin}:${remainingSec.toString().padStart(2, '0')}` : 'Waiting';
 
     const allPlayers = data.players || [];
     const currentPlayer = allPlayers[data.currentPlayerIndex];
@@ -2872,7 +2922,7 @@ function updateDashVisualizations(data, players) {
                 <div style="min-width:120px; font-weight:700; font-size:0.85rem; color:#475569;">${p.emoji || '👤'} ${escapeHtml(p.name)}</div>
                 <div style="flex:1; background:#f1f5f9; height:30px; border-radius:10px; overflow:hidden; position:relative;">
                     <div style="width:${percentage}%; height:100%; background:linear-gradient(90deg, #3b82f6, #8b5cf6); transition:width 0.5s ease; display:flex; align-items:center; justify-content:flex-end; padding:0 10px;">
-                        <span style="color:white; font-weight:900; font-size:0.75rem;">${p.money}д</span>
+                        <span style="color:white; font-weight:900; font-size:0.75rem;">${p.money}d</span>
                     </div>
                 </div>
             </div>
@@ -2915,7 +2965,7 @@ function updateDashVisualizations(data, players) {
     });
 
     const difficultyDiv = document.getElementById('dash-viz-difficulty');
-    const diffLabels = { easy: 'Лесно', medium: 'Средно', hard: 'Тешко' };
+    const diffLabels = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
     const diffColors = { easy: '#10b981', medium: '#fbbf24', hard: '#ef4444' };
     difficultyDiv.innerHTML = Object.keys(diffStats).map(level => {
         const total = diffStats[level].correct + diffStats[level].wrong;
@@ -2929,24 +2979,53 @@ function updateDashVisualizations(data, players) {
                 <div style="background:#f1f5f9; height:10px; border-radius:10px; overflow:hidden;">
                     <div style="width:${successRate}%; height:100%; background:${diffColors[level]}; transition:width 0.3s ease;"></div>
                 </div>
-                <div style="font-size:0.7rem; color:#64748b; margin-top:3px;">${diffStats[level].correct} точни / ${diffStats[level].wrong} грешни</div>
+                <div style="font-size:0.7rem; color:#64748b; margin-top:3px;">${diffStats[level].correct} correct / ${diffStats[level].wrong} wrong</div>
             </div>
         `;
     }).join('');
+
+    // 5. Board Error Heatmap
+    const heatmapContainer = document.getElementById('dash-heatmap-container');
+    if (heatmapContainer) {
+        const cellErrors = data.cellErrors || {};
+        const errorValues = Object.values(cellErrors);
+        const maxErrors = errorValues.length > 0 ? Math.max(...errorValues, 1) : 1;
+        
+        heatmapContainer.innerHTML = Array.from({length: 20}).map((_, i) => {
+            const errorCount = cellErrors[i] || 0;
+            const ratio = errorCount / maxErrors;
+            
+            // Color from blueish-grey to vibrant orange-red
+            // 0 errors -> #f1f5f9
+            // Max errors -> #ef4444
+            const r = Math.round(241 + (239 - 241) * ratio);
+            const g = Math.round(245 + (68 - 245) * ratio);
+            const b = Math.round(249 + (68 - 249) * ratio);
+            const bgColor = errorCount > 0 ? `rgb(${r}, ${g}, ${b})` : '#f1f5f9';
+            const textColor = ratio > 0.6 ? 'white' : '#475569';
+            
+            return `
+                <div style="aspect-ratio:1; background:${bgColor}; color:${textColor}; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; border: 1px solid ${errorCount > 0 ? 'transparent' : '#e2e8f0'};" title="Cell ${i}: ${errorCount} errors">
+                    <span style="font-size:0.6rem; font-weight:800; position:absolute; top:3px; left:4px; opacity:0.5;">${i}</span>
+                    <span style="font-size:0.9rem; font-weight:900;">${errorCount}</span>
+                </div>
+            `;
+        }).join('');
+    }
 }
 
 function downloadGameOverCSV() {
     const csvEscape = v => `"${String(v).replace(/"/g, '""')}"`;
-    let csv = "Ученик,Одделение,Богатство,Точни,Грешни,Успех %\n";
+    let csv = "Student,Class,Wealth,Correct,Wrong,Success %\n";
     players.filter(p => p && p.role !== 'teacher').forEach(p => {
         const _c = p.correct || 0, _w = p.wrong || 0;
         const success = (_c + _w) === 0 ? '—' : `${Math.round((_c / (_c + _w)) * 100)}%`;
-        csv += [csvEscape(p.name), csvEscape(p.odd||''), csvEscape(p.money + 'д'), csvEscape(_c), csvEscape(_w), csvEscape(success)].join(',') + '\n';
+        csv += [csvEscape(p.name), csvEscape(p.odd||''), csvEscape(p.money + 'd'), csvEscape(_c), csvEscape(_w), csvEscape(success)].join(',') + '\n';
     });
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.setAttribute("href", URL.createObjectURL(blob));
-    link.setAttribute("download", `Procentopolis_${roomId || 'game'}_rezultati.csv`);
+    link.setAttribute("download", `Procentopolis_${roomId || 'game'}_results.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -2959,19 +3038,19 @@ function downloadRoomReport() {
     
     const rid = activeDashRoomId || "room";
     const csvEscape = v => `"${String(v).replace(/"/g, '""')}"`;
-    let csv = "Ученик,Одделение,Богатство,Точни,Грешни,Успех %\n";
+    let csv = "Student,Class,Wealth,Correct,Wrong,Success %\n";
 
     data.players.filter(p => p && p.role !== 'teacher').forEach(p => {
         const _c = p.correct || 0, _w = p.wrong || 0;
         const success = (_c + _w) === 0 ? '—' : `${Math.round((_c / (_c + _w)) * 100)}%`;
-        csv += [csvEscape(p.name), csvEscape(p.odd), csvEscape(p.money + 'д'), csvEscape(_c), csvEscape(_w), csvEscape(success)].join(',') + '\n';
+        csv += [csvEscape(p.name), csvEscape(p.odd), csvEscape(p.money + 'd'), csvEscape(_c), csvEscape(_w), csvEscape(success)].join(',') + '\n';
     });
     
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `Procentopolis_Izvestaj_${rid}.csv`);
+    link.setAttribute("download", `Procentopolis_Report_${rid}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -2980,17 +3059,17 @@ function downloadRoomReport() {
 
 function endGameManually() {
     if (!activeDashRoomId) return;
-    if (!confirm('Дали сте сигурни дека сакате да ја завршите играта? Сите ученици ќе го видат крајниот извештај.')) return;
-    db.ref(`rooms/${activeDashRoomId}`).update({ status: 'ended', endReason: 'Наставникот ја заврши играта.' });
+    if (!confirm('Are you sure you want to end the game? All students will see the final report.')) return;
+    db.ref(`rooms/${activeDashRoomId}`).update({ status: 'ended', endReason: 'The teacher finished the game.' });
 }
 
 async function resetRoomForNewGame() {
     if (!activeDashRoomId) return;
-    if (!confirm('Дали сте сигурни? Ова ќе ги ресетира сите резултати и ќе започне нова рунда во истата соба.')) return;
+    if (!confirm('Are you sure? This will reset all results and start a new round in the same room.')) return;
 
     const snap = await db.ref(`rooms/${activeDashRoomId}`).once('value');
     const existingData = snap.val();
-    if (!existingData) { showError('Собата не постои.'); return; }
+    if (!existingData) { showError('The room does not exist.'); return; }
 
     const currentVersion = existingData.gameVersion || 1;
     const dur = existingData.gameDuration || GAME_DURATION;
@@ -3021,14 +3100,14 @@ async function resetRoomForNewGame() {
         gameVersion: currentVersion + 1
     });
 
-    showSuccess('🔄 Нова рунда! Учениците ќе добијат известување.');
+    showSuccess('🔄 New round! Students will receive a notification.');
 }
 
 function buyItem(type,cost) {
     if(myPlayerId === -1) return;
     const p=players[myPlayerId];
     if(!p) return;
-    if(p.money<cost) { showError("Немаш доволно пари!"); return; }
+    if(p.money<cost) { showError("You don't have enough money!"); return; }
     p.powerups[type]=true;
     updateMoneyMulti(myPlayerId, -cost);
     db.ref(`rooms/${roomId}/players/${myPlayerId}`).update({ powerups: p.powerups });
@@ -3075,7 +3154,7 @@ function getUniqueTask(diff){
 const QUESTION_TIMERS = { 1: 45, 2: 60, 3: 90 };
 let _questionTimerInterval = null;
 
-function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
+function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty, cellIndex){
     return new Promise(resolve=>{
         // BUGFIX: Mark question as active to prevent accidental closing
         isQuestionActive = true;
@@ -3138,16 +3217,16 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
             updateTimerBar();
             // Auto-show hint at 15s if student hasn't answered yet
             if (timeLeft === 15 && hint && fa.innerHTML.trim() === '') {
-                fa.innerHTML = `<div style="background:#fff3cd;padding:10px 12px;border-radius:10px;border:1px solid #fbbf24;font-size:0.88rem;animation:fadeIn 0.4s ease;">💡 <strong>НАМЕК:</strong> ${escapeHtml(hint)}</div>`;
+                fa.innerHTML = `<div style="background:#fff3cd;padding:10px 12px;border-radius:10px;border:1px solid #fbbf24;font-size:0.88rem;animation:fadeIn 0.4s ease;">💡 <strong>HINT:</strong> ${escapeHtml(hint)}</div>`;
             }
             if (timeLeft <= 0) {
                 clearInterval(_questionTimerInterval);
                 _questionTimerInterval = null;
                 // Time up — treat as wrong answer
-                fa.innerHTML = `<div style="color:red;font-weight:bold;font-size:1.1rem;">⏰ ВРЕМЕТО ИСТЕЧЕ! Точниот одговор е <strong>${ans}</strong>.</div>`
+                fa.innerHTML = `<div style="color:red;font-weight:bold;font-size:1.1rem;">⏰ TIME IS UP! The correct answer is <strong>${ans}</strong>.</div>`
                     + (expl ? `<div style="margin-top:7px;font-size:0.85rem;background:#fef2f2;padding:8px 10px;border-radius:8px;border-left:3px solid #dc2626;color:#374151;">${expl}</div>` : '');
                 AudioController.play('failure');
-                sendLiveUpdate(q, '[ИСТЕЧЕ ВРЕМЕТО]', false);
+                sendLiveUpdate(q, '[TIME UP]', false);
                 setTimeout(() => finalize(false), 3500);
             }
         }, 1000);
@@ -3174,7 +3253,7 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
                 if (correctStreak >= 3) {
                     if (currentDifficultyLevel < 3) {
                         currentDifficultyLevel++;
-                        showSuccess(`🔼 Тежина зголемена на ниво ${currentDifficultyLevel}!`);
+                        showSuccess(`🔼 Difficulty increased to level ${currentDifficultyLevel}!`);
                     }
                     correctStreak = 0;
                 }
@@ -3194,9 +3273,9 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
                     p.powerups[chosen] = true;
                     updates.powerups = p.powerups;
 
-                    const emojiMap = { lawyer: '⚖️ Адвокат', shield: '🛡️ Штит', nitro: '🚀 Нитро' };
-                    log(`🔥 БРАВО! ${p.streak} по ред точно! Доби награда: ${emojiMap[chosen]}`);
-                    showSuccess(`🔥 ${p.streak} точни по ред! Награда: ${emojiMap[chosen]}`);
+                    const emojiMap = { lawyer: '⚖️ Lawyer', shield: '🛡️ Shield', nitro: '🚀 Nitro' };
+                    log(`🔥 BRAVO! ${p.streak} in a row! Received reward: ${emojiMap[chosen]}`);
+                    showSuccess(`🔥 ${p.streak} correct in a row! Reward: ${emojiMap[chosen]}`);
                     showFloatingTextMulti(`+${emojiMap[chosen].split(' ')[0]}`, myPlayerId);
                 }
             } else {
@@ -3205,13 +3284,18 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
                 p.streak = 0;
                 updates.streak = 0;
 
+                // Heatmap tracking: Record error for the cell
+                if (cellIndex !== undefined && cellIndex !== null) {
+                    db.ref(`rooms/${roomId}/cellErrors/${cellIndex}`).transaction(count => (count || 0) + 1);
+                }
+
                 // Adaptive difficulty: 3 wrong in a row → drop level
                 wrongStreak++;
                 correctStreak = 0;
                 if (wrongStreak >= 3) {
                     if (currentDifficultyLevel > 1) {
                         currentDifficultyLevel--;
-                        showSuccess(`🔽 Тежина намалена на ниво ${currentDifficultyLevel}.`);
+                        showSuccess(`🔽 Difficulty decreased to level ${currentDifficultyLevel}.`);
                     }
                     wrongStreak = 0;
                 }
@@ -3219,7 +3303,7 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
                 // PHASE 2: Trigger wrong answer (no celebration)
                 triggerCelebration('wrongAnswer');
             }
-            updates.lastActivity = (res ? "Точно: " : "Грешно: ") + q;
+            updates.lastActivity = (res ? "Correct: " : "Wrong: ") + q;
 
             db.ref(`rooms/${roomId}/players/${myPlayerId}`).update(updates);
             m.style.display='none';
@@ -3236,8 +3320,8 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
                     if(isCorrect){ b.classList.add('correct-answer'); AudioController.play('success'); triggerConfetti(); }
                     else { b.classList.add('wrong-answer'); AudioController.play('failure'); }
                     fa.innerHTML = (isCorrect
-                        ? `<div style="color:green;font-weight:bold;font-size:1.1rem;">ТОЧНО! ✅</div>`
-                        : `<div style="color:red;font-weight:bold;font-size:1.1rem;">ГРЕШКА! ❌ Точниот одговор е <strong>${ans}</strong>.</div>`)
+                        ? `<div style="color:green;font-weight:bold;font-size:1.1rem;">CORRECT! ✅</div>`
+                        : `<div style="color:red;font-weight:bold;font-size:1.1rem;">ERROR! ❌ The correct answer is <strong>${ans}</strong>.</div>`)
                         + (expl ? `<div style="margin-top:7px;font-size:0.85rem;background:${isCorrect?'#f0fdf4':'#fef2f2'};padding:8px 10px;border-radius:8px;border-left:3px solid ${isCorrect?'#16a34a':'#dc2626'};color:#374151;">${expl}</div>` : '');
                     sendLiveUpdate(q, o, isCorrect);
                     setTimeout(()=>{ finalize(isCorrect); }, isCorrect ? 3000 : 4500);
@@ -3256,8 +3340,8 @@ function askQuestion(cat, q, ans, opts, _isAdaptive, expl, hint, difficulty){
                 if(isCorrect){ AudioController.play('success'); triggerConfetti(); }
                 else { AudioController.play('failure'); }
                 fa.innerHTML = (isCorrect
-                    ? `<div style="color:green;font-weight:bold;font-size:1.1rem;">ТОЧНО! ✅</div>`
-                    : `<div style="color:red;font-weight:bold;font-size:1.1rem;">ГРЕШКА! ❌ Точниот одговор е <strong>${ans}</strong>.</div>`)
+                    ? `<div style="color:green;font-weight:bold;font-size:1.1rem;">CORRECT! ✅</div>`
+                    : `<div style="color:red;font-weight:bold;font-size:1.1rem;">ERROR! ❌ The correct answer is <strong>${ans}</strong>.</div>`)
                     + (expl ? `<div style="margin-top:7px;font-size:0.85rem;background:${isCorrect?'#f0fdf4':'#fef2f2'};padding:8px 10px;border-radius:8px;border-left:3px solid ${isCorrect?'#16a34a':'#dc2626'};color:#374151;">${expl}</div>` : '');
                 sendLiveUpdate(q, val, isCorrect);
                 setTimeout(()=>{ finalize(isCorrect); }, isCorrect ? 3000 : 4500);
@@ -3279,7 +3363,7 @@ let isQuestionActive = false;
 function closeModal(){
     // Prevent closing if a question is active (would cause game to freeze)
     if (isQuestionActive) {
-        showWarning('⚠️ Мораш да одговориш на прашањето! Не може да затвориш.');
+        showWarning('⚠️ You must answer the question! You cannot close.');
         return;
     }
     document.getElementById('question-modal').style.display='none';
@@ -3290,13 +3374,13 @@ function updateVisualOwnership(idx,pid){const e=document.getElementById(`cell-${
 // --- POST-GAME LEARNING REFLECTION ---
 
 function classifyQuestion(q) {
-    if (/Зголеми/.test(q))                      return { label: 'Зголемување за %',      emoji: '📈' };
-    if (/Намали/.test(q))                        return { label: 'Намалување за %',        emoji: '📉' };
-    if (/проценти е|Колку проценти/i.test(q))   return { label: 'Наоди ја стапката (%)',  emoji: '🔍' };
-    if (/од кој број/.test(q))                   return { label: 'Наоди ја основата',      emoji: '🧮' };
-    if (/камата|кредит/i.test(q))                return { label: 'Камата',                 emoji: '🏦' };
-    if (/крајната цена/.test(q))                 return { label: 'Данок на производ',      emoji: '🏷️' };
-    return { label: 'Пресметај %', emoji: '🔢' };
+    if (/Increase/.test(q))                      return { label: 'Increase by %',      emoji: '📈' };
+    if (/Decrease/.test(q))                      return { label: 'Decrease by %',        emoji: '📉' };
+    if (/percent is|What percent/i.test(q))   return { label: 'Find the rate (%)',  emoji: '🔍' };
+    if (/from which number/.test(q))                   return { label: 'Find the base',      emoji: '🧮' };
+    if (/interest|loan/i.test(q))                return { label: 'Interest',                 emoji: '🏦' };
+    if (/final price/.test(q))                 return { label: 'Product tax',      emoji: '🏷️' };
+    return { label: 'Calculate %', emoji: '🔢' };
 }
 
 function buildLearningSummary(name, history) {
@@ -3318,24 +3402,24 @@ function buildLearningSummary(name, history) {
     const focusEx = focus?.wrongExamples[0];
 
     const strongHtml = strong.length > 0
-        ? `<div style="margin:10px 0 5px;font-size:0.8rem;font-weight:700;color:#374151;">💪 Го совладуваш:</div>
+        ? `<div style="margin:10px 0 5px;font-size:0.8rem;font-weight:700;color:#374151;">💪 You are mastering:</div>
            ${strong.map(t => `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#f0fdf4;border-radius:6px;margin-bottom:4px;font-size:0.82rem;">
                <span>${t.emoji}</span><span style="flex:1;color:#166534;font-weight:600;">${escapeHtml(t.label)}</span>
                <span style="color:#16a34a;font-weight:700;">${t.correct}/${t.correct} ✅</span>
            </div>`).join('')}` : '';
 
     const weakHtml = weak.length > 0
-        ? `<div style="margin:10px 0 5px;font-size:0.8rem;font-weight:700;color:#374151;">🎯 Уште работи на:</div>
+        ? `<div style="margin:10px 0 5px;font-size:0.8rem;font-weight:700;color:#374151;">🎯 Still working on:</div>
            ${weak.map(t => `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fef2f2;border-radius:6px;margin-bottom:4px;font-size:0.82rem;">
                <span>${t.emoji}</span><span style="flex:1;color:#991b1b;font-weight:600;">${escapeHtml(t.label)}</span>
                <span style="color:#dc2626;font-weight:700;">${t.correct}/${t.correct + t.wrong} ✅</span>
            </div>`).join('')}`
-        : `<div style="padding:8px;background:#f0fdf4;border-radius:8px;color:#166534;font-weight:700;text-align:center;font-size:0.88rem;">🎉 Совршено! Нема погрешни одговори!</div>`;
+        : `<div style="padding:8px;background:#f0fdf4;border-radius:8px;color:#166534;font-weight:700;text-align:center;font-size:0.88rem;">🎉 Perfect! No wrong answers!</div>`;
 
     const focusHtml = focus
         ? `<div style="margin:12px 0 10px;padding:10px 12px;background:#eff6ff;border-radius:8px;border-left:3px solid #3b82f6;font-size:0.85rem;">
-               📌 <strong>Следен фокус:</strong> ${escapeHtml(focus.label)}
-               ${focusEx ? `<div style="margin-top:5px;font-size:0.78rem;color:#374151;">Пример: <em>${escapeHtml(focusEx.q)}</em> → <strong>${escapeHtml(focusEx.correctAns)}</strong></div>` : ''}
+               📌 <strong>Next focus:</strong> ${escapeHtml(focus.label)}
+               ${focusEx ? `<div style="margin-top:5px;font-size:0.78rem;color:#374151;">Example: <em>${escapeHtml(focusEx.q)}</em> → <strong>${escapeHtml(focusEx.correctAns)}</strong></div>` : ''}
            </div>` : '';
 
     const wrongAnswers = history.filter(h => !h.isCorrect);
@@ -3348,7 +3432,7 @@ function buildLearningSummary(name, history) {
 
     const wrongToggle = wrongAnswers.length > 0
         ? `<div id="wrong-answers-panel" style="display:none;max-height:160px;overflow-y:auto;margin-bottom:8px;">${wrongListHtml}</div>
-           <button onclick="toggleWrongAnswers()" id="toggle-wrong-btn" style="width:100%;padding:7px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;margin-bottom:8px;">📋 ВИДИ ГРЕШКИТЕ (${wrongAnswers.length})</button>` : '';
+           <button onclick="toggleWrongAnswers()" id="toggle-wrong-btn" style="width:100%;padding:7px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;margin-bottom:8px;">📋 SEE MISTAKES (${wrongAnswers.length})</button>` : '';
 
     const total = history.length;
     const correct = history.filter(h => h.isCorrect).length;
@@ -3357,14 +3441,14 @@ function buildLearningSummary(name, history) {
 
     return `
         <div style="text-align:center;margin-bottom:12px;">
-            <div style="font-size:1rem;font-weight:800;color:#1e293b;">🎓 ${escapeHtml(name)}, еве твојот учебен извештај!</div>
-            <div style="margin-top:4px;font-size:0.82rem;color:#64748b;">${correct} точни од ${total} прашања — <strong style="color:${pctColor};">${pct}%</strong></div>
+            <div style="font-size:1rem;font-weight:800;color:#1e293b;">🎓 ${escapeHtml(name)}, here is your learning report!</div>
+            <div style="margin-top:4px;font-size:0.82rem;color:#64748b;">${correct} correct from ${total} questions — <strong style="color:${pctColor};">${pct}%</strong></div>
         </div>
         ${strongHtml}
         ${weakHtml}
         ${focusHtml}
         ${wrongToggle}
-        <button onclick="showFullReport()" style="width:100%;padding:10px;background:var(--primary-color);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.9rem;margin-top:4px;">➡️ ПРОДОЛЖИ КОН ИЗВЕШТАЈ</button>`;
+        <button onclick="showFullReport()" style="width:100%;padding:10px;background:var(--primary-color);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.9rem;margin-top:4px;">➡️ CONTINUE TO REPORT</button>`;
 }
 
 function showFullReport() {
@@ -3378,7 +3462,7 @@ function toggleWrongAnswers() {
     if (!panel || !btn) return;
     const isHidden = panel.style.display === 'none';
     panel.style.display = isHidden ? 'block' : 'none';
-    btn.textContent = isHidden ? '📋 СКРИЈ ГРЕШКИТЕ' : `📋 ВИДИ ГРЕШКИТЕ`;
+    btn.textContent = isHidden ? '📋 HIDE MISTAKES' : `📋 SEE MISTAKES`;
 }
 
 function triggerGameOver(r){
@@ -3410,15 +3494,15 @@ function triggerGameOver(r){
         const rows = students.map(p => {
             const _c = p.correct || 0, _w = p.wrong || 0;
             const success = (_c + _w) === 0 ? '—' : `${Math.round((_c / (_c + _w)) * 100)}%`;
-            return `${p.emoji||''} ${p.name} (${p.odd||''}): ${p.money}д | Точни: ${_c} | Грешни: ${_w} | Успех: ${success}`;
+            return `${p.emoji||''} ${p.name} (${p.odd||''}): ${p.money}d | Correct: ${_c} | Wrong: ${_w} | Success: ${success}`;
         });
-        document.getElementById('report-text').innerText = "КРАЈНИ РЕЗУЛТАТИ:\n\n" + rows.join('\n');
+        document.getElementById('report-text').innerText = "FINAL RESULTS:\n\n" + rows.join('\n');
 
         // Add CSV download button if not already present
         if (!document.getElementById('teacher-csv-btn')) {
             const csvBtn = document.createElement('button');
             csvBtn.id = 'teacher-csv-btn';
-            csvBtn.textContent = '📥 Преземи CSV';
+            csvBtn.textContent = '📥 Download CSV';
             csvBtn.style.cssText = 'margin-top:12px;padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;width:100%;';
             csvBtn.onclick = downloadGameOverCSV;
             reportEl.appendChild(csvBtn);
@@ -3427,14 +3511,14 @@ function triggerGameOver(r){
     }
 
     const p = players[myPlayerId];
-    if (!p) { document.getElementById('report-text').innerText = 'Грешка: Нема податоци за играчот.'; return; }
+    if (!p) { document.getElementById('report-text').innerText = 'Error: No player data.'; return; }
     let finalMoney = p.money;
     let loanNote = "";
 
     // Repay loan if active
     if (p.hasLoan && finalMoney > 0) {
         finalMoney -= 1500;
-        loanNote = "\n(Вратен кредит: -1500д)";
+        loanNote = "\n(Returned loan: -1500d)";
     }
     
     const successRate = (studentCorrect + studentWrong) > 0
@@ -3442,12 +3526,12 @@ function triggerGameOver(r){
     const myProps = gameBoard.filter(c => c && c.owner === myPlayerId);
     const propNames = myProps.map(c => c.name).join(', ') || '—';
     const successColor = successRate >= 70 ? '#16a34a' : successRate >= 40 ? '#d97706' : '#dc2626';
-    const loanDisplay = p.hasLoan ? ` <span style="font-size:0.75rem;color:#dc2626;">(кредит -1500д)</span>` : '';
+    const loanDisplay = p.hasLoan ? ` <span style="font-size:0.75rem;color:#dc2626;">(loan -1500d)</span>` : '';
 
     let historyHtml = '';
     if (questionHistory.length > 0) {
         historyHtml = `<div style="margin-top:12px;border-top:1px solid #e2e8f0;padding-top:10px;">
-            <div style="font-weight:700;margin-bottom:6px;color:#374151;font-size:0.82rem;">📋 Одговорени прашања:</div>
+            <div style="font-weight:700;margin-bottom:6px;color:#374151;font-size:0.82rem;">📋 Answered questions:</div>
             ${questionHistory.map(h => `<div style="display:flex;align-items:flex-start;gap:5px;margin-bottom:4px;padding:4px 7px;background:${h.isCorrect?'#f0fdf4':'#fef2f2'};border-radius:6px;border-left:3px solid ${h.isCorrect?'#16a34a':'#dc2626'};font-size:0.78rem;">
                 <span style="flex-shrink:0;">${h.isCorrect ? '✅' : '❌'}</span>
                 <span style="color:#374151;flex:1;">${escapeHtml(h.q)}</span>
@@ -3456,15 +3540,15 @@ function triggerGameOver(r){
         </div>`;
     }
 
-    const qrText = `Играч: ${studentName}\nПричина: ${r}\nПари: ${finalMoney}д\nТочни: ${studentCorrect}, Грешни: ${studentWrong} (${successRate}%)`;
+    const qrText = `Player: ${studentName}\nReason: ${r}\nMoney: ${finalMoney}d\nCorrect: ${studentCorrect}, Wrong: ${studentWrong} (${successRate}%)`;
     document.getElementById('report-text').innerHTML = `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 18px;font-size:0.88rem;margin-bottom:4px;">
-            <div><span style="color:#64748b;">Играч:</span> <strong>${escapeHtml(studentName)}</strong></div>
-            <div><span style="color:#64748b;">Причина:</span> ${escapeHtml(r)}</div>
-            <div><span style="color:#64748b;">Пари:</span> <strong>${finalMoney}д</strong>${loanDisplay}</div>
-            <div><span style="color:#64748b;">Успех:</span> <strong style="color:${successColor};">${successRate}%</strong></div>
-            <div><span style="color:#64748b;">Точни:</span> <strong style="color:#16a34a;">${studentCorrect}</strong> &nbsp; <span style="color:#64748b;">Грешни:</span> <strong style="color:#dc2626;">${studentWrong}</strong></div>
-            <div><span style="color:#64748b;">Имоти:</span> <span style="font-size:0.8rem;">${escapeHtml(propNames)}</span></div>
+            <div><span style="color:#64748b;">Player:</span> <strong>${escapeHtml(studentName)}</strong></div>
+            <div><span style="color:#64748b;">Reason:</span> ${escapeHtml(r)}</div>
+            <div><span style="color:#64748b;">Money:</span> <strong>${finalMoney}d</strong>${loanDisplay}</div>
+            <div><span style="color:#64748b;">Success:</span> <strong style="color:${successColor};">${successRate}%</strong></div>
+            <div><span style="color:#64748b;">Correct:</span> <strong style="color:#16a34a;">${studentCorrect}</strong> &nbsp; <span style="color:#64748b;">Wrong:</span> <strong style="color:#dc2626;">${studentWrong}</strong></div>
+            <div><span style="color:#64748b;">Properties:</span> <span style="font-size:0.8rem;">${escapeHtml(propNames)}</span></div>
         </div>
         ${historyHtml}`;
     new QRCode(document.getElementById("qrcode"),{text:qrText,width:128,height:128});
@@ -3570,7 +3654,7 @@ function renderBoard(){
         const d=document.createElement('div'); d.className=`cell type-${c.type}`; if(c.group)d.classList.add(`group-${c.group}`); d.id=`cell-${i}`;
         if(c.owner !== null && c.owner !== undefined) d.classList.add(`owned-p${c.owner}`);
         d.style.gridRow=gp[i].r; d.style.gridColumn=gp[i].c;
-        d.innerHTML=`<div class="cell-name"></div>${c.type==='property'?`<div class="cell-price">${c.price}д</div>`:''}<div class="building-container" id="bld-${i}"></div>`;
+        d.innerHTML=`<div class="cell-name"></div>${c.type==='property'?`<div class="cell-price">${c.price}d</div>`:''}<div class="building-container" id="bld-${i}"></div>`;
         d.querySelector('.cell-name').textContent = c.name;
         b.appendChild(d);
     });
@@ -3612,7 +3696,7 @@ function renderLiveFeed(snap) {
     snap.forEach(child => entries.push(child.val()));
     entries.reverse(); // newest first
     if (entries.length === 0) {
-        feed.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:20px;">Нема одговори уште.</p>';
+        feed.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:20px;">No answers yet.</p>';
         return;
     }
     feed.innerHTML = entries.map(e => {
@@ -3625,7 +3709,7 @@ function renderLiveFeed(snap) {
                 <span style="font-size:1.1rem;">${icon}</span>
             </div>
             <div style="font-size:0.78rem;color:#374151;margin-top:3px;">${escapeHtml(e.question||'')}</div>
-            <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Одговор: <strong>${escapeHtml(String(e.answer||''))}</strong></div>
+            <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Answer: <strong>${escapeHtml(String(e.answer||''))}</strong></div>
         </div>`;
     }).join('');
 }
@@ -3653,7 +3737,7 @@ async function createSingleRoom() {
         const snapshot = await roomRef.once('value');
 
         if (snapshot.exists()) {
-            showError('❌ Соба веќе постои. Обидете се повторно.');
+            showError('❌ Room already exists. Try again.');
             return;
         }
 
@@ -3666,7 +3750,7 @@ async function createSingleRoom() {
             localStorage.setItem('percentopolis_teacher_rooms', JSON.stringify(myRooms));
         }
 
-        showSuccess(`✅ Собата ${roomName} е креирана!`);
+        showSuccess(`✅ Room ${roomName} is created!`);
 
         // Refresh sidebar and switch to new room
         openTeacherDash();
@@ -3674,7 +3758,7 @@ async function createSingleRoom() {
 
     } catch (error) {
         console.error('Error creating room:', error);
-        showError('❌ Грешка при креирање на соба. Обидете се повторно.');
+        showError('❌ Error creating room. Try again.');
     }
 }
 
@@ -3688,11 +3772,11 @@ async function createMultipleRoomsFromDash() {
     const teacherName = localStorage.getItem('percentopolis_teacher_name') || studentName;
 
     if (count < 1 || count > 10) {
-        showError('❌ Број на соби мора да биде помеѓу 1 и 10');
+        showError('❌ Number of rooms must be between 1 and 10');
         return;
     }
 
-    showSuccess(`⏳ Креирам ${count} соби...`);
+    showSuccess(`⏳ Creating ${count} rooms...`);
 
     let myRooms = JSON.parse(localStorage.getItem('percentopolis_teacher_rooms') || "[]");
     const createdRooms = [];
@@ -3712,7 +3796,7 @@ async function createMultipleRoomsFromDash() {
     }
 
     localStorage.setItem('percentopolis_teacher_rooms', JSON.stringify(myRooms));
-    showSuccess(`✅ Успешно креирани ${createdRooms.length} соби!`);
+    showSuccess(`✅ Successfully created ${createdRooms.length} rooms!`);
 
     // Refresh sidebar and switch to first created room
     openTeacherDash();
@@ -3737,15 +3821,15 @@ let tradeState = {
 };
 
 function openTradeModal() {
-    if (currentRole === 'teacher') { showError("Наставникот не може да тргува."); return; }
-    if (currentPlayerIndex !== myPlayerId) { showError("Може да тргуваш само кога си на потег."); return; }
+    if (currentRole === 'teacher') { showError("The teacher cannot trade."); return; }
+    if (currentPlayerIndex !== myPlayerId) { showError("You can only trade when it is your turn."); return; }
 
     const myProps = gameBoard.filter(c => c.owner === myPlayerId && c.type === 'property');
-    if (myProps.length === 0) { showError("Немаш имоти за тргување!"); return; }
+    if (myProps.length === 0) { showError("You have no properties to trade!"); return; }
 
     // Check if any other player owns properties
     const otherOwners = gameBoard.filter(c => c.owner !== null && c.owner !== myPlayerId && c.type === 'property');
-    if (otherOwners.length === 0) { showError("Ниеден друг играч нема имот за тргување."); return; }
+    if (otherOwners.length === 0) { showError("No other player has a property to trade."); return; }
 
     tradeState = { step: 1, myPropertyIndex: null, targetPlayerId: null, theirPropertyIndex: null, moneyAmount: 0, pendingOfferId: null };
     showTradeStep(1);
@@ -3787,7 +3871,7 @@ function renderMyProperties() {
         <div class="trade-prop-card ${tradeState.myPropertyIndex === p.index ? 'selected' : ''}" onclick="selectMyProp(${p.index})">
             <div class="prop-color-bar" style="background:${p.color}"></div>
             <div class="prop-name">${p.name}</div>
-            <div class="prop-price">${p.price}д</div>
+            <div class="prop-price">${p.price}d</div>
         </div>
     `).join('');
 }
@@ -3820,11 +3904,11 @@ function renderTargetPlayers() {
             <div class="trade-prop-card ${tradeState.theirPropertyIndex === p.index ? 'selected' : ''}" onclick="selectTheirProp(${p.index})">
                 <div class="prop-color-bar" style="background:${p.color}"></div>
                 <div class="prop-name">${p.name}</div>
-                <div class="prop-price">${p.price}д</div>
+                <div class="prop-price">${p.price}d</div>
             </div>
         `).join('');
     } else {
-        propsDiv.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#94a3b8; font-size:0.85rem;">Избери играч горе</p>';
+        propsDiv.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#94a3b8; font-size:0.85rem;">Select a player above</p>';
     }
 }
 
@@ -3842,23 +3926,23 @@ function selectTheirProp(idx) {
 function renderTradeSummary() {
     const myProp = gameBoard[tradeState.myPropertyIndex];
     const theirProp = gameBoard[tradeState.theirPropertyIndex];
-    const targetName = escapeHtml(players[tradeState.targetPlayerId]?.name || 'Играч');
+    const targetName = escapeHtml(players[tradeState.targetPlayerId]?.name || 'Player');
 
     document.getElementById('trade-summary').innerHTML = `
         <div style="display:flex; align-items:center; justify-content:center; gap:16px;">
             <div style="text-align:center;">
-                <div style="font-size:0.7rem; color:#94a3b8;">ТИ НУДИШ</div>
+                <div style="font-size:0.7rem; color:#94a3b8;">YOU OFFER</div>
                 <div style="padding:8px; background:${myProp.color}22; border-radius:8px; border:2px solid ${myProp.color}; margin-top:4px;">
                     <div style="font-weight:700; font-size:0.8rem;">${myProp.name}</div>
-                    <div style="font-size:0.7rem; color:#64748b;">${myProp.price}д</div>
+                    <div style="font-size:0.7rem; color:#64748b;">${myProp.price}d</div>
                 </div>
             </div>
             <div style="font-size:1.5rem;">🔄</div>
             <div style="text-align:center;">
-                <div style="font-size:0.7rem; color:#94a3b8;">БАРАШ ОД ${targetName.toUpperCase()}</div>
+                <div style="font-size:0.7rem; color:#94a3b8;">WANT FROM ${targetName.toUpperCase()}</div>
                 <div style="padding:8px; background:${theirProp.color}22; border-radius:8px; border:2px solid ${theirProp.color}; margin-top:4px;">
                     <div style="font-weight:700; font-size:0.8rem;">${theirProp.name}</div>
-                    <div style="font-size:0.7rem; color:#64748b;">${theirProp.price}д</div>
+                    <div style="font-size:0.7rem; color:#64748b;">${theirProp.price}d</div>
                 </div>
             </div>
         </div>
@@ -3868,11 +3952,11 @@ function renderTradeSummary() {
 
 function tradeStepNext() {
     if (tradeState.step === 1) {
-        if (tradeState.myPropertyIndex === null) { showError("Избери имот за понуда!"); return; }
+        if (tradeState.myPropertyIndex === null) { showError("Select a property to offer!"); return; }
         showTradeStep(2);
     } else if (tradeState.step === 2) {
-        if (tradeState.targetPlayerId === null) { showError("Избери играч!"); return; }
-        if (tradeState.theirPropertyIndex === null) { showError("Избери имот од играчот!"); return; }
+        if (tradeState.targetPlayerId === null) { showError("Select a player!"); return; }
+        if (tradeState.theirPropertyIndex === null) { showError("Select a property from the player!"); return; }
         showTradeStep(3);
     }
 }
@@ -3886,7 +3970,7 @@ async function sendTradeOffer() {
     document.getElementById('trade-money-amount').value = money; // clamp negative input
     const myMoney = players[myPlayerId]?.money || 0;
 
-    if (money > myMoney) { showError(`Немаш доволно пари! Имаш ${myMoney}д.`); return; }
+    if (money > myMoney) { showError(`Not enough money! You have ${myMoney}d.`); return; }
 
     const offerId = Date.now().toString();
     const offer = {
@@ -3901,8 +3985,8 @@ async function sendTradeOffer() {
 
     await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).set(offer);
     closeTradeModal();
-    showSuccess("📨 Понудата е испратена! Чекаме одговор...");
-    log(`🔄 Испрати понуда за тргување до ${players[tradeState.targetPlayerId]?.name || 'играч'}.`);
+    showSuccess("📨 Offer sent! Waiting for response...");
+    log(`🔄 Sent a trade offer to ${players[tradeState.targetPlayerId]?.name || 'player'}.`);
 }
 
 // Firebase listener for incoming trade offers
@@ -3932,11 +4016,11 @@ function listenForTradeOffers() {
 
         // If I sent the offer and it was accepted/rejected, notify me
         if (offer.from === myPlayerId && offer.status === 'accepted') {
-            showSuccess("✅ Тргувањето е прифатено!");
-            log("✅ Тргувањето беше прифатено!");
+            showSuccess("✅ Trade accepted!");
+            log("✅ The trade was accepted!");
         } else if (offer.from === myPlayerId && offer.status === 'rejected') {
-            showError("❌ Тргувањето е одбиено.");
-            log("❌ Понудата за тргување беше одбиена.");
+            showError("❌ Trade rejected.");
+            log("❌ The trade offer was rejected.");
         }
     });
 }
@@ -3948,27 +4032,27 @@ function showIncomingTrade(offer) {
 
     if (!fromPlayer || !offeredProp || !wantedProp) return;
 
-    const moneyText = offer.moneyOffered > 0 ? `<div style="margin-top:8px; font-weight:700; color:#f59e0b;">+ ${offer.moneyOffered}д</div>` : '';
+    const moneyText = offer.moneyOffered > 0 ? `<div style="margin-top:8px; font-weight:700; color:#f59e0b;">+ ${offer.moneyOffered}d</div>` : '';
 
     document.getElementById('trade-incoming-details').innerHTML = `
         <p style="font-size:0.9rem; color:#475569; margin-bottom:14px;">
-            <strong>${escapeHtml(fromPlayer.name)}</strong> сака да тргува со тебе!
+            <strong>${escapeHtml(fromPlayer.name)}</strong> wants to trade with you!
         </p>
         <div style="display:flex; align-items:center; justify-content:center; gap:16px;">
             <div style="text-align:center;">
-                <div style="font-size:0.7rem; color:#94a3b8;">ТИ НУДИ</div>
+                <div style="font-size:0.7rem; color:#94a3b8;">OFFERS YOU</div>
                 <div style="padding:8px; background:${offeredProp.color}22; border-radius:8px; border:2px solid ${offeredProp.color}; margin-top:4px;">
                     <div style="font-weight:700; font-size:0.8rem;">${offeredProp.name}</div>
-                    <div style="font-size:0.7rem; color:#64748b;">${offeredProp.price}д</div>
+                    <div style="font-size:0.7rem; color:#64748b;">${offeredProp.price}d</div>
                 </div>
                 ${moneyText}
             </div>
             <div style="font-size:1.5rem;">🔄</div>
             <div style="text-align:center;">
-                <div style="font-size:0.7rem; color:#94a3b8;">БАРА ОД ТЕБЕ</div>
+                <div style="font-size:0.7rem; color:#94a3b8;">WANTS FROM YOU</div>
                 <div style="padding:8px; background:${wantedProp.color}22; border-radius:8px; border:2px solid ${wantedProp.color}; margin-top:4px;">
                     <div style="font-weight:700; font-size:0.8rem;">${wantedProp.name}</div>
-                    <div style="font-size:0.7rem; color:#64748b;">${wantedProp.price}д</div>
+                    <div style="font-size:0.7rem; color:#64748b;">${wantedProp.price}d</div>
                 </div>
             </div>
         </div>
@@ -3986,12 +4070,12 @@ async function acceptTrade() {
     try {
         snap = await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).once('value');
     } catch(e) {
-        showError('Грешка при поврзување. Обиди се повторно.');
+        showError('Connection error. Try again.');
         return;
     }
     const offer = snap.val();
     if (!offer || offer.status !== 'pending') {
-        showError("Понудата повеќе не е валидна.");
+        showError("The offer is no longer valid.");
         document.getElementById('trade-incoming-overlay').style.display = 'none';
         return;
     }
@@ -4001,13 +4085,13 @@ async function acceptTrade() {
     const wantedProp = gameBoard[offer.propertyWanted];
 
     if (!offeredProp || offeredProp.owner !== offer.from) {
-        showError("Понудувачот повеќе не го поседува тој имот.");
+        showError("The bidder no longer owns that property.");
         await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
         document.getElementById('trade-incoming-overlay').style.display = 'none';
         return;
     }
     if (!wantedProp || wantedProp.owner !== offer.to) {
-        showError("Веќе не го поседуваш тој имот.");
+        showError("You no longer own that property.");
         await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
         document.getElementById('trade-incoming-overlay').style.display = 'none';
         return;
@@ -4022,7 +4106,7 @@ async function acceptTrade() {
     if (offer.moneyOffered > 0) {
         const fromMoney = players[offer.from]?.money || 0;
         if (fromMoney < offer.moneyOffered) {
-            showError("Понудувачот повеќе нема доволно пари за оваа размена.");
+            showError("The bidder no longer has enough money for this exchange.");
             await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
             document.getElementById('trade-incoming-overlay').style.display = 'none';
             return;
@@ -4038,8 +4122,8 @@ async function acceptTrade() {
 
     document.getElementById('trade-incoming-overlay').style.display = 'none';
     AudioController.play('success');
-    showSuccess("✅ Тргувањето е завршено!");
-    log(`🔄 Тргување: ${offeredProp.name} ↔ ${wantedProp.name}`);
+    showSuccess("✅ Trading is finished!");
+    log(`🔄 Trade: ${offeredProp.name} ↔ ${wantedProp.name}`);
 }
 
 async function rejectTrade() {
@@ -4048,11 +4132,11 @@ async function rejectTrade() {
 
     await db.ref(`rooms/${roomId}/tradeOffers/${offerId}`).update({ status: 'rejected' });
     document.getElementById('trade-incoming-overlay').style.display = 'none';
-    log("❌ Ја одби понудата за тргување.");
+    log("❌ You rejected the trade offer.");
 }
 
 // ========================================
-// AUCTION SYSTEM (Берза на знаење)
+// AUCTION SYSTEM (Knowledge Exchange)
 // ========================================
 
 const AUCTION_REWARDS = { 1: 300, 2: 500, 3: 800 };
@@ -4083,7 +4167,7 @@ function listenForAuction() {
     });
 }
 
-// Shows seller the [ОДГОВОРИ] vs [АУКЦИЈА] choice modal.
+// Shows seller the [ANSWER] vs [AUCTION] choice modal.
 // Returns true if auction ran and a winner answered; false = seller answers normally.
 function offerAuctionChoice(category, difficulty) {
     // Need at least 2 players (seller + 1 potential bidder)
@@ -4094,7 +4178,7 @@ function offerAuctionChoice(category, difficulty) {
         overlay.id = 'auction-choice-overlay';
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;' +
             'background:rgba(0,0,0,0.82);z-index:9800;display:flex;justify-content:center;align-items:center;';
-        const diffLabel = ['', 'Лесно (Ниво 1)', 'Средно (Ниво 2)', 'Тешко (Ниво 3)'][difficulty] || '';
+        const diffLabel = ['', 'Easy (Level 1)', 'Medium (Level 2)', 'Hard (Level 3)'][difficulty] || '';
         const reward = AUCTION_REWARDS[difficulty] || 300;
         overlay.innerHTML = `
             <div style="background:white;border-radius:24px;padding:30px 28px;width:420px;
@@ -4102,7 +4186,7 @@ function offerAuctionChoice(category, difficulty) {
                         border:3px solid #f59e0b;">
                 <div style="font-size:2rem;margin-bottom:8px;">🎯</div>
                 <h2 style="margin:0 0 6px 0;font-size:1.2rem;color:#1e293b;font-weight:900;">
-                    КАК САКАШ ДА ПРОДОЛЖИШ?
+                    HOW DO YOU WANT TO PROCEED?
                 </h2>
                 <p style="color:#64748b;font-size:0.83rem;margin:0 0 20px 0;font-weight:600;">
                     ${escapeHtml(category)} &middot; ${diffLabel}
@@ -4111,17 +4195,17 @@ function offerAuctionChoice(category, difficulty) {
                     <button id="choice-self" style="flex:1;padding:16px 8px;border:2px solid #3b82f6;
                         border-radius:16px;background:#eff6ff;color:#1d4ed8;font-weight:900;
                         cursor:pointer;font-size:0.92rem;">
-                        📝 ОДГОВОРИ САМ
+                        📝 ANSWER ALONE
                     </button>
                     <button id="choice-auction" style="flex:1;padding:16px 8px;border:none;
                         border-radius:16px;background:linear-gradient(135deg,#f59e0b,#b45309);
                         color:white;font-weight:900;cursor:pointer;font-size:0.92rem;
                         box-shadow:0 4px 12px rgba(245,158,11,0.4);">
-                        🔨 АУКЦИЈА
+                        🔨 AUCTION
                     </button>
                 </div>
                 <p style="margin:12px 0 0 0;font-size:0.72rem;color:#94a3b8;">
-                    Аукција: другите лицитираат за да одговорат. Победникот добива до +${reward}д. Ти ги добиваш парите!
+                    Auction: others bid to answer. The winner gets up to +${reward}d. You get the money!
                 </p>
             </div>`;
         document.body.appendChild(overlay);
@@ -4158,7 +4242,7 @@ function startAuction(category, difficulty, taskId) {
             winnerId: -1,
             resolved: false
         });
-        log(`🔨 ${players[myPlayerId] ? players[myPlayerId].name : 'Играч'} ја стави аукција! (${category}, Ниво ${difficulty})`);
+        log(`🔨 ${players[myPlayerId] ? players[myPlayerId].name : 'Player'} placed an auction! (${category}, Level ${difficulty})`);
         openAuctionOverlay('seller');
         startAuctionTimerUI(endTime, 'seller');
     });
@@ -4181,7 +4265,7 @@ function handleActiveAuction(auc) {
         const canAfford = myMoney > auc.currentBid + 100;
         setBidControlsEnabled(!isLeader && canAfford);
         const statusEl = document.getElementById('auction-my-bid-status');
-        if (statusEl) statusEl.innerText = isLeader ? '✅ Ти водиш!' : '';
+        if (statusEl) statusEl.innerText = isLeader ? '✅ You are leading!' : '';
     }
 
     // Edge case: late client sees already-expired auction
@@ -4233,20 +4317,20 @@ async function handleResolvedAuction(auc) {
             await updateMoneyMulti(winnerId, reward);
             await updateMoneyMulti(winnerId, -bidAmount);
             await updateMoneyMulti(sellerId, bidAmount);
-            log(`✅ ${players[winnerId] ? players[winnerId].name : 'Победник'} одговори точно! +${reward}д. Продавачот добива ${bidAmount}д.`);
+            log(`✅ ${players[winnerId] ? players[winnerId].name : 'Winner'} answered correctly! +${reward}d. The seller receives ${bidAmount}d.`);
         } else {
             const sellerCut = Math.floor(bidAmount * 0.5);
             await updateMoneyMulti(winnerId, -bidAmount);
             if (sellerCut > 0) await updateMoneyMulti(sellerId, sellerCut);
-            log(`❌ ${players[winnerId] ? players[winnerId].name : 'Победник'} не одговори. Загуби ${bidAmount}д. Продавачот добива ${sellerCut}д.`);
+            log(`❌ ${players[winnerId] ? players[winnerId].name : 'Winner'} did not answer. Lost ${bidAmount}d. The seller receives ${sellerCut}d.`);
         }
 
         await db.ref(`rooms/${roomId}/auction`).update({ resolved: true });
         await db.ref(`rooms/${roomId}/auction`).set(null);
 
     } else if (myPlayerId === sellerId) {
-        const winnerName = players[winnerId] ? players[winnerId].name : 'Победникот';
-        showSuccess(`🔨 ${winnerName} ја доби аукцијата за ${bidAmount}д!`);
+        const winnerName = players[winnerId] ? players[winnerId].name : 'The winner';
+        showSuccess(`🔨 ${winnerName} won the auction for ${bidAmount}d!`);
         closeAuctionOverlay();
         if (auctionResolveCallback) {
             auctionResolveCallback({ winnerId, bidAmount });
@@ -4257,7 +4341,7 @@ async function handleResolvedAuction(auc) {
             const snap = await db.ref(`rooms/${roomId}/auction`).once('value');
             if (snap.val() && snap.val().resolved === false) {
                 await db.ref(`rooms/${roomId}/auction`).set(null);
-                log('⏳ Победникот не одговори навреме. Аукцијата е затворена.');
+                log('⏳ The winner did not answer in time. The auction is closed.');
             }
         }, 35000);
     } else {
@@ -4268,7 +4352,7 @@ async function handleResolvedAuction(auc) {
 // Bidder places a bid using Firebase transaction (atomic, no race conditions)
 async function placeBid(type) {
     if (!currentAuctionData || currentAuctionData.status !== 'active') return;
-    if (getServerTime() >= currentAuctionData.endTime) { showError('Аукцијата заврши!'); return; }
+    if (getServerTime() >= currentAuctionData.endTime) { showError('The auction ended!'); return; }
 
     const p = players[myPlayerId];
     if (!p) return;
@@ -4280,11 +4364,11 @@ async function placeBid(type) {
     else if (type === 'high') myBid = current + 500;
     else {
         const raw = parseInt(document.getElementById('auction-custom-amount').value) || 0;
-        if (raw <= current) { showError(`Внесете сума поголема од ${current}д!`); return; }
+        if (raw <= current) { showError(`Enter an amount greater than ${current}d!`); return; }
         myBid = Math.ceil(raw / 100) * 100;
     }
 
-    if (p.money < myBid) { showError(`Немаш доволно пари! Имаш ${p.money}д, потребни се ${myBid}д.`); return; }
+    if (p.money < myBid) { showError(`You don't have enough money! You have ${p.money}d, ${myBid}d is required.`); return; }
 
     setBidControlsEnabled(false);
     const aRef = db.ref(`rooms/${roomId}/auction`);
@@ -4296,13 +4380,13 @@ async function placeBid(type) {
             return { ...cur, currentBid: myBid, leaderId: myPlayerId };
         });
         if (result.committed) {
-            log(`💰 ${p.name} понуди ${myBid}д на аукцијата.`);
+            log(`💰 ${p.name} bid ${myBid}d on the auction.`);
         } else {
-            showError('Некој понуди повеќе! Пробај пак.');
+            showError('Someone bid more! Try again.');
             setBidControlsEnabled(true);
         }
     } catch (err) {
-        showError('Грешка при лицитирање.');
+        showError('Error during bidding.');
         setBidControlsEnabled(true);
     }
 }
@@ -4337,21 +4421,21 @@ function openAuctionOverlay(role) {
     if (currentAuctionData) {
         const cat = currentAuctionData.category || '';
         const diff = currentAuctionData.difficulty || 1;
-        const diffLabel = ['', 'Лесно', 'Средно', 'Тешко'][diff] || '';
+        const diffLabel = ['', 'Easy', 'Medium', 'Hard'][diff] || '';
         const sellerPlayer = players[currentAuctionData.sellerId];
-        const sellerName = sellerPlayer ? escapeHtml(sellerPlayer.name) : 'Играч';
+        const sellerName = sellerPlayer ? escapeHtml(sellerPlayer.name) : 'Player';
 
         const prefixes = role === 'seller' ? [''] : ['bidder-'];
         prefixes.forEach(prefix => {
             const cb = document.getElementById(`auction-${prefix}category-badge`);
             const db2 = document.getElementById(`auction-${prefix}difficulty-badge`);
             if (cb) cb.textContent = cat;
-            if (db2) db2.textContent = `Ниво ${diff} · ${diffLabel}`;
+            if (db2) db2.textContent = `Level ${diff} · ${diffLabel}`;
         });
 
         if (role === 'bidder') {
             const annEl = document.getElementById('auction-seller-announce');
-            if (annEl) annEl.textContent = `${sellerName} ја стави аукцијата! Лицитирај за да го добиеш прашањето.`;
+            if (annEl) annEl.textContent = `${sellerName} placed the auction! Bid to get the question.`;
         }
 
         // Clear bids list on new auction
@@ -4405,9 +4489,9 @@ function stopAuctionTimerUI() {
 
 // Syncs bid amount and leader name in both seller and bidder views
 function updateAuctionBidUI(auc) {
-    const bidStr = `${auc.currentBid}д`;
+    const bidStr = `${auc.currentBid}d`;
     const leaderName = (auc.leaderId >= 0 && players[auc.leaderId])
-        ? escapeHtml(players[auc.leaderId].name) : 'Нема понуди';
+        ? escapeHtml(players[auc.leaderId].name) : 'No bids';
 
     [
         ['auction-current-bid', 'auction-leader-name'],
@@ -4453,15 +4537,24 @@ function showAuctionWonPanel(auc) {
         wonView.style.display = 'block';
         const reward = AUCTION_REWARDS[auc.difficulty] || 300;
         const h3 = document.createElement('h3');
-        h3.textContent = '🏆 ТИ ЈА ДОБИ АУКЦИЈАТА!';
+        h3.textContent = '🏆 YOU WON THE AUCTION!';
         const p1 = document.createElement('p');
-        p1.textContent = `Платен износ: ${auc.currentBid}д`;
+        p1.textContent = `Paid amount: ${auc.currentBid}d`;
         const p2 = document.createElement('p');
-        p2.textContent = `Ако одговориш точно: +${reward}д`;
+        p2.textContent = `If you answer correctly: +${reward}d`;
         const p3 = document.createElement('p');
-        p3.textContent = 'Подготви се за прашањето...';
+        p3.textContent = 'Prepare for the question...';
         p3.style.cssText = 'opacity:0.7;font-size:0.8rem;margin-top:8px;';
         wonView.innerHTML = '';
         wonView.append(h3, p1, p2, p3);
     }
+}
+
+function sendBroadcast() {
+    const input = document.getElementById('teacher-broadcast-input');
+    if (!input || !input.value.trim()) return;
+    const msg = input.value.trim();
+    db.ref("rooms/" + roomId + "/broadcast").set({ msg: msg, time: getServerTime() });
+    input.value = '';
+    showSuccess('Message broadcasted!');
 }

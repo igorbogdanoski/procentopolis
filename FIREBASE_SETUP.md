@@ -152,16 +152,16 @@ if (location.hostname === "localhost") {
 
 ---
 
-## ⚠️ ВАЖНО!
+## ⚠️ IMPORTANT!
 
-**НЕ ГО ОБЈАВУВАЈТЕ на GitHub како public repo ако содржи Firebase config!**
+**DO NOT PUBLISH on GitHub as a public repo if it contains Firebase config!**
 
 Either:
 1. Make repo **private**
 2. OR move Firebase config to `.env` file (excluded from git)
 
 ```javascript
-// .env (не commitувај ова!)
+// .env (do not commit this!)
 VITE_FIREBASE_API_KEY=AIzaSy...
 VITE_FIREBASE_AUTH_DOMAIN=percentopolis.firebaseapp.com
 ...

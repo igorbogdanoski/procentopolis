@@ -36,16 +36,40 @@ body {
 /* --- LOGIN OVERLAY --- */
 #login-overlay { 
     position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-    background: radial-gradient(circle at center, rgba(15, 23, 42, 0.8) 0%, #0f172a 100%); 
+    background: #0f172a; 
     z-index: 10000; display: flex; justify-content: center; align-items: center; 
     padding: 20px;
+    overflow: hidden;
+}
+
+/* Hero Glow Effect */
+.hero-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100vw;
+    height: 100vh;
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(147, 51, 234, 0.15) 0%, transparent 50%);
+    z-index: -1;
+    filter: blur(80px);
+    animation: flow 20s ease-in-out infinite alternate;
+}
+
+@keyframes flow {
+    0% { transform: translate(-50%, -50%) scale(1); }
+    100% { transform: translate(-45%, -55%) scale(1.1); }
 }
 
 .login-container {
-    background: white; width: 1100px; max-width: 100%; height: 720px; max-height: 95vh;
+    background: rgba(255, 255, 255, 0.95); 
+    backdrop-filter: blur(20px);
+    width: 1100px; max-width: 100%; height: 720px; max-height: 95vh;
     border-radius: 40px; display: flex; overflow: hidden; 
-    box-shadow: 0 40px 100px rgba(0,0,0,0.4);
-    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.2);
 }
 
 .login-info {
@@ -342,8 +366,20 @@ body {
 
 .active-cell { transform: scale(1.08); z-index: 50; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: 3px solid #e74c3c !important; }
 
-.token-choice { font-size: 1.5rem; background: white; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; padding: 5px 10px; transition: 0.2s; }
-.token-choice.active { border-color: var(--primary-color); background: #e8f4fd; transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.token-choice { 
+    font-size: 1.8rem; 
+    background: white; 
+    border: 2px solid #edf2f7; 
+    border-radius: 15px; 
+    cursor: pointer; 
+    padding: 10px; 
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.token-choice:hover { transform: translateY(-3px) scale(1.05); border-color: #cbd5e0; background: #f8fafc; }
+.token-choice.active { border-color: var(--primary-color); background: #eff6ff; transform: scale(1.1); box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2); }
 
 /* Updated Token Design */
 .token { 
@@ -866,7 +902,7 @@ button.loading::after {
 }
 
 /* ========================================
-   AUCTION OVERLAY (Берза на знаење)
+   AUCTION OVERLAY (Knowledge Exchange)
    ======================================== */
 .auction-modal {
     background: white;

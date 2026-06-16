@@ -6,10 +6,12 @@
     "rooms": {
       "$roomId": {
         ".read": true,
-        ".write": "auth !== null",
+        // Only allow room creation (if it doesn't exist) or update by the teacher
+        ".write": "auth !== null && (!data.exists() || data.child('teacherUid').val() === auth.uid)",
 
         "players": {
           "$playerId": {
+            // Allow player to write their own data OR the teacher to write student data
             ".write": "auth !== null && (!data.exists() || data.child('uid').val() === auth.uid || root.child('rooms/' + $roomId + '/teacherUid').val() === auth.uid)",
 
             "name": {
@@ -78,6 +80,9 @@
         },
         "remainingTime": {
           ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "cellErrors": {
+          ".write": "auth !== null"
         },
 
         "auction": {

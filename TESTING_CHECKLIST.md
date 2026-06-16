@@ -14,27 +14,27 @@
 
 ### 1.1 Login & Dashboard Access
 - [ ] Open https://procentopolis.vercel.app/
-- [ ] Select "НАСТАВНИК" role
-- [ ] Try empty name → Should show error nema poraka gre[ka ne se vleguva]
+- [ ] Select "TEACHER" role
+- [ ] Try empty name → Should show error
 - [ ] Try name with <2 chars → Should show error
-- [ ] Enter valid name (e.g., "Марија")
-- [ ] Click "📊 ОТВОРИ КОНТРОЛЕН ПАНЕЛ"
+- [ ] Enter valid name (e.g., "Maria")
+- [ ] Click "📊 OPEN CONTROL PANEL"
 - [ ] Should see empty state dashboard with create interface
 
 ### 1.2 Single Room Creation
-- [ ] Enter custom room name (e.g., "МАТЕМАТИКА8А")
-- [ ] Select difficulty (СТАНДАРДНО)
-- [ ] Click "🚀 КРЕИРАЈ СОБА"
+- [ ] Enter custom room name (e.g., "MATH8A")
+- [ ] Select difficulty (STANDARD)
+- [ ] Click "🚀 CREATE ROOM"
 - [ ] Loading spinner should appear
-- [ ] Success toast should show: "✅ Собата МАТЕМАТИКА8А е креирана!"
+- [ ] Success toast should show: "✅ Room MATH8A is created!"
 - [ ] Dashboard refreshes automatically
 - [ ] New room appears in sidebar
-- [ ] Room status shows "🟡 ЧЕКАЊЕ"
+- [ ] Room status shows "🟡 WAITING"
 
 ### 1.3 Multi-Room Creation
 - [ ] Enter number of rooms (e.g., 4)
-- [ ] Click "⚡ КРЕИРАЈ ПОВЕЌЕ"
-- [ ] Loading overlay with "🚀 Креирам 4 соби..."
+- [ ] Click "⚡ CREATE MULTIPLE"
+- [ ] Loading overlay with "🚀 Creating 4 rooms..."
 - [ ] Success toast shows number created
 - [ ] All rooms appear in sidebar
 - [ ] Can switch between rooms
@@ -42,8 +42,8 @@
 ### 1.4 Room Management
 - [ ] Click different rooms in sidebar
 - [ ] Each room loads its own data
-- [ ] "СТАРТУВАЈ СОБА" button visible
-- [ ] "📱 ПРЕГЛЕД НА СИТЕ" shows grid view
+- [ ] "START ROOM" button visible
+- [ ] "📱 VIEW ALL" shows grid view
 - [ ] Grid view shows all rooms with metrics
 - [ ] Can return to single room view
 
@@ -58,12 +58,12 @@
 ## 2. Student Flow Testing
 
 ### 2.1 Login
-- [ ] Select "УЧЕНИК" role
-- [ ] Enter name (e.g., "Петар")
-- [ ] Select одделение (8-1)
+- [ ] Select "STUDENT" role
+- [ ] Enter name (e.g., "Peter")
+- [ ] Select class (8-1)
 - [ ] Choose token (🚀)
 - [ ] Enter valid room code from teacher
-- [ ] Click "🚀 ВЛЕЗИ ВО ИГРА"
+- [ ] Click "🚀 ENTER GAME"
 - [ ] Should see lobby with room code displayed
 - [ ] Student name appears in player list
 
@@ -75,11 +75,11 @@
 - [ ] Player count increases
 
 ### 2.3 Game Start
-- [ ] Teacher clicks "СТАРТУВАЈ СОБА"
+- [ ] Teacher clicks "START ROOM"
 - [ ] Game board appears for all students
 - [ ] First student can roll dice
-- [ ] Turn timer starts (45 seconds)
-- [ ] Other students see "Чека потег..."
+- [ ] Turn timer starts (30 seconds)
+- [ ] Other students see "Waiting for move..."
 
 ---
 
@@ -108,15 +108,15 @@
 - [ ] Money transfers between players
 
 ### 3.4 Turn Timer
-- [ ] Turn timer counts down from 45s
+- [ ] Turn timer counts down from 30s
 - [ ] At 0s, turn auto-ends
 - [ ] Next player's turn starts
 - [ ] Teacher is skipped in rotation
 
 ### 3.5 Powerups (Shop)
-- [ ] Click "🛒 ПРОДАВНИЦА"
+- [ ] Click "🛒 SHOP"
 - [ ] Shop modal appears with items
-- [ ] Buy "⚖️ Адвокат" (300д)
+- [ ] Buy "⚖️ Lawyer" (300d)
 - [ ] Money deducted
 - [ ] Powerup shows in player stats
 - [ ] Test each powerup functionality
@@ -128,8 +128,8 @@
 ### 4.1 Live Monitoring
 - [ ] Open dashboard while game is active
 - [ ] See real-time player stats
-- [ ] "🤔 РАЗМИСЛУВА" status when student thinking
-- [ ] "✅ ПОДГОТВЕН" status when idle
+- [ ] "🤔 THINKING" status when student thinking
+- [ ] "✅ READY" status when idle
 - [ ] Correct/wrong count updates instantly
 
 ### 4.2 Analytics
@@ -139,14 +139,13 @@
 - [ ] Average success rate accurate
 
 ### 4.3 CSV Export
-- [ ] Click "📥 ИЗВЕШТАЈ"
+- [ ] Click "📥 REPORT"
 - [ ] CSV file downloads
 - [ ] Open in Excel/Sheets
-- [ ] Contains: Name, Одделение, Money, Correct, Wrong, Success%
-- [ ] Macedonian characters display correctly (UTF-8 BOM)
+- [ ] Contains: Name, Class, Money, Correct, Wrong, Success%
 
 ### 4.4 Grid View
-- [ ] Click "📱 ПРЕГЛЕД НА СИТЕ"
+- [ ] Click "📱 VIEW ALL"
 - [ ] All rooms displayed in grid
 - [ ] Each shows: Status, Player count, Success rate
 - [ ] Live updates work
@@ -158,9 +157,9 @@
 
 ### 5.1 Network Issues
 - [ ] Disable internet mid-game
-- [ ] Warning toast: "⚠️ Нема интернет конекција"
+- [ ] Warning toast: "⚠️ No internet connection"
 - [ ] Re-enable internet
-- [ ] Success toast: "✅ Конекцијата е вратена!"
+- [ ] Success toast: "✅ Connection restored!"
 - [ ] Game state resumes correctly
 
 ### 5.2 Firebase Connection
@@ -221,7 +220,7 @@
 ## 8. Performance Testing
 
 ### 8.1 Load Testing
-- [ ] 6 students in one game (maximum)
+- [ ] 8 students in one game (maximum)
 - [ ] Game runs smoothly
 - [ ] No lag on dice roll
 - [ ] Questions load instantly
@@ -319,4 +318,4 @@ Tester: _______________
 
 ---
 
-Last Updated: February 16, 2026
+Last Updated: June 16, 2026

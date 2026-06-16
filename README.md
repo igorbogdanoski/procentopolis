@@ -1,24 +1,24 @@
-# Percentopolis - ПроцентОполис (Multiplayer)
+# Percentopolis (Multiplayer)
 
-Математичка игра за проценти, сега во живо со 4-6 играчи!
+A mathematical game about percentages, now live with 4-8 players!
 
-## 🚀 Како да започнете
+## 🚀 How to start
 
-### 1. Firebase Подесување (Задолжително)
-За играта да работи во живо, мора да креирате своја Firebase база:
-1. Одете на [Firebase Console](https://console.firebase.google.com/).
-2. Креирајте нов проект (пр. "Percentopolis").
-3. Додајте **Web App** на проектот.
-4. Копирајте го `firebaseConfig` објектот.
-5. Отворете ја датотеката `script.js` и заменете го placeholder-от со вашите податоци:
+### 1. Firebase Setup (Required)
+For the game to work live, you must create your own Firebase database:
+1. Go to the [Firebase Console](https://console.firebase.google.com/).
+2. Create a new project (e.g., "Percentopolis").
+3. Add a **Web App** to the project.
+4. Copy the `firebaseConfig` object.
+5. Open the `script.js` file and replace the placeholder with your data:
    ```javascript
    const firebaseConfig = {
-       apiKey: "ВАШИОТ_API_KEY",
+       apiKey: "YOUR_API_KEY",
        ...
    };
    ```
-6. Во Firebase Console, одете во **Realtime Database** и активирајте ја.
-7. Поставете ги **Rules** на базата на `true` за тестирање (или соодветна аутентикација):
+6. In the Firebase Console, go to **Realtime Database** and activate it.
+7. Set the database **Rules** to `true` for testing (or appropriate authentication):
    ```json
    {
      "rules": {
@@ -28,17 +28,17 @@
    }
    ```
 
-### 2. Vercel Хостинг
-1. Направете нов репозиториум на GitHub.
-2. Поставете го овој код таму.
-3. Поврзете го репозиториумот со [Vercel](https://vercel.com/).
-4. Уживајте во играта во живо!
+### 2. Vercel Hosting
+1. Create a new repository on GitHub.
+2. Push this code there.
+3. Connect the repository with [Vercel](https://vercel.com/).
+4. Enjoy the game live!
 
-## 🛠️ Технологии
+## 🛠️ Technologies
 - **Frontend:** HTML5, CSS3, JavaScript
 - **Backend/Database:** Firebase Realtime Database
 - **Hosting:** Vercel
 - **QR Codes:** qrcode.js
 
-## 👤 Автор
-Оригиналната верзија на ПроцентОполис е рефакторирана за мултиплеер поддршка.
+## 👤 Author
+The original version of Percentopolis has been refactored for multiplayer support.

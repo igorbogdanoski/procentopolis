@@ -1,98 +1,98 @@
-# Procetopolis — План за подобрување
+# Percentopolis — Improvement Plan
 
-Задачен пул: ~530 задачи (TYPE 1–7, difficulty 1–3)
-Состојба пред планот: commit `5dfbb7c` — сите P0/P1/P2 бугови поправени.
-Имплементирани #1–#10 (сите): commit `eea2927`
-
----
-
-## НИВО 1 — Висок педагошки импакт, мал напор
-
-### ✅ #1 ЗАТВОР → предизвик за рано излегување
-**Статус:** DONE ✅
-Тековно: пропушти потег, нема вредност.
-Подобро: „Реши задача → излези веднаш. Грешно → чекај 1 потег."
-Промена: `showLandingCardMulti` — `c.type === 'jail'` блок.
-
-### ✅ #2 СТАРТ БОНУС — варијабилен % [10,12,15,18,20]
-**Статус:** DONE ✅
-Тековно: секогаш 15%. Педагошки едносмерно.
-Подобро: случаен % од листата — бонусот и прашањето се различни секој пат.
-Промена: `playTurnMulti` — `passedStart` блок.
-
-### ✅ #3 Адаптивна тежина по ученик (streak-based)
-**Статус:** DONE ✅
-3 точни по ред → `currentDifficultyLevel++` (max 3)
-3 грешни по ред → `currentDifficultyLevel--` (min 1)
-`getUniqueTask` и контекстуалните прашања го користат овој level.
-Важно: само за ШАНСА и генерички прашања — не ги менува cell-based прашања.
-
-### ✅ #4 ПАУЗА на игра (за наставник)
-**Статус:** DONE ✅
-Нов Firebase статус: `status: 'paused'`
-`handleRoomUpdate` → ако 'paused', заклучи roll-btn, прикажи overlay „⏸ Пауза".
-Наставнички dashboard: копче ПАУЗА ↔ ПРОДОЛЖИ.
+Task pool: ~530 tasks (TYPE 1–7, difficulty 1–3)
+Status before plan: commit `5dfbb7c` — all P0/P1/P2 bugs fixed.
+Implemented #1–#10 (all): commit `eea2927`
 
 ---
 
-## НИВО 2 — Наставнички алатки
+## LEVEL 1 — High Pedagogical Impact, Low Effort
 
-### ✅ #5 Live одговори во наставнички dashboard
-**Статус:** DONE ✅
-`sendLiveUpdate` веќе постои — пишува во Firebase.
-Треба: наставнички панел со scroll листа „Ученик X → прашање → ✅/❌".
-Firebase listener на `/liveUpdates` во `openTeacherDash()`.
+### ✅ #1 JAIL → early exit challenge
+**Status:** DONE ✅
+Current: skip turn, no value.
+Better: "Solve task → exit immediately. Wrong → wait 1 turn."
+Change: `showLandingCardMulti` — `c.type === 'jail'` block.
 
-### ✅ #6 Export CSV по крај на игра
-**Статус:** DONE ✅
-Копче „Преземи CSV" во game-over overlay (само за наставник).
-Колони: Ученик, Точни, Грешни, Успешност%, По тип прашање.
-Само `Blob` + `a.download` — без backend.
+### ✅ #2 START BONUS — variable % [10,12,15,18,20]
+**Status:** DONE ✅
+Current: always 15%. Pedagogically one-dimensional.
+Better: random % from the list — bonus and question are different every time.
+Change: `playTurnMulti` — `passedStart` block.
 
----
+### ✅ #3 Adaptive Difficulty per Student (streak-based)
+**Status:** DONE ✅
+3 correct in a row → `currentDifficultyLevel++` (max 3)
+3 wrong in a row → `currentDifficultyLevel--` (min 1)
+`getUniqueTask` and contextual questions use this level.
+Important: only for CHANCE and generic questions — does not change cell-based questions.
 
-## НИВО 3 — Gameplay механики
-
-### ✅ #7 Bankrupt → Spectator mode (не елиминација)
-**Статус:** DONE ✅
-Банкрутираниот ученик добива `isSpectator: true`.
-Продолжува да одговара на ШАНСА/ДАНОК (без парична последица).
-Задржува ангажираност наместо да чека крај.
-
-### ✅ #8 Catch-up механика
-**Статус:** DONE ✅
-Кога паричникот на ученик е ≤ 25% од просекот → добива „Спасовен жетон".
-Ефект: еднократно прескокни следна кирија.
-Се проверува во `endTurnMulti` после секој потег.
+### ✅ #4 Game PAUSE (for teacher)
+**Status:** DONE ✅
+New Firebase status: `status: 'paused'`
+`handleRoomUpdate` → if 'paused', lock roll-btn, show overlay "⏸ Pause".
+Teacher dashboard: PAUSE ↔ RESUME button.
 
 ---
 
-## НИВО 4 — Техничка цврстина
+## LEVEL 2 — Teacher Tools
+
+### ✅ #5 Live Answers in Teacher Dashboard
+**Status:** DONE ✅
+`sendLiveUpdate` already exists — writes to Firebase.
+Required: teacher panel with scroll list "Student X → question → ✅/❌".
+Firebase listener on `/liveUpdates` in `openTeacherDash()`.
+
+### ✅ #6 Export CSV after Game End
+**Status:** DONE ✅
+"Download CSV" button in game-over overlay (teacher only).
+Columns: Student, Correct, Wrong, Success%, By question type.
+Pure `Blob` + `a.download` — no backend.
+
+---
+
+## LEVEL 3 — Gameplay Mechanics
+
+### ✅ #7 Bankrupt → Spectator mode (not elimination)
+**Status:** DONE ✅
+Bankrupt student gets `isSpectator: true`.
+Continues to answer CHANCE/TAX (without monetary consequence).
+Maintains engagement instead of waiting for the end.
+
+### ✅ #8 Catch-up Mechanic
+**Status:** DONE ✅
+When a student's wallet is ≤ 25% of the average → receives a "Rescue Token".
+Effect: one-time skip of next rent.
+Checked in `endTurnMulti` after each move.
+
+---
+
+## LEVEL 4 — Technical Hardening
 
 ### ✅ #9 Concurrent join race condition
-**Статус:** DONE ✅
-`myPlayerId = currentPlayers.length` без атомска заштита.
-Решение: Firebase `.transaction()` при join.
+**Status:** DONE ✅
+`myPlayerId = currentPlayers.length` without atomic protection.
+Solution: Firebase `.transaction()` during join.
 
-### ✅ #10 Нови D3 прашања — реален животен контекст
-**Статус:** DONE ✅
-Тековно: TYPE 6 (камата) и TYPE 7 (данок) = 60 задачи за D3.
-Додај: попусти во продавница, пресметка на плата, ДДВ, банкарски кредити.
-Цел: уште 60–80 D3 задачи со реален контекст.
+### ✅ #10 New D3 Questions — real life context
+**Status:** DONE ✅
+Current: TYPE 6 (interest) and TYPE 7 (tax) = 60 tasks for D3.
+Add: shop discounts, salary calculation, VAT, bank loans.
+Goal: another 60–80 D3 tasks with real context.
 
 ---
 
-## Редослед на имплементација
+## Implementation Order
 
-| # | Подобрување | Педаг. вредност | Напор | Приоритет |
-|---|-------------|-----------------|-------|-----------|
-| 1 | ЗАТВОР со задача | ⭐⭐⭐⭐⭐ | Мал | 🔴 Прво |
-| 2 | СТАРТ БОНУС варијабилен | ⭐⭐⭐⭐ | Мал | 🔴 Прво |
-| 3 | Адаптивна тежина (streak) | ⭐⭐⭐⭐⭐ | Среден | 🟠 Второ |
-| 4 | Пауза на игра | ⭐⭐⭐⭐ | Мал | 🔴 Прво |
-| 5 | Live одговори dashboard | ⭐⭐⭐⭐⭐ | Среден | 🟠 Второ |
-| 6 | Export CSV | ⭐⭐⭐ | Мал | 🟡 Трето |
-| 7 | Bankrupt → Spectator | ⭐⭐⭐⭐ | Среден | 🟠 Второ |
-| 8 | Catch-up механика | ⭐⭐⭐ | Среден | 🟡 Трето |
-| 9 | Concurrent join fix | ⭐⭐ (техн.) | Мал | 🟡 Трето |
-| 10 | Нови D3 прашања | ⭐⭐⭐⭐⭐ | Голем | 🟠 Второ |
+| # | Improvement | Pedagogical Value | Effort | Priority |
+|---|-------------|-------------------|-------|-----------|
+| 1 | JAIL with task | ⭐⭐⭐⭐⭐ | Low | 🔴 First |
+| 2 | START BONUS variable | ⭐⭐⭐⭐ | Low | 🔴 First |
+| 3 | Adaptive Difficulty (streak) | ⭐⭐⭐⭐⭐ | Medium | 🟠 Second |
+| 4 | Game Pause | ⭐⭐⭐⭐ | Low | 🔴 First |
+| 5 | Live Answers Dashboard | ⭐⭐⭐⭐⭐ | Medium | 🟠 Second |
+| 6 | Export CSV | ⭐⭐⭐ | Low | 🟡 Third |
+| 7 | Bankrupt → Spectator | ⭐⭐⭐⭐ | Medium | 🟠 Second |
+| 8 | Catch-up Mechanic | ⭐⭐⭐ | Medium | 🟡 Third |
+| 9 | Concurrent join fix | ⭐⭐ (tech) | Low | 🟡 Third |
+| 10| New D3 Questions | ⭐⭐⭐⭐⭐ | High | 🟠 Second |

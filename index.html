@@ -1,11 +1,27 @@
 <!DOCTYPE html>
-<html lang="mk">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="author" content="Игор Богданоски">
-    <meta name="description" content="ПроцентОполис - Едукативна математичка игра за учење проценти преку забавно тргување со имоти">
-    <title>ПроцентОполис - Игор Богданоски</title>
+    <meta name="author" content="Igor Bogdanoski">
+    <meta name="description" content="Procentopolis - An educational math game for learning percentages through fun property trading and strategic gameplay.">
+    <meta name="keywords" content="math game, educational game, percentages, property trading, learning math, Procentopolis">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://percentopolis.web.app/">
+    <meta property="og:title" content="Procentopolis - Educational Math Game">
+    <meta property="og:description" content="Master percentages while building your property empire in this fun educational game.">
+    <meta property="og:image" content="https://percentopolis.web.app/og-image.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://percentopolis.web.app/">
+    <meta property="twitter:title" content="Procentopolis - Educational Math Game">
+    <meta property="twitter:description" content="Master percentages while building your property empire in this fun educational game.">
+    <meta property="twitter:image" content="https://percentopolis.web.app/og-image.png">
+
+    <title>Procentopolis - Igor Bogdanoski</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -13,68 +29,90 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body style="position: relative;">
+
+<!-- Broadcast Banner -->
+<div id="broadcast-banner" style="position:fixed; top: -100px; left:0; width:100%; background:linear-gradient(135deg,#f59e0b,#d97706); color:white; padding:15px; text-align:center; font-weight:800; z-index:50000; transition: top 0.5s ease; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+    <span id="broadcast-msg"></span>
+</div>
 
 <!-- Login -->
 <div id="login-overlay">
+    <div class="hero-glow"></div>
     <div class="login-container">
         <div class="login-info">
-            <h2>📜 УПАТСТВО ЗА ИГРАТА</h2>
+            <h2>📜 GAME INSTRUCTIONS</h2>
             <ul class="rules-list">
-                <li class="rule-icon-money"><strong>Цел:</strong> Собери најголемо богатство!</li>
-                <li class="rule-icon-calc"><strong>Купување:</strong> Реши задача за да купиш имот.</li>
-                <li class="rule-icon-rent"><strong>Кирија:</strong> Пресметај точно или плати ДУПЛО!</li>
+                <li class="rule-icon-money"><strong>Goal:</strong> Collect the greatest fortune!</li>
+                <li class="rule-icon-calc"><strong>Buying:</strong> Solve a problem to buy property.</li>
+                <li class="rule-icon-rent"><strong>Rent:</strong> Calculate correctly or pay DOUBLE!</li>
             </ul>
 
             <div class="shop-preview">
-                <h3>🛒 ПРОДАВНИЦА ЗА МОЌИ</h3>
+                <h3>🛒 POWER-UP SHOP</h3>
                 <div class="shop-preview-grid">
-                    <div class="shop-preview-item">⚖️ Адвокат</div>
-                    <div class="shop-preview-item">🛡️ Штит</div>
-                    <div class="shop-preview-item">🚀 Нитро</div>
-                    <div class="shop-preview-item">🕵️ Инсајдер</div>
+                    <div class="shop-preview-item">⚖️ Lawyer</div>
+                    <div class="shop-preview-item">🛡️ Shield</div>
+                    <div class="shop-preview-item">🚀 Nitro</div>
+                    <div class="shop-preview-item">🕵️ Insider</div>
                 </div>
             </div>
 
+            <!-- Interactive Demo Area -->
+            <div id="demo-area" style="margin-top:25px; background: #fffbeb; padding: 20px; border-radius: 20px; border: 2px solid #fef3c7;">
+                <h3 style="margin:0 0 10px 0; font-size: 0.9rem; color: #92400e; font-weight: 900;">⚡ QUICK PRACTICE</h3>
+                <p id="demo-question" style="font-size: 0.85rem; margin-bottom: 12px; font-weight: 600;">Calculate 25% of 80:</p>
+                <div style="display:flex; gap:8px;">
+                    <input type="number" id="demo-input" placeholder="?" style="width: 70px; padding: 8px; border-radius: 10px; border: 1px solid #d1d9e6;">
+                    <button onclick="checkDemoAnswer()" style="padding: 8px 15px; background: #f59e0b; color: white; border: none; border-radius: 10px; font-weight: 800; cursor: pointer;">CHECK</button>
+                </div>
+                <div id="demo-feedback" style="margin-top: 10px; font-size: 0.8rem; font-weight: 700;"></div>
+            </div>
+
             <div class="setup-sidebar" style="margin-top:25px; background: #f0f4f8; padding: 20px; border-radius: 20px; border: 1px solid #d1d9e6;">
-                <label style="display:block; font-weight:800; margin-bottom:10px; color:#2c3e50; font-size:0.8rem;">🎭 ТВОЈАТА УЛОГА:</label>
+                <label style="display:block; font-weight:800; margin-bottom:10px; color:#2c3e50; font-size:0.8rem;">🎭 YOUR ROLE:</label>
                 <div class="role-selector" style="display:flex; gap:5px; margin-bottom:20px;">
-                    <button id="role-student" class="role-btn active" onclick="setRole('student')">УЧЕНИК</button>
-                    <button id="role-teacher" class="role-btn" onclick="setRole('teacher')">НАСТАВНИК</button>
+                    <button id="role-student" class="role-btn active" onclick="setRole('student')">STUDENT</button>
+                    <button id="role-teacher" class="role-btn" onclick="setRole('teacher')">TEACHER</button>
                 </div>
 
                 <div id="student-only-fields">
-                    <label style="display:block; font-weight:800; margin-bottom:10px; color:#2c3e50; font-size:0.8rem;">🚀 ИЗБЕРИ ПИОН:</label>
-                    <div id="token-selector" style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+                    <label style="display:block; font-weight:800; margin-bottom:10px; color:#2c3e50; font-size:0.8rem;">🚀 CHOOSE YOUR AVATAR:</label>
+                    <div id="token-selector" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; justify-content:center;">
                         <button onclick="selectToken('🚀', this)" class="token-choice active">🚀</button>
                         <button onclick="selectToken('🚗', this)" class="token-choice">🚗</button>
                         <button onclick="selectToken('🛸', this)" class="token-choice">🛸</button>
                         <button onclick="selectToken('🤖', this)" class="token-choice">🤖</button>
                         <button onclick="selectToken('🦄', this)" class="token-choice">🦄</button>
+                        <button onclick="selectToken('🦊', this)" class="token-choice">🦊</button>
+                        <button onclick="selectToken('🐲', this)" class="token-choice">🐲</button>
+                        <button onclick="selectToken('🍕', this)" class="token-choice">🍕</button>
+                        <button onclick="selectToken('💎', this)" class="token-choice">💎</button>
+                        <button onclick="selectToken('🐱', this)" class="token-choice">🐱</button>
                     </div>
                 </div>
             </div>
         </div>
         <div class="login-form">
             <div class="portal-header">
-                <h1>ПРОЦЕНТОПОЛИС</h1>
-                <p class="subtitle">МАСТЕР ПОРТАЛ</p>
-                <p style="margin-top: 8px; font-size: 0.7rem; color: #94a3b8; font-weight: 600; letter-spacing: 1px;">Изработил: Игор Богданоски</p>
+                <h1>PROCENTOPOLIS</h1>
+                <p class="subtitle">MASTER PORTAL</p>
+                <p style="margin-top: 8px; font-size: 0.7rem; color: #94a3b8; font-weight: 600; letter-spacing: 1px;">Created by: Igor Bogdanoski</p>
                 <div style="margin-top: 10px; font-size: 0.8rem; color: #64748b; font-weight: bold; background: #f1f5f9; display: inline-block; padding: 5px 15px; border-radius: 20px;">
-                    👥 4 до 8 играчи по соба
+                    👥 4 to 8 players per room
                 </div>
             </div>
             
             <div id="auth-section">
                 <div class="input-group">
-                    <label>👤 ВАШЕТО ИМЕ:</label>
-                    <input type="text" id="player-name-input" placeholder="Внесете име..." autocomplete="off">
+                    <label>👤 YOUR NAME:</label>
+                    <input type="text" id="player-name-input" placeholder="Enter name..." autocomplete="off">
                     <div id="name-error" style="display:none; color:#ef4444; font-size:0.75rem; margin-top:5px; font-weight:600;"></div>
                 </div>
 
                 <div id="student-class-box">
                     <div class="input-group">
-                        <label>🏫 ОДДЕЛЕНИЕ:</label>
+                        <label>🏫 CLASS:</label>
                         <select id="player-odd-input">
                             <option value="8-1">8-1</option>
                             <option value="8-2">8-2</option>
@@ -85,38 +123,38 @@
                 </div>
 
                 <div class="input-group room-box" id="student-room-box">
-                    <label id="room-label">🏠 СОБА:</label>
+                    <label id="room-label">🏠 ROOM:</label>
                     <div id="available-rooms-container" style="display:none; margin-bottom:10px; max-height:150px; overflow-y:auto; border:1px solid #ddd; border-radius:10px; padding:10px; background:white;">
-                        <p style="font-size:0.7rem; color:#666; margin-bottom:5px;">ИЗБЕРИ АКТИВНА СОБА:</p>
+                        <p style="font-size:0.7rem; color:#666; margin-bottom:5px;">SELECT ACTIVE ROOM:</p>
                         <div id="available-rooms-list" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
                     </div>
-                    <input type="text" id="room-id-input" placeholder="Внеси или избери код..." autocomplete="off">
+                    <input type="text" id="room-id-input" placeholder="Enter or select code..." autocomplete="off">
                     <div id="room-error" style="display:none; color:#ef4444; font-size:0.75rem; margin-top:5px; font-weight:600;"></div>
                 </div>
 
-                <button id="login-btn" disabled>🚀 ВЛЕЗИ ВО ИГРА</button>
-                <button id="teacher-dashboard-btn" style="display:none; width:100%; padding:20px; font-size:1.2rem; background:#8b5cf6; color:white; border:none; border-radius:16px; cursor:pointer; font-weight:800; margin-top:10px; box-shadow:0 10px 20px rgba(139, 92, 246, 0.3);">📊 ОТВОРИ КОНТРОЛЕН ПАНЕЛ</button>
+                <button id="login-btn" disabled>🚀 ENTER GAME</button>
+                <button id="teacher-dashboard-btn" style="display:none; width:100%; padding:20px; font-size:1.2rem; background:#8b5cf6; color:white; border:none; border-radius:16px; cursor:pointer; font-weight:800; margin-top:10px; box-shadow:0 10px 20px rgba(139, 92, 246, 0.3);">📊 OPEN CONTROL PANEL</button>
             </div>
             <div id="lobby-section" style="display:none;">
                 <div style="background: #1e40af; color: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; text-align: center; box-shadow: 0 10px 25px rgba(30, 64, 175, 0.2);">
-                    <p style="margin:0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; opacity: 0.8;">ПРИКЛУЧИ СЕ СО КОД:</p>
+                    <p style="margin:0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; opacity: 0.8;">JOIN WITH CODE:</p>
                     <h2 id="current-room-display" style="margin: 5px 0 0 0; font-size: 3rem; font-weight: 950; letter-spacing: 4px;">---</h2>
                 </div>
                 <div id="players-list" style="margin: 20px 0; text-align: left; background: #f8fafc; padding: 20px; border-radius: 15px; min-height: 120px; border: 1px solid #e2e8f0;">
-                    <p style="font-weight: 800; color: #64748b; font-size: 0.8rem; margin-top: 0;">👥 УЧЕНИЦИ ВО СОБАТА:</p>
+                    <p style="font-weight: 800; color: #64748b; font-size: 0.8rem; margin-top: 0;">👥 STUDENTS IN ROOM:</p>
                     <ul id="lobby-players-ul" style="list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></ul>
                 </div>
                 
                 <div id="teacher-lobby-controls" style="display:none; flex-direction:column; gap:10px;">
-                    <button id="open-dash-direct-btn" onclick="openTeacherDash()" style="width: 100%; padding: 18px; background: #8b5cf6; color: white; border: none; border-radius: 16px; font-weight: 900; cursor: pointer; box-shadow: 0 10px 20px rgba(139, 92, 246, 0.2); font-size: 1rem; border: 2px solid rgba(255,255,255,0.2);">📊 ОТВОРИ КОНТРОЛЕН ЦЕНТАР</button>
-                    <button id="start-all-rooms-btn" onclick="startAllMyRooms()" style="width: 100%; padding: 15px; background: #3b82f6; color: white; border: none; border-radius: 16px; font-weight: 800; cursor: pointer; font-size: 0.9rem;">🚀 СТАРТУВАЈ ГИ СИТЕ СОБИ</button>
-                    <button id="create-another-btn" onclick="location.reload()" style="width: 100%; padding: 12px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 16px; font-weight: 700; cursor: pointer; font-size: 0.8rem;">➕ КРЕИРАЈ УШТЕ ЕДНА СОБА</button>
+                    <button id="open-dash-direct-btn" onclick="openTeacherDash()" style="width: 100%; padding: 18px; background: #8b5cf6; color: white; border: none; border-radius: 16px; font-weight: 900; cursor: pointer; box-shadow: 0 10px 20px rgba(139, 92, 246, 0.2); font-size: 1rem; border: 2px solid rgba(255,255,255,0.2);">📊 OPEN CONTROL CENTER</button>
+                    <button id="start-all-rooms-btn" onclick="startAllMyRooms()" style="width: 100%; padding: 15px; background: #3b82f6; color: white; border: none; border-radius: 16px; font-weight: 800; cursor: pointer; font-size: 0.9rem;">🚀 START ALL ROOMS</button>
+                    <button id="create-another-btn" onclick="location.reload()" style="width: 100%; padding: 12px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 16px; font-weight: 700; cursor: pointer; font-size: 0.8rem;">➕ CREATE ANOTHER ROOM</button>
                 </div>
 
-                <button id="start-game-btn-multi" style="width: 100%; padding: 20px; background: #10b981; color: white; border: none; border-radius: 16px; font-weight: 900; cursor: pointer; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); font-size: 1.1rem; margin-top: 10px;">ЗАПОЧНИ ИГРА</button>
-                <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 15px; font-weight: 600;">Само наставникот може да ја започне играта.</p>
+                <button id="start-game-btn-multi" style="width: 100%; padding: 20px; background: #10b981; color: white; border: none; border-radius: 16px; font-weight: 900; cursor: pointer; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); font-size: 1.1rem; margin-top: 10px;">START GAME</button>
+                <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 15px; font-weight: 600;">Only the teacher can start the game.</p>
             </div>
-            <button onclick="clearSave()" style="margin-top:10px; background:#e74c3c; border:none; color:white; padding:10px; border-radius:10px; cursor:pointer;">🗑️ ИЗБРИШИ ЗАЧУВАНО</button>
+            <button onclick="clearSave()" style="margin-top:10px; background:#e74c3c; border:none; color:white; padding:10px; border-radius:10px; cursor:pointer;">🗑️ DELETE SAVED</button>
         </div>
     </div>
 </div>
@@ -129,16 +167,16 @@
         <div id="board-center">
             <div id="board-center-timer">
                 <span id="class-timer">40:00</span>
-                <span id="turn-timer" style="font-weight:bold; color:#3498db;">Потег: 30s</span>
+                <span id="turn-timer" style="font-weight:bold; color:#3498db;">Turn: 30s</span>
             </div>
             <div id="dice-container">
                 <div class="dice" id="dice-visual">
                     <div class="dice-face f1">1</div><div class="dice-face f2">2</div><div class="dice-face f3">3</div><div class="dice-face f4">4</div><div class="dice-face f5">5</div><div class="dice-face f6">6</div>
                 </div>
             </div>
-            <button id="roll-btn">🎲 ФРЛИ</button>
-            <button id="shop-btn" onclick="openShop()">🛒 ПРОДАВНИЦА</button>
-            <button id="trade-btn" onclick="openTradeModal()">🔄 ТРГУВАЈ</button>
+            <button id="roll-btn">🎲 ROLL</button>
+            <button id="shop-btn" onclick="openShop()">🛒 SHOP</button>
+            <button id="trade-btn" onclick="openTradeModal()">🔄 TRADE</button>
             <div id="board-center-emojis">
                 <button onclick="sendEmoji('😊')">😊</button>
                 <button onclick="sendEmoji('😎')">😎</button>
@@ -158,16 +196,16 @@
     </div>
     <div id="controls-container">
         <div id="teacher-dash-btn-fixed" style="display:none; margin-bottom:5px;">
-            <button onclick="openTeacherDash()" style="width:100%; padding:10px; background:#8b5cf6; color:white; border:none; border-radius:10px; font-weight:900; cursor:pointer; box-shadow:0 4px 12px rgba(139, 92, 246, 0.3); font-size:0.85rem;">📊 КОНТРОЛЕН ПАНЕЛ</button>
+            <button onclick="openTeacherDash()" style="width:100%; padding:10px; background:#8b5cf6; color:white; border:none; border-radius:10px; font-weight:900; cursor:pointer; box-shadow:0 4px 12px rgba(139, 92, 246, 0.3); font-size:0.85rem;">📊 CONTROL PANEL</button>
         </div>
         <div class="header-info">
-            <div><h1 style="font-size:1rem; margin:0;">ПроцентОполис</h1><span id="player-display-name" style="font-size:0.75rem; font-weight:bold; color:#555;">Ученик</span></div>
+            <div><h1 style="font-size:1rem; margin:0;">Procentopolis</h1><span id="player-display-name" style="font-size:0.75rem; font-weight:bold; color:#555;">Student</span></div>
         </div>
         <div class="stats-panel" id="stats-panel-multi">
             <!-- Players stats will be injected here -->
         </div>
         <div id="game-log"></div>
-        <button id="end-game-btn" onclick="triggerGameOver('Рачен крај')" style="margin-top:3px; font-size:0.7rem; background:transparent; border:1px solid #ccc; color:#888; padding:4px; border-radius:6px; width:100%; cursor:pointer;">🏁 ИЗВЕШТАЈ</button>
+        <button id="end-game-btn" onclick="triggerGameOver('Manual end')" style="margin-top:3px; font-size:0.7rem; background:transparent; border:1px solid #ccc; color:#888; padding:4px; border-radius:6px; width:100%; cursor:pointer;">🏁 REPORT</button>
     </div>
 </div>
 
@@ -177,15 +215,15 @@
         <!-- Sidebar for Room Selection -->
         <div id="teacher-sidebar">
             <div style="padding:25px; border-bottom:1px solid rgba(255,255,255,0.1);">
-                <h3 style="margin:0; font-size:1.1rem; letter-spacing:1px;">🏫 МОИ СОБИ</h3>
-                <p style="margin:5px 0 0 0; font-size:0.7rem; color:#94a3b8;">Избери соба за детален увид</p>
+                <h3 style="margin:0; font-size:1.1rem; letter-spacing:1px;">🏫 MY ROOMS</h3>
+                <p style="margin:5px 0 0 0; font-size:0.7rem; color:#94a3b8;">Select a room for details</p>
             </div>
             <div id="dash-rooms-list" style="flex:1; overflow-y:auto; padding:15px;">
                 <!-- Room buttons will be injected here -->
             </div>
             <div style="padding:20px; background:rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:10px;">
-                <button onclick="showCreateRoomInterface()" style="width:100%; padding:10px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">+ КРЕИРАЈ НОВИ</button>
-                <button onclick="clearAllMyRooms()" style="width:100%; padding:8px; background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid #ef4444; border-radius:8px; font-size:0.75rem; font-weight:bold; cursor:pointer;">🗑️ ИЗБРИШИ СИТЕ</button>
+                <button onclick="showCreateRoomInterface()" style="width:100%; padding:10px; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">+ CREATE NEW</button>
+                <button onclick="clearAllMyRooms()" style="width:100%; padding:8px; background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid #ef4444; border-radius:8px; font-size:0.75rem; font-weight:bold; cursor:pointer;">🗑️ DELETE ALL</button>
             </div>
         </div>
 
@@ -193,19 +231,19 @@
         <div style="flex:1; display:flex; flex-direction:column; background:#f8fafc;">
             <div class="modal-header" style="background: white; padding:14px 24px; border-bottom: 1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap:12px;">
-                    <button id="dash-back-to-list" style="display:none; background:#f1f5f9; border:none; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:0.85rem;" onclick="toggleGridView(false)">⬅️ НАЗАД</button>
+                    <button id="dash-back-to-list" style="display:none; background:#f1f5f9; border:none; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:0.85rem;" onclick="toggleGridView(false)">⬅️ BACK</button>
                     <div>
-                        <h2 id="dash-active-room-title" style="margin:0; color:#1e293b; font-size:1.3rem; font-weight:900;">ГЛАВЕН ПАНЕЛ</h2>
-                        <p id="dash-room-status" style="margin:0; color:#64748b; font-weight:500; font-size:0.8rem;">Изберете соба од левата страна</p>
+                        <h2 id="dash-active-room-title" style="margin:0; color:#1e293b; font-size:1.3rem; font-weight:900;">MAIN PANEL</h2>
+                        <p id="dash-room-status" style="margin:0; color:#64748b; font-weight:500; font-size:0.8rem;">Select a room from the left</p>
                     </div>
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button id="dash-download-btn" style="display:none; background:#34495e; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="downloadRoomReport()">📥 ИЗВЕШТАЈ</button>
-                    <button id="dash-grid-view-btn" onclick="toggleGridView(true)" style="background:#8b5cf6; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;">📱 СИТЕ СОБИ</button>
-                    <button id="dash-start-btn" style="display:none; background:#10b981; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;">СТАРТУВАЈ</button>
-                    <button id="dash-newgame-btn" style="display:none; background:#f59e0b; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="resetRoomForNewGame()">🔄 НОВА ИГРА</button>
-                    <button id="dash-endgame-btn" style="display:none; background:#ef4444; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="endGameManually()">⏹️ ЗАВРШИ ИГРА</button>
-                    <button onclick="closeTeacherDash()" style="background:#f1f5f9; border:none; border-radius:8px; padding:8px 14px; color:#475569; font-weight:bold; cursor:pointer; font-size:0.8rem;">ЗАТВОРИ</button>
+                    <button id="dash-download-btn" style="display:none; background:#34495e; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="downloadRoomReport()">📥 REPORT</button>
+                    <button id="dash-grid-view-btn" onclick="toggleGridView(true)" style="background:#8b5cf6; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;">📱 ALL ROOMS</button>
+                    <button id="dash-start-btn" style="display:none; background:#10b981; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;">START</button>
+                    <button id="dash-newgame-btn" style="display:none; background:#f59e0b; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="resetRoomForNewGame()">🔄 NEW GAME</button>
+                    <button id="dash-endgame-btn" style="display:none; background:#ef4444; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="endGameManually()">⏹️ END GAME</button>
+                    <button onclick="closeTeacherDash()" style="background:#f1f5f9; border:none; border-radius:8px; padding:8px 14px; color:#475569; font-weight:bold; cursor:pointer; font-size:0.8rem;">CLOSE</button>
                 </div>
             </div>
             
@@ -215,7 +253,7 @@
                     <!-- Room summary cards injected here -->
                 </div>
 
-                <!-- Create Room Interface (shown when + КРЕИРАЈ НОВИ is clicked) -->
+                <!-- Create Room Interface (shown when + CREATE NEW is clicked) -->
                 <div id="dash-create-room-container" style="display:none;"></div>
 
                 <!-- Single Room View Container -->
@@ -225,21 +263,21 @@
                         <div class="dash-stat-card">
                             <span class="dash-stat-icon">👥</span>
                             <div>
-                                <div class="dash-stat-label">Ученици</div>
+                                <div class="dash-stat-label">Students</div>
                                 <div class="dash-stat-value" id="dash-player-count">0</div>
                             </div>
                         </div>
                         <div class="dash-stat-card">
                             <span class="dash-stat-icon">✅</span>
                             <div>
-                                <div class="dash-stat-label">Точни</div>
+                                <div class="dash-stat-label">Correct</div>
                                 <div class="dash-stat-value" style="color:#10b981;" id="dash-total-correct">0</div>
                             </div>
                         </div>
                         <div class="dash-stat-card">
                             <span class="dash-stat-icon">📈</span>
                             <div>
-                                <div class="dash-stat-label">Успех</div>
+                                <div class="dash-stat-label">Success</div>
                                 <div class="dash-stat-value" style="color:#3b82f6;" id="dash-avg-success">0%</div>
                             </div>
                         </div>
@@ -247,23 +285,27 @@
 
                     <!-- Tab Navigation -->
                     <div class="dash-tabs">
-                        <button class="dash-tab active" onclick="switchDashTab('players')" id="dash-tab-players">👥 Ученици</button>
-                        <button class="dash-tab" onclick="switchDashTab('live')" id="dash-tab-live">🎮 Live Статус</button>
-                        <button class="dash-tab" onclick="switchDashTab('analytics')" id="dash-tab-analytics">📊 Аналитика</button>
-                        <button class="dash-tab" onclick="switchDashTab('report')" id="dash-tab-report">📋 Извештај</button>
+                        <button class="dash-tab active" onclick="switchDashTab('players')" id="dash-tab-players">👥 Students</button>
+                        <button class="dash-tab" onclick="switchDashTab('live')" id="dash-tab-live">🎮 Live Status</button>
+                        <button class="dash-tab" onclick="switchDashTab('analytics')" id="dash-tab-analytics">📊 Analytics</button>
+                        <button class="dash-tab" onclick="switchDashTab('report')" id="dash-tab-report">📋 Report</button>
                     </div>
 
                     <!-- TAB 1: Players Table -->
                     <div id="dash-panel-players" class="dash-tab-panel active">
+                        <div style="margin-bottom:15px; display:flex; gap:10px; background:#fff7ed; padding:15px; border-radius:12px; border:1px solid #ffedd5;">
+                            <input type="text" id="teacher-broadcast-input" placeholder="Broadcast a message to all students..." style="flex:1; padding:10px; border-radius:8px; border:1px solid #fed7aa; font-size:0.9rem;">
+                            <button onclick="sendBroadcast()" style="padding:10px 20px; background:#f59e0b; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer;">📢 SEND</button>
+                        </div>
                         <div style="background:white; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.03); border:1px solid #e2e8f0; overflow:hidden;">
                             <table style="width:100%; border-collapse: collapse; text-align:left;">
                                 <thead style="background:#f1f5f9;">
                                     <tr>
-                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">УЧЕНИК</th>
-                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">БОГАТСТВО</th>
-                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">ТОЧНИ / ГРЕШНИ</th>
-                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">АКТИВНОСТ</th>
-                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">СТАТУС</th>
+                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">STUDENT</th>
+                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">WEALTH</th>
+                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">CORRECT / WRONG</th>
+                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">ACTIVITY</th>
+                                        <th style="padding:14px 16px; color:#475569; font-weight:700; font-size:0.75rem;">STATUS</th>
                                     </tr>
                                 </thead>
                                 <tbody id="teacher-stats-tbody">
@@ -272,8 +314,8 @@
                             </table>
                             <div id="dash-empty-state" style="padding:60px; text-align:center; color:#94a3b8;">
                                 <div style="font-size:3rem; margin-bottom:15px;">🕵️‍♂️</div>
-                                <h3 style="margin:0 0 5px 0;">Нема активни ученици</h3>
-                                <p style="margin:0; font-size:0.85rem;">Чекаме учениците да се приклучат со кодот.</p>
+                                <h3 style="margin:0 0 5px 0;">No active students</h3>
+                                <p style="margin:0; font-size:0.85rem;">Waiting for students to join with the code.</p>
                             </div>
                         </div>
                     </div>
@@ -284,23 +326,23 @@
                             <!-- Live Game Status -->
                             <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius:15px; padding:18px; margin-bottom:16px; color:white;">
                                 <h3 style="margin:0 0 12px 0; font-size:1rem; display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:1.2rem;">🎮</span> Live Статус
+                                    <span style="font-size:1.2rem;">🎮</span> Live Status
                                 </h3>
                                 <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;">
                                     <div style="background:rgba(255,255,255,0.15); padding:12px; border-radius:10px;">
-                                        <div style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">⏱️ ПРЕОСТАНАТО</div>
+                                        <div style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">⏱️ REMAINING</div>
                                         <div id="dash-viz-time-left" style="font-size:1.3rem; font-weight:900;">--:--</div>
                                     </div>
                                     <div style="background:rgba(255,255,255,0.15); padding:12px; border-radius:10px;">
-                                        <div style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">👤 НА ПОТЕГ</div>
+                                        <div style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">👤 CURRENT PLAYER</div>
                                         <div id="dash-viz-current-player" style="font-size:1.3rem; font-weight:900;">---</div>
                                     </div>
                                     <div style="background:rgba(255,255,255,0.15); padding:12px; border-radius:10px;">
-                                        <div style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">🎯 ПОТЕЗИ</div>
+                                        <div style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">🎯 MOVES</div>
                                         <div id="dash-viz-total-moves" style="font-size:1.3rem; font-weight:900;">0</div>
                                     </div>
                                     <div style="background:rgba(255,255,255,0.15); padding:12px; border-radius:10px;">
-                                        <div style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">⏲️ ПОТЕГ</div>
+                                        <div style="font-size:0.65rem; opacity:0.9; margin-bottom:4px;">⏲️ TURN</div>
                                         <div id="dash-viz-turn-time" style="font-size:1.3rem; font-weight:900;">--s</div>
                                     </div>
                                 </div>
@@ -309,7 +351,7 @@
                             <!-- Money Distribution Chart -->
                             <div style="background:white; border-radius:15px; padding:18px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
                                 <h3 style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:1.2rem;">💰</span> Распределба на Пари
+                                    <span style="font-size:1.2rem;">💰</span> Money Distribution
                                 </h3>
                                 <div id="dash-viz-money-chart" style="display:flex; flex-direction:column; gap:10px;">
                                     <!-- Money bars will be injected here -->
@@ -319,10 +361,10 @@
                             <!-- Live Answers Feed -->
                             <div style="background:white; border-radius:15px; padding:18px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
                                 <h3 style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:1.2rem;">📝</span> Live Одговори
+                                    <span style="font-size:1.2rem;">📝</span> Live Answers
                                 </h3>
                                 <div id="dash-live-feed" style="max-height:320px; overflow-y:auto;">
-                                    <p style="color:#94a3b8;text-align:center;padding:20px;">Нема одговори уште.</p>
+                                    <p style="color:#94a3b8;text-align:center;padding:20px;">No answers yet.</p>
                                 </div>
                             </div>
                         </div>
@@ -334,7 +376,7 @@
                             <!-- Property Ownership -->
                             <div style="background:white; border-radius:15px; padding:18px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
                                 <h3 style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:1.2rem;">🏘️</span> Поседувани Имоти
+                                    <span style="font-size:1.2rem;">🏘️</span> Owned Properties
                                 </h3>
                                 <div id="dash-viz-properties" style="display:flex; flex-direction:column; gap:8px;">
                                     <!-- Property counts will be injected here -->
@@ -344,11 +386,22 @@
                             <!-- Question Difficulty Breakdown -->
                             <div style="background:white; border-radius:15px; padding:18px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
                                 <h3 style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:1.2rem;">📊</span> Тежина на Прашања
+                                    <span style="font-size:1.2rem;">📊</span> Question Difficulty
                                 </h3>
                                 <div id="dash-viz-difficulty" style="display:flex; flex-direction:column; gap:12px;">
                                     <!-- Difficulty stats will be injected here -->
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- NEW: Board Error Heatmap -->
+                        <div style="margin-top:16px; background:white; border-radius:15px; padding:18px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
+                            <h3 style="margin:0 0 14px 0; color:#1e293b; font-size:1rem; display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:1.2rem;">🔥</span> Board Error Heatmap
+                            </h3>
+                            <p style="font-size:0.75rem; color:#64748b; margin-bottom:15px;">Properties where students struggle most (incorrect answers).</p>
+                            <div id="dash-heatmap-container" style="display:grid; grid-template-columns: repeat(10, 1fr); gap:8px;">
+                                <!-- Heatmap cells injected here -->
                             </div>
                         </div>
                     </div>
@@ -357,7 +410,7 @@
                     <div id="dash-panel-report" class="dash-tab-panel" style="display:none;">
                         <div id="dash-report-content" style="padding:4px 0;">
                             <p style="color:#94a3b8;text-align:center;padding:40px 20px;">
-                                📋 Извештајот е достапен откако играта ќе заврши.
+                                📋 The report is available after the game ends.
                             </p>
                         </div>
                     </div>
@@ -371,7 +424,7 @@
 <div id="question-modal" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header" style="background:var(--primary-color); color:white; padding:15px; font-weight:bold; display:flex; justify-content:space-between;">
-            <span id="modal-category">Задача</span>
+            <span id="modal-category">Problem</span>
             <span onclick="closeModal()" style="cursor:pointer; font-size:1.5rem;">&times;</span>
         </div>
         <div class="modal-body">
@@ -379,11 +432,11 @@
                 <div id="question-text" style="font-size:1.3rem; font-weight:bold; margin-bottom:20px;">...</div>
                 <div id="options-container"></div>
                 <div id="input-answer-container">
-                    <p style="font-size:0.9rem; color:#666; margin-bottom:5px;">Впиши број (користи точка за децимали):</p>
-                    <input type="text" id="manual-answer-input" placeholder="пр. 25.5">
-                    <button id="submit-answer-btn">ПОТВРДИ ОДГОВОР</button>
+                    <p style="font-size:0.9rem; color:#666; margin-bottom:5px;">Enter number (use dot for decimals):</p>
+                    <input type="text" id="manual-answer-input" placeholder="e.g. 25.5">
+                    <button id="submit-answer-btn">CONFIRM ANSWER</button>
                 </div>
-                <button class="action-btn btn-hint" onclick="drawVisualHint()">🎨 ВИЗУЕЛНА ПОМОШ (HINT)</button>
+                <button class="action-btn btn-hint" onclick="drawVisualHint()">🎨 VISUAL HINT</button>
                 <div id="feedback-area" style="margin-top:20px; font-weight:bold;"></div>
             </div>
             <div class="whiteboard-side" id="canvas-parent">
@@ -398,7 +451,7 @@
                     <div style="height:20px; width:1px; background:#ddd;"></div>
                     <input type="range" id="pen-width" min="1" max="10" value="3" style="width:80px;">
                     <div style="height:20px; width:1px; background:#ddd;"></div>
-                    <button onclick="clearCanvas()" style="background:none; border:none; font-size:1.2rem; cursor:pointer;" title="Избриши се">🗑️</button>
+                    <button onclick="clearCanvas()" style="background:none; border:none; font-size:1.2rem; cursor:pointer;" title="Clear everything">🗑️</button>
                 </div>
             </div>
         </div>
@@ -408,15 +461,15 @@
 <!-- SHOP MODAL -->
 <div id="shop-modal" class="modal-overlay">
     <div class="modal-mini" style="width:600px; display:block; position:relative; top:auto; left:auto; transform:none; animation:none;">
-        <h2>🛒 ПРОДАВНИЦА ЗА МОЌИ</h2>
-        <p>Искористи ги парите за стратегија!</p>
+        <h2>🛒 POWER-UP SHOP</h2>
+        <p>Use your money for strategy!</p>
         <div class="shop-grid">
-            <div class="shop-item" onclick="buyItem('lawyer', 300)"><div class="shop-icon">⚖️</div><h3>Адвокат</h3><p>Те штити од следната даночна инспекција.</p><div class="shop-price">300д</div></div>
-            <div class="shop-item" onclick="buyItem('shield', 250)"><div class="shop-icon">🛡️</div><h3>Златен Штит</h3><p>Еднаш не плаќаш кирија кај противник.</p><div class="shop-price">250д</div></div>
-            <div class="shop-item" onclick="buyItem('nitro', 150)"><div class="shop-icon">🚀</div><h3>Нитро Коцка</h3><p>Следното фрлање е со дупла вредност.</p><div class="shop-price">150д</div></div>
-            <div class="shop-item" onclick="buyItem('bribe', 500)"><div class="shop-icon">🕵️</div><h3>Инсајдер</h3><p>Земи го следниот имот на кој ќе застанеш за 1 денар.</p><div class="shop-price">500д</div></div>
+            <div class="shop-item" onclick="buyItem('lawyer', 300)"><div class="shop-icon">⚖️</div><h3>Lawyer</h3><p>Protects you from the next tax inspection.</p><div class="shop-price">300d</div></div>
+            <div class="shop-item" onclick="buyItem('shield', 250)"><div class="shop-icon">🛡️</div><h3>Golden Shield</h3><p>Don't pay rent once at an opponent's property.</p><div class="shop-price">250d</div></div>
+            <div class="shop-item" onclick="buyItem('nitro', 150)"><div class="shop-icon">🚀</div><h3>Nitro Dice</h3><p>Next roll value is doubled.</p><div class="shop-price">150d</div></div>
+            <div class="shop-item" onclick="buyItem('bribe', 500)"><div class="shop-icon">🕵️</div><h3>Insider</h3><p>Take the next property you land on for 1 denar.</p><div class="shop-price">500d</div></div>
         </div>
-        <button class="action-btn btn-pass" style="margin-top:20px; width:100%;" onclick="document.getElementById('shop-modal').style.display='none'">ЗАТВОРИ</button>
+        <button class="action-btn btn-pass" style="margin-top:20px; width:100%;" onclick="document.getElementById('shop-modal').style.display='none'">CLOSE</button>
     </div>
 </div>
 
@@ -426,15 +479,15 @@
 <!-- Game Over -->
 <div id="game-over-overlay">
     <div class="modal-mini" style="width:620px; display:block; position:relative; top:auto; left:auto; transform:none; animation:none; max-height:90vh; overflow-y:auto;">
-        <h2>🏆 КРАЈ НА ИГРАТА</h2>
+        <h2>🏆 GAME OVER</h2>
         <!-- Learning reflection — shown first for students (hidden for teacher / 0 questions) -->
         <div id="learning-summary" style="display:none;"></div>
         <!-- Full stats report — shown after student clicks through summary -->
         <div id="report-section">
             <p id="report-text" style="text-align:left; line-height:1.6; font-size:0.9rem;"></p>
             <div id="qrcode" style="margin:15px auto; display:flex; justify-content:center;"></div>
-            <button onclick="clearSave(); location.reload()" style="padding:10px 20px; background:var(--primary-color); color:white; border:none; border-radius:8px; cursor:pointer; margin-top:10px;">НОВА ИГРА</button>
-            <p style="margin-top:15px; font-size:0.65rem; color:#94a3b8; font-weight:600;">ПроцентОполис &copy; Игор Богданоски</p>
+            <button onclick="clearSave(); location.reload()" style="padding:10px 20px; background:var(--primary-color); color:white; border:none; border-radius:8px; cursor:pointer; margin-top:10px;">NEW GAME</button>
+            <p style="margin-top:15px; font-size:0.65rem; color:#94a3b8; font-weight:600;">Procentopolis &copy; Igor Bogdanoski</p>
         </div>
     </div>
 </div>
@@ -443,7 +496,7 @@
 <div id="trade-overlay" class="modal-overlay" style="display:none; z-index:9500;">
     <div class="trade-modal">
         <div class="trade-header">
-            <h2>🔄 ТРГУВАЊЕ</h2>
+            <h2>🔄 TRADING</h2>
             <button class="trade-close-btn" onclick="closeTradeModal()">&times;</button>
         </div>
         <div class="trade-steps">
@@ -455,28 +508,28 @@
         </div>
         <!-- Step 1: Select your property -->
         <div id="trade-page-1" class="trade-page">
-            <h3>Избери твој имот за понуда</h3>
+            <h3>Select your property for offer</h3>
             <div id="trade-my-props" class="trade-props-grid"></div>
         </div>
         <!-- Step 2: Select target player + their property -->
         <div id="trade-page-2" class="trade-page" style="display:none;">
-            <h3>Избери играч и негов имот</h3>
+            <h3>Select player and their property</h3>
             <div id="trade-players-list" class="trade-players-list"></div>
             <div id="trade-their-props" class="trade-props-grid"></div>
         </div>
         <!-- Step 3: Money + Confirm -->
         <div id="trade-page-3" class="trade-page" style="display:none;">
-            <h3>Додај пари (опционално)</h3>
+            <h3>Add money (optional)</h3>
             <div id="trade-summary" class="trade-summary"></div>
             <div class="trade-money-input">
-                <label>Додатни пари (д):</label>
+                <label>Additional money (d):</label>
                 <input type="number" id="trade-money-amount" value="0" min="0" step="50">
             </div>
-            <button id="trade-send-btn" class="trade-action-btn" onclick="sendTradeOffer()">📨 ПОНУДИ ТРГУВАЊЕ</button>
+            <button id="trade-send-btn" class="trade-action-btn" onclick="sendTradeOffer()">📨 OFFER TRADE</button>
         </div>
         <div class="trade-nav">
-            <button id="trade-back-btn" class="trade-nav-btn" onclick="tradeStepBack()" style="display:none;">← Назад</button>
-            <button id="trade-next-btn" class="trade-nav-btn" onclick="tradeStepNext()" style="display:none;">Следно →</button>
+            <button id="trade-back-btn" class="trade-nav-btn" onclick="tradeStepBack()" style="display:none;">← Back</button>
+            <button id="trade-next-btn" class="trade-nav-btn" onclick="tradeStepNext()" style="display:none;">Next →</button>
         </div>
     </div>
 </div>
@@ -484,33 +537,33 @@
 <!-- INCOMING TRADE OFFER MODAL -->
 <div id="trade-incoming-overlay" class="modal-overlay" style="display:none; z-index:9600;">
     <div class="trade-incoming-modal">
-        <h2>📩 ПОНУДА ЗА ТРГУВАЊЕ</h2>
+        <h2>📩 TRADE OFFER</h2>
         <div id="trade-incoming-details"></div>
         <div class="trade-incoming-actions">
-            <button class="trade-action-btn trade-accept" onclick="acceptTrade()">✅ ПРИФАТИ</button>
-            <button class="trade-action-btn trade-reject" onclick="rejectTrade()">❌ ОДБИЈ</button>
+            <button class="trade-action-btn trade-accept" onclick="acceptTrade()">✅ ACCEPT</button>
+            <button class="trade-action-btn trade-reject" onclick="rejectTrade()">❌ REJECT</button>
         </div>
     </div>
 </div>
 
-<!-- AUCTION OVERLAY (Берза на знаење) -->
+<!-- AUCTION OVERLAY (Knowledge Exchange) -->
 <div id="auction-overlay" class="modal-overlay" style="display:none; z-index:9700;">
     <div class="auction-modal">
         <!-- SELLER VIEW -->
         <div id="auction-seller-view">
             <div class="auction-header">
                 <span class="auction-gavel">🔨</span>
-                <h2>АУКЦИЈА НА ПРАШАЊЕ</h2>
-                <p id="auction-header-sub">Чекаме понуди од другите играчи...</p>
+                <h2>QUESTION AUCTION</h2>
+                <p id="auction-header-sub">Waiting for offers from other players...</p>
             </div>
             <div class="auction-meta">
                 <span id="auction-category-badge" class="auction-badge"></span>
                 <span id="auction-difficulty-badge" class="auction-badge auction-badge-diff"></span>
             </div>
             <div class="auction-bid-display">
-                <div class="auction-bid-label">ТЕКОВНА ПОНУДА</div>
-                <div id="auction-current-bid" class="auction-bid-amount">0д</div>
-                <div id="auction-leader-name" class="auction-leader">Нема понуди</div>
+                <div class="auction-bid-label">CURRENT BID</div>
+                <div id="auction-current-bid" class="auction-bid-amount">0d</div>
+                <div id="auction-leader-name" class="auction-leader">No bids</div>
             </div>
             <div class="auction-timer-ring">
                 <svg viewBox="0 0 120 120" class="auction-ring-svg">
@@ -520,13 +573,13 @@
                 <div class="auction-timer-number" id="auction-timer-display">20</div>
             </div>
             <div id="auction-bids-list" class="auction-bids-list"></div>
-            <button class="auction-cancel-btn" onclick="cancelAuction()">ОТКАЖИ АУКЦИЈА</button>
+            <button class="auction-cancel-btn" onclick="cancelAuction()">CANCEL AUCTION</button>
         </div>
         <!-- BIDDER VIEW -->
         <div id="auction-bidder-view" style="display:none;">
             <div class="auction-header">
                 <span class="auction-gavel">🔔</span>
-                <h2>АУКЦИЈА НА ПРАШАЊЕ!</h2>
+                <h2>QUESTION AUCTION!</h2>
                 <p id="auction-seller-announce"></p>
             </div>
             <div class="auction-meta">
@@ -534,9 +587,9 @@
                 <span id="auction-bidder-difficulty-badge" class="auction-badge auction-badge-diff"></span>
             </div>
             <div class="auction-bid-display">
-                <div class="auction-bid-label">ТЕКОВНА ПОНУДА</div>
-                <div id="auction-bidder-current-bid" class="auction-bid-amount">0д</div>
-                <div id="auction-bidder-leader-name" class="auction-leader">Нема понуди</div>
+                <div class="auction-bid-label">CURRENT BID</div>
+                <div id="auction-bidder-current-bid" class="auction-bid-amount">0d</div>
+                <div id="auction-bidder-leader-name" class="auction-leader">No bids</div>
             </div>
             <div class="auction-timer-ring">
                 <svg viewBox="0 0 120 120" class="auction-ring-svg">
@@ -546,15 +599,15 @@
                 <div class="auction-timer-number" id="auction-bidder-timer-display">20</div>
             </div>
             <div class="auction-bid-controls" id="auction-bid-controls">
-                <p class="auction-min-note">Мин. 100д · Чекор: +100д</p>
+                <p class="auction-min-note">Min. 100d · Step: +100d</p>
                 <div class="auction-quick-bids">
-                    <button class="auction-quick-btn" onclick="placeBid('min')">МИН +100д</button>
-                    <button class="auction-quick-btn" onclick="placeBid('mid')">+300д</button>
-                    <button class="auction-quick-btn" onclick="placeBid('high')">+500д</button>
+                    <button class="auction-quick-btn" onclick="placeBid('min')">MIN +100d</button>
+                    <button class="auction-quick-btn" onclick="placeBid('mid')">+300d</button>
+                    <button class="auction-quick-btn" onclick="placeBid('high')">+500d</button>
                 </div>
                 <div class="auction-custom-bid">
-                    <input type="number" id="auction-custom-amount" placeholder="Свој износ..." min="100" step="100">
-                    <button class="auction-custom-btn" onclick="placeBid('custom')">ЛИЦИТИРАЈ</button>
+                    <input type="number" id="auction-custom-amount" placeholder="Your amount..." min="100" step="100">
+                    <button class="auction-custom-btn" onclick="placeBid('custom')">PLACE BID</button>
                 </div>
                 <div id="auction-my-bid-status"></div>
             </div>
@@ -568,17 +621,17 @@
     <div class="tutorial-modal">
         <div class="tutorial-header">
             <div class="tutorial-icon" id="tutorial-icon">🎮</div>
-            <h2 class="tutorial-title" id="tutorial-title">Добредојде!</h2>
-            <p class="tutorial-subtitle" id="tutorial-subtitle">Ајде да научиме како се игра</p>
+            <h2 class="tutorial-title" id="tutorial-title">Welcome!</h2>
+            <p class="tutorial-subtitle" id="tutorial-subtitle">Let's learn how to play</p>
         </div>
         <div class="tutorial-content" id="tutorial-content">
             <!-- Content will be dynamically injected -->
         </div>
         <div class="tutorial-footer">
-            <div class="tutorial-progress" id="tutorial-progress">Чекор 1 од 7</div>
+            <div class="tutorial-progress" id="tutorial-progress">Step 1 of 7</div>
             <div class="tutorial-nav">
-                <button class="tutorial-btn tutorial-btn-skip" onclick="skipTutorial()">Прескокни</button>
-                <button class="tutorial-btn tutorial-btn-next" id="tutorial-next-btn" onclick="nextTutorialStep()">Следно →</button>
+                <button class="tutorial-btn tutorial-btn-skip" onclick="skipTutorial()">Skip</button>
+                <button class="tutorial-btn tutorial-btn-next" id="tutorial-next-btn" onclick="nextTutorialStep()">Next →</button>
             </div>
         </div>
     </div>
